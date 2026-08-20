@@ -1,5 +1,6 @@
 from datetime import date, datetime, time
 import datetime as datetime_module
+from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -7,11 +8,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from .database import get_db
+from .database import Base, engine, get_db
 from .models import *
 from .auth import create_access_token, get_current_user, hash_password, require_admin, verify_password
 
-app = FastAPI(title='NexziByte TechTalk API', version='1.0.0')
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Migrations own schema changes; this only bootstraps a brand-new database.
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title='NexziByte TechTalk API', version='1.0.0', lifespan=lifespan)
 
 @app.exception_handler(HTTPException)
 async def http_error(_, exc): return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
