@@ -1,12 +1,12 @@
-Table users { id integer [pk]; name varchar; email varchar [unique]; password_hash varchar; role varchar; is_active boolean; created_at datetime }
+Table users { id integer [pk]; name varchar; email varchar [unique]; password_hash varchar; role varchar; bio text; skills text; location varchar; is_active boolean; created_at datetime }
 Table categories { id integer [pk]; name varchar [unique]; slug varchar [unique]; description text; is_archived boolean }
-Table posts { id integer [pk]; author_id integer [ref: > users.id]; category_id integer [ref: > categories.id]; title varchar; content text; status varchar; is_archived boolean }
+Table posts { id integer [pk]; author_id integer [ref: > users.id]; category_id integer [ref: > categories.id]; title varchar; content text; tags varchar; cover_image varchar; status varchar; is_archived boolean; created_at datetime; updated_at datetime }
 Table comments { id integer [pk]; user_id integer [ref: > users.id]; post_id integer [ref: > posts.id]; content text }
 Table reactions { id integer [pk]; user_id integer [ref: > users.id]; post_id integer [ref: > posts.id]; reaction_type varchar }
 Table saved_posts { id integer [pk]; user_id integer [ref: > users.id]; post_id integer [ref: > posts.id] }
-Table speakers { id integer [pk]; name varchar; designation varchar; company varchar }
-Table summits { id integer [pk]; title varchar; date date; status varchar; is_published boolean }
-Table founder_meets { id integer [pk]; title varchar; date date; status varchar; is_published boolean }
+Table speakers { id integer [pk]; name varchar; photo varchar; designation varchar; company varchar; expertise text; biography text; professional_links text }
+Table summits { id integer [pk]; title varchar; description text; banner varchar; date date; time time; location varchar; venue varchar; agenda text; status varchar; is_published boolean }
+Table founder_meets { id integer [pk]; title varchar; description text; banner varchar; date date; time time; location varchar; founder_information text; networking_info text; agenda text; status varchar; is_published boolean }
 Table summit_speakers { summit_id integer [ref: > summits.id]; speaker_id integer [ref: > speakers.id] }
 Table founder_meet_speakers { founder_meet_id integer [ref: > founder_meets.id]; speaker_id integer [ref: > speakers.id] }
-Table registrations { id integer [pk]; user_id integer [ref: > users.id]; event_type varchar; event_id integer; status varchar }
+Table registrations { id integer [pk]; user_id integer [ref: > users.id]; event_type varchar; event_id integer; status varchar; registered_at datetime }

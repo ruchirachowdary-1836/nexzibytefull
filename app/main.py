@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from .database import get_db
@@ -20,7 +20,23 @@ class RegisterIn(BaseModel): name: str = Field(min_length=1, max_length=120); em
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
 class CommentIn(BaseModel): content: str = Field(min_length=1, max_length=5000)
-class SpeakerIn(BaseModel): name: str = Field(min_length=1, max_length=120); designation: str = Field(min_length=1, max_length=150); photo: str | None = None; company: str | None = None; expertise: str | None = None; biography: str | None = None; professional_links: str | None = None
+class SpeakerIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    designation: str = Field(min_length=1, max_length=150)
+    photo: str | None = None
+    company: str | None = None
+    expertise: str | None = None
+    biography: str | None = None
+    professional_links: str | None = None
+
+    @field_validator('photo', 'professional_links')
+    @classmethod
+    def validate_urls(cls, value: str | None):
+        if value is None or not value.strip():
+            return value
+        for url in value.split(','):
+            HttpUrl(url.strip())
+        return value
 class EventIn(BaseModel):
     title: str = Field(min_length=1, max_length=200); description: str | None = None; banner: str | None = None; date: date; time: datetime_module.time | None = None; location: str | None = None; agenda: str | None = None; speaker_ids: list[int] = []
     venue: str | None = None; founder_information: str | None = None; networking_info: str | None = None
@@ -29,6 +45,8 @@ class RegistrationIn(BaseModel): event_type: Literal['summit', 'founder_meet']; 
 def item(obj):
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
     return data
+def user_item(user):
+    return {c.name: getattr(user, c.name) for c in user.__table__.columns if c.name != 'password_hash'}
 def one(db, cls, ident):
     obj = db.get(cls, ident)
     if not obj: raise HTTPException(404, detail=f'{cls.__name__} not found')
@@ -50,25 +68,25 @@ def health(): return {'status': 'ok'}
 def register(body: RegisterIn, db: Session = Depends(get_db)):
     if db.query(User).filter_by(email=body.email).first(): raise HTTPException(409, detail='Email already registered')
     user = User(name=body.name, email=body.email, password_hash=hash_password(body.password))
-    db.add(user); db.commit(); db.refresh(user); return item(user)
+    db.add(user); db.commit(); db.refresh(user); return user_item(user)
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter_by(email=form.username).first()
     if not user or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 @app.get('/users/me')
-def me(user: User = Depends(get_current_user)): return item(user)
+def me(user: User = Depends(get_current_user)): return user_item(user)
 
 @app.get('/users')
 def users(search: str | None = None, limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
     q = db.query(User)
     if search: q = q.filter(or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%')))
-    return {'total': q.count(), 'items': [item(x) for x in q.offset(offset).limit(limit)]}
+    return {'total': q.count(), 'items': [user_item(x) for x in q.offset(offset).limit(limit)]}
 @app.get('/users/{user_id}')
-def user_detail(user_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)): return item(one(db, User, user_id))
+def user_detail(user_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)): return user_item(one(db, User, user_id))
 @app.patch('/users/{user_id}/status')
 def user_status(user_id: int, active: bool, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    u = one(db, User, user_id); u.is_active = active; db.commit(); return item(u)
+    u = one(db, User, user_id); u.is_active = active; db.commit(); return user_item(u)
 
 @app.post('/categories', status_code=201)
 def create_category(body: CategoryIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
