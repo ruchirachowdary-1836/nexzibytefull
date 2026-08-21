@@ -27,6 +27,7 @@ def token(email, password):
 
 
 def test_auth_and_user_profile():
+    assert client.get('/').json()['docs'] == '/docs'
     assert client.get('/health').json() == {'status': 'ok'}
     response = client.post('/auth/register', json={'name': 'Test User', 'email': 'test@example.com', 'password': 'Password123'})
     assert response.status_code == 201
@@ -34,6 +35,15 @@ def test_auth_and_user_profile():
     profile = client.get('/users/me', headers=token('test@example.com', 'Password123'))
     assert profile.status_code == 200
     assert 'password_hash' not in profile.json()
+
+
+def test_cors_preflight_for_frontend():
+    response = client.options('/posts', headers={
+        'Origin': 'https://frontend.example',
+        'Access-Control-Request-Method': 'GET',
+    })
+    assert response.status_code == 200
+    assert response.headers['access-control-allow-origin'] == '*'
 
 
 def test_post_and_community_lifecycle():

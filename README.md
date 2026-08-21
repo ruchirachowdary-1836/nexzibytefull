@@ -37,6 +37,7 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 
 1. Create a Neon PostgreSQL project and copy its pooled connection string.
 2. In Render, set `DB_URL` to that connection string and set a long random `JWT_SECRET`.
+   Set `CORS_ORIGINS` to the deployed frontend origin (comma-separated if there is more than one).
 3. Deploy the `main` branch. The Render start command runs `alembic upgrade head` before Uvicorn starts.
 4. After the first successful deploy, run `python -m app.seed.seed_data` once with the same Neon `DB_URL` to load the demo data.
 

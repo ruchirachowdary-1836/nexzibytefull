@@ -3,11 +3,13 @@ import datetime as datetime_module
 from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
+from .config import allowed_origins
 from .database import Base, engine, get_db
 from .models import *
 from .auth import create_access_token, get_current_user, hash_password, require_admin, verify_password
@@ -20,6 +22,17 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title='NexziByte TechTalk API', version='1.0.0', lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins(),
+    allow_credentials=False,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
+@app.get('/', tags=['System'])
+def root():
+    return {'name': 'NexziByte TechTalk API', 'docs': '/docs', 'health': '/health'}
 
 @app.exception_handler(HTTPException)
 async def http_error(_, exc): return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
