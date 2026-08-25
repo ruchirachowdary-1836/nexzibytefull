@@ -12,3 +12,8 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: "*"
+  - type: web
+    name: techtalk-frontend
+    env: static
+    buildCommand: ""
+    staticPublishPath: ./frontend

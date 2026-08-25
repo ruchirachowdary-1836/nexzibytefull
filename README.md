@@ -42,3 +42,7 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 4. After the first successful deploy, run `python -m app.seed.seed_data` once with the same Neon `DB_URL` to load the demo data.
 
 Live API documentation: https://techtalk-backend-orik.onrender.com/docs
+
+## Frontend
+
+The deployable static frontend is in [`frontend/`](frontend/). Render reads the second service in `render.yaml` and publishes it as `techtalk-frontend`. It connects to the API URL in [`frontend/config.js`](frontend/config.js); update that value if Render assigns your backend a different URL.
