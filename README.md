@@ -41,4 +41,5 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 3. Deploy the `main` branch. The Render start command runs `alembic upgrade head` before Uvicorn starts.
 4. After the first successful deploy, run `python -m app.seed.seed_data` once with the same Neon `DB_URL` to load the demo data.
 
-Live API documentation: https://techtalk-backend-orik.onrender.com/docs
+After Render deploys the service, API documentation is available at
+`https://<your-service>.onrender.com/docs`.
