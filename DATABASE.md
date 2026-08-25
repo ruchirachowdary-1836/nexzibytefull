@@ -10,14 +10,12 @@ The complete relationship diagram source is available in [`docs/schema.dbml`](do
 
 Key status fields: users have `is_active`; posts have draft/published plus archival; events have `is_published` and upcoming/past status; registrations have registered/cancelled status.
 
-## MySQL Workbench
+## PostgreSQL deployment
 
-Import [`database/mysql_workbench_schema.sql`](database/mysql_workbench_schema.sql) in MySQL Workbench using **File > Open SQL Script**, then execute it. It creates the `nexzibyte_techtalk` database and all application tables, relationships, indexes, and uniqueness rules.
-
-To run the API against that database, install the updated dependencies and set `DB_URL` in `.env`:
+Use a hosted PostgreSQL database such as Neon for deployment. Set its connection string in `.env` locally and as `DB_URL` in Render:
 
 ```env
-DB_URL=mysql+pymysql://root:your-password@localhost:3306/nexzibyte_techtalk
+DB_URL=postgresql://user:password@your-neon-host/neondb?sslmode=require
 ```
 
-After importing, you may run `python -m app.seed.seed_data` to add the project’s demo data.
+The Render startup command runs Alembic to create the schema automatically. You may then run `python -m app.seed.seed_data` to add demo data.

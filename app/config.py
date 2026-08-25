@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     db_url: str = "sqlite:///./techtalk.db"
     jwt_secret: str = "change-this-in-production"
     access_token_expire_minutes: int = 60
-    # Comma-separated origins let the separately deployed frontend call this API.
-    # Use a specific production URL on Render rather than leaving this as "*".
+    # Comma-separated browser-client origins. Use specific production URLs when
+    # the API is consumed by a browser-based client.
     cors_origins: str = "*"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

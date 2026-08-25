@@ -11,7 +11,7 @@ Python, FastAPI, SQLAlchemy 2, PostgreSQL (or SQLite locally), JWT, and pytest.
 1. Create and activate a virtual environment.
 2. `pip install -r requirements.txt`
 3. Copy `.env.example` to `.env`; set `DB_URL` to a PostgreSQL URL for production.
-4. Run `alembic upgrade head` to create/update the schema.
+4. Run `python -m alembic upgrade head` to create/update the schema.
 5. `uvicorn app.main:app --reload`
 5. Open http://127.0.0.1:8000/docs.
 
@@ -37,12 +37,8 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 
 1. Create a Neon PostgreSQL project and copy its pooled connection string.
 2. In Render, set `DB_URL` to that connection string and set a long random `JWT_SECRET`.
-   Set `CORS_ORIGINS` to the deployed frontend origin (comma-separated if there is more than one).
+   Set `CORS_ORIGINS` to the origins of any browser clients that will call the API (comma-separated if there is more than one), or leave it as `*` for a public API.
 3. Deploy the `main` branch. The Render start command runs `alembic upgrade head` before Uvicorn starts.
 4. After the first successful deploy, run `python -m app.seed.seed_data` once with the same Neon `DB_URL` to load the demo data.
 
 Live API documentation: https://techtalk-backend-orik.onrender.com/docs
-
-## Frontend
-
-The deployable static frontend is in [`frontend/`](frontend/). Render reads the second service in `render.yaml` and publishes it as `techtalk-frontend`. It connects to the API URL in [`frontend/config.js`](frontend/config.js); update that value if Render assigns your backend a different URL.
