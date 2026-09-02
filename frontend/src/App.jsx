@@ -160,7 +160,7 @@ function Layout({ children, user, onLogout }) {
           <div className="brand-mark">N</div>
           <div>
             <div className="brand-name">NexziByte</div>
-            <div className="brand-subtitle">Executive tech community</div>
+            <div className="brand-subtitle">Tech Talk</div>
           </div>
         </div>
 
@@ -197,7 +197,7 @@ function Layout({ children, user, onLogout }) {
 
       <footer className="site-footer">
         <div>
-          <div className="footer-brand">NexziByte</div>
+          <div className="footer-brand">NexziByte Tech Talk</div>
           <p>Technology events, learning and strategic networking for modern teams.</p>
         </div>
         <div className="footer-links">
@@ -222,7 +222,7 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
           <span className="eyebrow">Enterprise event platform</span>
           <h1>Built for leaders shaping the next generation of technology.</h1>
           <p>
-            NexziByte connects product leaders, engineers, founders and operators through focused learning, executive events and strategic hiring opportunities.
+            NexziByte Tech Talk connects product leaders, engineers, founders and operators through focused learning, executive events and strategic hiring opportunities.
           </p>
           <div className="cta-row">
             <Link className="primary-btn" to="/summits">Explore events</Link>
