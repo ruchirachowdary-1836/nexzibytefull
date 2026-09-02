@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: techtalk-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Render free services cannot use pre-deploy commands, so migrate at start.
+    startCommand: sh -c 'python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT'
+    healthCheckPath: /health
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        value: 925568395020-ggm3t5a2jt7hcrtpvkhap3m5qehbdgq1.apps.googleusercontent.com
+      - key: CORS_ORIGINS
+        value: "*"
+  - type: web
+    name: techtalk-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://techtalk-backend-shob.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: 925568395020-ggm3t5a2jt7hcrtpvkhap3m5qehbdgq1.apps.googleusercontent.com
