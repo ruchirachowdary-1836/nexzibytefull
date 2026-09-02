@@ -267,13 +267,29 @@
 }
 
 .hero-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 18px;
-  border-radius: 24px;
-  background: rgba(11, 18, 30, 0.86);
-  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(13, 20, 33, 0.96), rgba(9, 13, 22, 0.94));
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  box-shadow: 0 28px 70px rgba(19, 32, 72, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  isolation: isolate;
+  animation: floatPanel 7s ease-in-out infinite;
+}
+
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: -18% auto auto -12%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.35), transparent 65%);
+  filter: blur(18px);
+  z-index: -1;
 }
 
 .hero-panel-top {
@@ -305,14 +321,26 @@
 }
 
 .hero-panel img {
-  height: 430px;
+  height: 470px;
   object-fit: cover;
-  transition: transform 0.5s ease, filter 0.45s ease;
+  border: 1px solid rgba(96, 165, 250, 0.16);
+  box-shadow: 0 22px 40px rgba(15, 21, 37, 0.42);
+  transition: transform 0.55s ease, filter 0.45s ease, box-shadow 0.45s ease;
 }
 
 .hero-panel:hover img {
-  transform: scale(1.03);
-  filter: saturate(1.12);
+  transform: scale(1.035);
+  filter: saturate(1.14) contrast(1.04);
+  box-shadow: 0 20px 48px rgba(59, 91, 255, 0.18);
+}
+
+@keyframes floatPanel {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .panel-stats {
