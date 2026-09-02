@@ -107,7 +107,7 @@
 .primary-btn {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: #ffffff;
-  box-shadow: 0 18px 26px rgba(108, 59, 255, 0.22);
+  box-shadow: 0 18px 26px rgba(59, 91, 255, 0.18);
 }
 
 .primary-btn:hover,
@@ -175,7 +175,7 @@
   padding: 34px 30px;
   border-radius: 28px;
   border: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(108, 59, 255, 0.1), rgba(255, 79, 216, 0.08), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(135deg, rgba(59, 91, 255, 0.08), rgba(96, 165, 250, 0.12), rgba(255, 255, 255, 0.96));
   box-shadow: var(--shadow);
 }
 
@@ -191,8 +191,8 @@
   width: fit-content;
   padding: 0.42rem 0.68rem;
   border-radius: 999px;
-  background: rgba(108, 59, 255, 0.08);
-  border: 1px solid rgba(108, 59, 255, 0.18);
+  background: rgba(59, 91, 255, 0.08);
+  border: 1px solid rgba(59, 91, 255, 0.18);
   color: var(--primary);
   font-size: 0.72rem;
   font-weight: 700;
@@ -286,9 +286,9 @@
   display: inline-flex;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  background: rgba(152, 240, 214, 0.12);
-  border: 1px solid rgba(152, 240, 214, 0.2);
-  color: var(--success);
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  color: var(--primary);
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -377,6 +377,33 @@
   gap: 18px;
 }
 
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.step-card {
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.step-number {
+  display: inline-flex;
+  min-width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: rgba(59, 91, 255, 0.08);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .feature-card {
   padding: 22px;
   border-radius: 22px;
@@ -390,7 +417,7 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(108, 59, 255, 0.08);
+  background: rgba(59, 91, 255, 0.08);
   color: var(--primary);
   margin-bottom: 14px;
 }
@@ -400,6 +427,7 @@
 }
 
 .feature-card p,
+.step-card p,
 .post-body p,
 .event-body p,
 .detail-panel p,

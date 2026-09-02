@@ -27,31 +27,33 @@ import './App.css';
 
 const siteSections = [
   { to: '/', label: 'Home' },
-  { to: '/explore', label: 'Explore' },
   { to: '/summits', label: 'Summits' },
-  { to: '/founder-meets', label: 'Founder Meets' },
   { to: '/speakers', label: 'Speakers' },
   { to: '/pricing', label: 'Pricing' },
-  { to: '/create-post', label: 'Create Post' },
-  { to: '/profile', label: 'Profile' },
 ];
 
 const featureCards = [
-  { icon: Sparkles, title: 'Curated learning', text: 'Build a sharper professional edge with practical stories, events and expert conversations.' },
-  { icon: TrendingUp, title: 'Career acceleration', text: 'Learn what hiring managers want and how founders actually build technology companies.' },
-  { icon: ShieldCheck, title: 'Trusted network', text: 'Connect with vetted builders, operators, speakers and investors in one high-signal ecosystem.' },
+  { icon: Sparkles, title: 'Executive learning', text: 'Access high-signal industry insight designed for product, engineering and leadership decision-makers.' },
+  { icon: TrendingUp, title: 'Career growth', text: 'Learn from experienced operators and founders who are building the next generation of technology businesses.' },
+  { icon: ShieldCheck, title: 'High-trust network', text: 'Build relationships with credible professionals in a focused, premium environment.' },
+];
+
+const howItWorks = [
+  { step: '01', title: 'Discover the right conversations', text: 'Explore executive briefings, founder stories and curated technical learning designed for modern teams.' },
+  { step: '02', title: 'Join premium events', text: 'Reserve seats for speaker sessions, founder meets and high-intent networking experiences.' },
+  { step: '03', title: 'Apply what you learn', text: 'Turn insight into action with peer accountability, practical frameworks and stronger professional momentum.' },
 ];
 
 const testimonials = [
-  { name: 'Ayesha M.', role: 'Product Designer', quote: 'It feels premium, focused and useful — exactly the kind of network I wanted as a career pivot.' },
-  { name: 'Rayan P.', role: 'Platform Engineer', quote: 'The events and expert sessions are practical, not generic. It helps me learn and connect in one place.' },
-  { name: 'Sana I.', role: 'Startup Founder', quote: 'This is one of the rare communities that combines real opportunities with genuine knowledge-sharing.' },
+  { name: 'Ayesha M.', role: 'VP Product', quote: 'The community feels polished and useful. It is the kind of network I want to stay close to as I grow in leadership.' },
+  { name: 'Rayan P.', role: 'Platform Engineer', quote: 'The sessions are practical, well curated and immediately relevant to real engineering and product work.' },
+  { name: 'Sana I.', role: 'Startup Founder', quote: 'NexziByte brings the right balance of learning, access and credibility without the noise.' },
 ];
 
 const pricingPlans = [
-  { name: 'Starter', price: '$19', description: 'Best for curious learners and early career professionals.', perks: ['Access to weekly digest', '5 premium resources', 'Community Q&A access'] },
-  { name: 'Growth', price: '$49', description: 'For builders who want deeper learning and event access.', perks: ['Everything in Starter', 'Priority event discounts', 'Member-only workshops', '1:1 community office hours'] },
-  { name: 'Founder', price: '$99', description: 'For ambitious builders, operators and startup leaders.', perks: ['Everything in Growth', 'Founder meet access', 'VIP ticket priority', 'Career review sessions'] },
+  { name: 'Starter', price: '$19', description: 'For professionals building a stronger technical and career foundation.', perks: ['Weekly strategic briefings', '10 premium resources', 'Community Q&A access', 'Member event alerts'] },
+  { name: 'Growth', price: '$49', description: 'For product builders and operators who want deeper learning and event access.', perks: ['Everything in Starter', 'Priority pricing for launches', 'Member-only workshops', '1:1 office hours access', 'Exclusive networking invites'] },
+  { name: 'Founder', price: '$99', description: 'For leaders scaling teams, companies and their professional influence.', perks: ['Everything in Growth', 'Founder meet access', 'VIP event priority', 'Career and GTM review sessions', 'Private founder circle access'] },
 ];
 
 const faqs = [
@@ -158,7 +160,7 @@ function Layout({ children, user, onLogout }) {
           <div className="brand-mark">N</div>
           <div>
             <div className="brand-name">NexziByte</div>
-            <div className="brand-subtitle">TechTalk</div>
+            <div className="brand-subtitle">Executive tech community</div>
           </div>
         </div>
 
@@ -195,8 +197,8 @@ function Layout({ children, user, onLogout }) {
 
       <footer className="site-footer">
         <div>
-          <div className="footer-brand">NexziByte TechTalk</div>
-          <p>Where technology meets ideas, people and possibilities.</p>
+          <div className="footer-brand">NexziByte</div>
+          <p>Technology events, learning and strategic networking for modern teams.</p>
         </div>
         <div className="footer-links">
           <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
@@ -217,14 +219,14 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
     <>
       <section className="hero-section">
         <div className="hero-copy">
-          <span className="eyebrow">Technology community</span>
-          <h1>Where technology meets ideas, people and real momentum.</h1>
+          <span className="eyebrow">Enterprise event platform</span>
+          <h1>Built for leaders shaping the next generation of technology.</h1>
           <p>
-            Discover expert-led content, join premium events, and build your network with people who are shaping what comes next in tech.
+            NexziByte connects product leaders, engineers, founders and operators through focused learning, executive events and strategic hiring opportunities.
           </p>
           <div className="cta-row">
-            <Link className="primary-btn" to="/explore">Explore TechTalk</Link>
-            <Link className="secondary-btn" to="/register">Join the community</Link>
+            <Link className="primary-btn" to="/summits">Explore events</Link>
+            <Link className="secondary-btn" to="/pricing">Membership</Link>
           </div>
           <div className="stats-row">
             <div>
@@ -232,12 +234,12 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
               <span>Members</span>
             </div>
             <div>
-              <strong>1.2K+</strong>
-              <span>Insights</span>
-            </div>
-            <div>
               <strong>42</strong>
               <span>Events</span>
+            </div>
+            <div>
+              <strong>96%</strong>
+              <span>Retention</span>
             </div>
           </div>
         </div>
@@ -247,17 +249,35 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
             <span className="chip">Featured</span>
             <strong>AI & Product</strong>
           </div>
-          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80" alt="Community collaboration" />
+          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Executive team discussion" />
           <div className="panel-stats">
             <div>
               <span>Upcoming summit</span>
               <strong>{highlightEvent?.title}</strong>
             </div>
             <div>
-              <span>Featured founder</span>
+              <span>Featured speaker</span>
               <strong>{speakers[0]?.name}</strong>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="content-section muted-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">How it works</span>
+            <h2>Purpose-built for serious learning and access</h2>
+          </div>
+        </div>
+        <div className="steps-grid">
+          {howItWorks.map((item) => (
+            <div key={item.step} className="step-card">
+              <span className="step-number">{item.step}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </div>
+          ))}
         </div>
       </section>
 

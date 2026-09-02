@@ -6,27 +6,27 @@ html {
   font-family: Inter, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #111118;
-  background: #F8F7FC;
+  color: #0A0A0A;
+  background: #FFFFFF;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --bg: #F8F7FC;
-  --bg-strong: #efeaff;
-  --panel: rgba(255, 255, 255, 0.78);
-  --panel-strong: rgba(255, 255, 255, 0.94);
-  --card: #ffffff;
-  --card-soft: #f1ebff;
-  --text: #111118;
-  --muted: #5a5769;
-  --border: rgba(108, 59, 255, 0.15);
-  --primary: #6C3BFF;
-  --primary-strong: #5630dd;
-  --secondary: #9B5CFF;
-  --accent: #FF4FD8;
-  --success: #49d29d;
-  --shadow: 0 22px 50px rgba(108, 59, 255, 0.18);
+  --bg: #FFFFFF;
+  --bg-strong: #F3F6FF;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: rgba(255, 255, 255, 0.96);
+  --card: #FFFFFF;
+  --card-soft: #EAF2FF;
+  --text: #0A0A0A;
+  --muted: #5B6473;
+  --border: rgba(59, 91, 255, 0.14);
+  --primary: #3B5BFF;
+  --primary-strong: #2D47D9;
+  --secondary: #60A5FA;
+  --accent: #60A5FA;
+  --success: #22c55e;
+  --shadow: 0 22px 50px rgba(59, 91, 255, 0.12);
 }
 
 * {
@@ -42,9 +42,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(156, 92, 255, 0.18), transparent 26%),
-    radial-gradient(circle at right, rgba(255, 79, 216, 0.12), transparent 24%),
-    linear-gradient(180deg, #f8f7fc 0%, #f3efff 100%);
+    radial-gradient(circle at top, rgba(96, 165, 250, 0.18), transparent 26%),
+    radial-gradient(circle at right, rgba(59, 91, 255, 0.08), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
   color: var(--text);
 }
 
