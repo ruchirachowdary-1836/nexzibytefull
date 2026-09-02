@@ -26,12 +26,14 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
-  { to: '/', label: 'Home' },
-  { to: '/explore', label: 'Explore' },
-  { to: '/summits', label: 'Summits' },
-  { to: '/founder-meets', label: 'Founder Meets' },
-  { to: '/speakers', label: 'Speakers' },
-  { to: '/pricing', label: 'Pricing' },
+  { to: '/', label: 'Latest' },
+  { to: '/explore', label: 'AI' },
+  { to: '/explore', label: 'Technology' },
+  { to: '/founder-meets', label: 'Startups' },
+  { to: '/explore', label: 'Cybersecurity' },
+  { to: '/summits', label: 'Innovation' },
+  { to: '/explore', label: 'Gadgets' },
+  { to: '/pricing', label: 'Careers' },
 ];
 
 const featureCards = [
@@ -167,7 +169,7 @@ function Layout({ children, user, onLogout }) {
         <div className="brand-wrap">
           <div className="brand-mark">N</div>
           <div>
-            <div className="brand-name">NexziByte</div>
+            <div className="brand-name">Nexzibyte</div>
             <div className="brand-subtitle">Tech Talk</div>
           </div>
         </div>
@@ -209,69 +211,142 @@ function Layout({ children, user, onLogout }) {
       <main className="page-content">{children}</main>
 
       <footer className="site-footer">
-        <div>
-          <div className="footer-brand">NexziByte Tech Talk</div>
-          <p>Technology events, learning and strategic networking for modern teams.</p>
+        <div className="footer-column brand-column">
+          <div className="footer-brand">Nexzibyte Tech Talk</div>
+          <p>Exploring technology. Inspiring tomorrow.</p>
         </div>
-        <div className="footer-links">
-          <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
-          <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
-          <a href="https://x.com" target="_blank" rel="noreferrer">X</a>
+
+        <div className="footer-column">
+          <h4>Explore</h4>
+          <div className="footer-links vertical-links">
+            <Link to="/">Latest</Link>
+            <Link to="/explore">AI</Link>
+            <Link to="/founder-meets">Startups</Link>
+            <Link to="/summits">Innovation</Link>
+          </div>
+        </div>
+
+        <div className="footer-column">
+          <h4>Company</h4>
+          <div className="footer-links vertical-links">
+            <Link to="/explore">About</Link>
+            <Link to="/summits">Contact</Link>
+            <Link to="/pricing">Write for Us</Link>
+          </div>
+        </div>
+
+        <div className="footer-column">
+          <h4>Social</h4>
+          <div className="footer-links social-links">
+            <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://x.com" target="_blank" rel="noreferrer">X</a>
+          </div>
         </div>
       </footer>
+      <div className="footer-bottom">© 2026 Nexzibyte Tech Talk. All rights reserved.</div>
     </div>
   );
 }
 
 function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
-  const featuredPosts = posts.slice(0, 3);
+  const featuredPosts = posts.slice(0, 4);
   const highlightEvent = summits[0];
   const highlightMeet = founderMeets[0];
+  const leadStory = featuredPosts[0];
+  const secondaryStories = featuredPosts.slice(1, 4);
 
   return (
     <>
-      <section className="hero-section">
+      <div className="breaking-bar">
+        <span className="breaking-label">Trending now</span>
+        <div className="breaking-marquee">
+          <span>AI</span>
+          <span>Startups</span>
+          <span>Cybersecurity</span>
+          <span>Future of technology</span>
+          <span>Innovation</span>
+          <span>Gadgets</span>
+        </div>
+      </div>
+
+      <section className="hero-section editorial-hero">
         <div className="hero-copy">
-          <span className="eyebrow">Enterprise event platform</span>
-          <h1>Built for leaders shaping the next generation of technology.</h1>
+          <span className="eyebrow">Technology publication</span>
+          <h1>Exploring technology. Inspiring tomorrow.</h1>
           <p>
-            NexziByte Tech Talk connects product leaders, engineers, founders and operators through focused learning, executive events and strategic hiring opportunities.
+            NexziByte Tech Talk delivers the stories, people and ideas shaping AI, startups, cybersecurity, and the next generation of digital life.
           </p>
           <div className="cta-row">
-            <Link className="primary-btn" to="/summits">Explore events</Link>
-            <Link className="secondary-btn" to="/pricing">Membership</Link>
+            <Link className="primary-btn" to="/explore">Read the latest</Link>
+            <Link className="secondary-btn" to="/pricing">Join the network</Link>
           </div>
           <div className="stats-row">
             <div>
               <strong>28K+</strong>
-              <span>Members</span>
+              <span>Readers</span>
             </div>
             <div>
               <strong>42</strong>
-              <span>Events</span>
+              <span>Live events</span>
             </div>
             <div>
               <strong>96%</strong>
-              <span>Retention</span>
+              <span>Trust score</span>
             </div>
           </div>
         </div>
 
-        <div className="hero-panel">
-          <div className="hero-panel-top">
+        <div className="hero-visual">
+          <div className="hero-image-wrap">
+            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" alt="Technology editorial cover" />
+          </div>
+          <div className="hero-floating-card">
             <span className="chip">Featured</span>
-            <strong>AI & Product</strong>
+            <strong>{leadStory?.title}</strong>
+            <small>{leadStory?.author} • {leadStory?.readTime}</small>
           </div>
-          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Executive team discussion" />
-          <div className="panel-stats">
-            <div>
-              <span>Upcoming summit</span>
-              <strong>{highlightEvent?.title}</strong>
+        </div>
+      </section>
+
+      <section className="content-section editorial-grid-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Editorial picks</span>
+            <h2>Fresh insights from the frontier of tech</h2>
+          </div>
+          <Link className="text-link" to="/explore">View all stories <ArrowRight size={16} /></Link>
+        </div>
+
+        <div className="editorial-grid">
+          <article className="feature-story card-surface">
+            <img src={leadStory?.image} alt={leadStory?.title} />
+            <div className="story-body">
+              <span className="story-tag">{leadStory?.category}</span>
+              <h3>{leadStory?.title}</h3>
+              <p>{leadStory?.excerpt}</p>
+              <div className="story-meta">
+                <span>{leadStory?.author}</span>
+                <span>{leadStory?.publishedAt}</span>
+                <span>{leadStory?.readTime}</span>
+              </div>
             </div>
-            <div>
-              <span>Featured speaker</span>
-              <strong>{speakers[0]?.name}</strong>
-            </div>
+          </article>
+
+          <div className="stacked-story-list">
+            {secondaryStories.map((post) => (
+              <article key={post.id} className="mini-story card-surface">
+                <img src={post.image} alt={post.title} />
+                <div>
+                  <span className="story-tag small-tag">{post.category}</span>
+                  <h4>{post.title}</h4>
+                  <div className="story-meta compact-meta">
+                    <span>{post.author}</span>
+                    <span>{post.readTime}</span>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -279,41 +354,53 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
       <section className="content-section muted-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">How it works</span>
-            <h2>Purpose-built for serious learning and access</h2>
+            <span className="eyebrow">AI & innovation</span>
+            <h2>Intelligence, systems and the next wave of product design</h2>
+          </div>
+          <Link className="text-link" to="/explore">Explore AI <ArrowRight size={16} /></Link>
+        </div>
+
+        <div className="category-showcase">
+          <div className="featured-article card-surface">
+            <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80" alt="AI research" />
+            <div className="story-body">
+              <span className="story-tag">Artificial Intelligence</span>
+              <h3>Why AI copilots are becoming strategic operating systems for modern teams</h3>
+              <p>From research workflows to product velocity, intelligent assistants are reshaping how companies plan, build and learn.</p>
+            </div>
+          </div>
+
+          <div className="mini-list">
+            {posts.slice(0, 3).map((post) => (
+              <div key={post.id} className="mini-list-item">
+                <strong>{post.title}</strong>
+                <small>{post.category} • {post.readTime}</small>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="steps-grid">
-          {howItWorks.map((item) => (
-            <div key={item.step} className="step-card">
-              <span className="step-number">{item.step}</span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="brand-strip">
-        <div className="brand-strip-item">AI & data</div>
-        <div className="brand-strip-item">Career growth</div>
-        <div className="brand-strip-item">Product strategy</div>
-        <div className="brand-strip-item">Founder networks</div>
       </section>
 
       <section className="content-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">Why members stay</span>
-            <h2>Everything you need to grow in tech — in one place</h2>
+            <span className="eyebrow">Trending technology</span>
+            <h2>What leaders are watching right now</h2>
           </div>
         </div>
-        <div className="feature-grid">
-          {featureCards.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="feature-card">
-              <div className="feature-icon"><Icon size={22} /></div>
-              <h3>{title}</h3>
-              <p>{text}</p>
+
+        <div className="trend-grid">
+          {[
+            'The future of AI agents',
+            'Why quantum computing matters now',
+            'The next generation of robotics',
+            'Your SaaS stack is becoming a strategic moat',
+            'Cybersecurity leaders are redesigning trust',
+            'The new economics of startup scale'
+          ].map((item, index) => (
+            <div key={item} className="trend-item">
+              <span className="trend-number">0{index + 1}</span>
+              <strong>{item}</strong>
             </div>
           ))}
         </div>
@@ -322,25 +409,71 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
       <section className="content-section muted-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">Featured content</span>
-            <h2>Fresh insight from the community</h2>
+            <span className="eyebrow">Startups & innovation</span>
+            <h2>Stories from founders building the future</h2>
           </div>
-          <Link className="text-link" to="/explore">View all <ArrowRight size={16} /></Link>
         </div>
-        <div className="post-grid">
-          {featuredPosts.map((post) => <PostCard key={post.id} post={post} />)}
+
+        <div className="story-columns">
+          <div className="story-column large">
+            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Startup founders" />
+            <div className="story-body">
+              <span className="story-tag">Startups</span>
+              <h3>What durable startup companies do differently in uncertain markets</h3>
+              <p>Founders who win are not chasing momentum alone. They build clarity, operating rhythm and product trust.</p>
+            </div>
+          </div>
+
+          <div className="story-column small-list">
+            {[{ title: 'The funding climate keeps rewarding efficient growth', category: 'Business' }, { title: 'Why the best product teams design for trust from day one', category: 'Innovation' }, { title: 'New infrastructure tools are helping founders move faster', category: 'Technology' }].map((entry) => (
+              <div key={entry.title} className="small-list-item">
+                <span>{entry.category}</span>
+                <strong>{entry.title}</strong>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="content-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">Trending topics</span>
-            <h2>What the community is learning right now</h2>
+            <span className="eyebrow">Cybersecurity</span>
+            <h2>Security, trust and resilient digital systems</h2>
           </div>
         </div>
-        <div className="tag-cloud">
-          {mockData.trendingTopics.map((topic) => <span key={topic} className="tag-pill">{topic}</span>)}
+
+        <div className="security-panel card-surface">
+          <div>
+            <span className="story-tag">Cybersecurity</span>
+            <h3>Security is no longer a backend concern — it is a product strategy issue.</h3>
+            <p>Teams are rethinking security around user trust, resilient architecture and transparent governance.</p>
+          </div>
+          <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80" alt="Cybersecurity systems" />
+        </div>
+      </section>
+
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">The future</span>
+            <h2>Beyond the next cycle: spaces, systems and human progress</h2>
+          </div>
+        </div>
+
+        <div className="futuristic-grid">
+          <div className="future-card feature-card card-surface">
+            <span className="story-tag">Space + AI</span>
+            <h3>New frontier technologies are changing the pace of scientific discovery</h3>
+          </div>
+          <div className="future-card card-surface">
+            <span className="story-tag">Quantum</span>
+            <h3>Why early experimentation matters in quantum infrastructure</h3>
+          </div>
+          <div className="future-card card-surface">
+            <span className="story-tag">Robotics</span>
+            <h3>Human-centered automation is becoming a design challenge</h3>
+          </div>
         </div>
       </section>
 
@@ -348,7 +481,7 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Events</span>
-            <h2>High-signal experiences that create momentum</h2>
+            <h2>High-signal experiences designed for builders and leaders</h2>
           </div>
         </div>
         <div className="event-grid">
@@ -361,7 +494,7 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Experts</span>
-            <h2>Meet the people behind the conversation</h2>
+            <h2>Meet the thinkers behind the signal</h2>
           </div>
         </div>
         <div className="speaker-grid">
@@ -369,46 +502,14 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
         </div>
       </section>
 
-      <section className="content-section testimonial-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Community feedback</span>
-            <h2>Members come for the learning and stay for the network</h2>
-          </div>
-        </div>
-        <div className="testimonial-grid">
-          {testimonials.map((item) => (
-            <div key={item.name} className="testimonial-card">
-              <div className="stars">
-                {[...Array(5)].map((_, index) => <Star key={index} size={14} fill="currentColor" />)}
-              </div>
-              <p>“{item.quote}”</p>
-              <div className="testimonial-author">
-                <strong>{item.name}</strong>
-                <span>{item.role}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section pricing-box">
-        <div className="pricing-cta">
-          <div>
-            <span className="eyebrow">Membership</span>
-            <h2>Invest in your next chapter</h2>
-          </div>
-          <Link className="primary-btn" to="/pricing">See plans</Link>
-        </div>
-      </section>
-
-      <section className="content-section newsletter-box">
+      <section className="content-section newsletter-box premium-newsletter">
         <div>
-          <span className="eyebrow">Stay in the loop</span>
-          <h2>Get the latest tech, career and founder insight once a week.</h2>
+          <span className="eyebrow">Newsletter</span>
+          <h2>The Future of Technology, Delivered to Your Inbox.</h2>
+          <p>Get the most important technology stories, innovations and insights without the noise.</p>
         </div>
         <form className="newsletter-form">
-          <input type="email" placeholder="Your email address" />
+          <input type="email" placeholder="Enter your email address" />
           <button type="button" className="primary-btn">Subscribe</button>
         </form>
       </section>
