@@ -14,7 +14,7 @@
   gap: 20px;
   padding: 16px 20px;
   margin-bottom: 26px;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(11, 17, 29, 0.82);
   border: 1px solid var(--border);
   border-radius: 18px;
   backdrop-filter: blur(14px);
@@ -124,7 +124,7 @@
 }
 
 .secondary-btn {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(12, 18, 31, 0.9);
   border-color: var(--border);
   color: var(--text);
 }
@@ -135,7 +135,7 @@
   justify-content: center;
   gap: 8px;
   padding: 0.72rem 0.9rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border-color: var(--border);
   color: var(--text);
 }
@@ -147,7 +147,7 @@
   padding: 0.7rem 0.9rem;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
 }
 
 .page-content {
@@ -159,13 +159,13 @@
 .content-section {
   padding: 28px;
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(13, 19, 31, 0.9);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 
 .muted-section {
-  background: rgba(241, 235, 255, 0.9);
+  background: rgba(15, 23, 42, 0.94);
 }
 
 .hero-section {
@@ -175,7 +175,7 @@
   padding: 34px 30px;
   border-radius: 28px;
   border: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(59, 91, 255, 0.08), rgba(96, 165, 250, 0.12), rgba(255, 255, 255, 0.96));
+  background: linear-gradient(135deg, rgba(59, 91, 255, 0.2), rgba(11, 17, 29, 0.95), rgba(11, 17, 29, 1));
   box-shadow: var(--shadow);
 }
 
@@ -272,7 +272,7 @@
   gap: 18px;
   padding: 18px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -320,7 +320,7 @@
   gap: 6px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(17, 24, 39, 0.9);
   border: 1px solid var(--border);
 }
 
@@ -341,7 +341,7 @@
   min-height: 74px;
   border-radius: 18px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   color: var(--muted);
   font-weight: 600;
 }
@@ -387,7 +387,7 @@
   padding: 22px;
   border-radius: 22px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(12, 18, 31, 0.9);
 }
 
 .step-number {
@@ -408,7 +408,7 @@
   padding: 22px;
   border-radius: 22px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
 }
 
 .feature-icon {
@@ -467,7 +467,7 @@
 .testimonial-card {
   padding: 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -509,7 +509,7 @@
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   color: var(--text);
   padding: 0.9rem 1rem;
 }
@@ -524,7 +524,7 @@
 .pricing-card {
   overflow: hidden;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -566,7 +566,7 @@
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, var(--primary), #dff8ff);
-  color: #031421;
+  color: #F5F7FF;
   font-weight: 700;
 }
 
@@ -583,7 +583,7 @@
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, var(--primary), #dff8ff);
-  color: #041522;
+  color: #F5F7FF;
   font-size: 2rem;
   font-weight: 800;
 }
@@ -610,7 +610,7 @@
   display: inline-flex;
   padding: 0.55rem 0.8rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(12, 18, 31, 0.9);
   border: 1px solid var(--border);
   color: var(--secondary);
   font-size: 0.82rem;
@@ -627,7 +627,7 @@
   width: 100%;
   padding: 0.8rem 1rem;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(17, 24, 39, 0.9);
   border: 1px solid var(--border);
   color: var(--muted);
 }
@@ -653,7 +653,7 @@
 
 .chip-btn {
   padding: 0.65rem 0.9rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border-color: var(--border);
   color: var(--text);
 }
@@ -697,7 +697,7 @@
 }
 
 .article-body {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 24px;
@@ -732,7 +732,7 @@
 
 .lead {
   font-size: 1.06rem;
-  color: #eaf9ff;
+  color: #dfeaff;
 }
 
 .article-content {
@@ -779,7 +779,7 @@
 .detail-panel {
   padding: 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -807,7 +807,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
 }
 
 .mini-speaker img {
@@ -846,7 +846,7 @@
 .profile-panel {
   padding: 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -855,7 +855,7 @@
   gap: 16px;
   padding: 22px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   border: 1px solid var(--border);
 }
 
@@ -873,7 +873,7 @@
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
   color: var(--text);
   padding: 0.9rem 1rem;
   outline: none;
@@ -895,7 +895,7 @@
   padding: 26px;
   border-radius: 24px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
 }
 
 .auth-card h2 {
@@ -953,7 +953,7 @@
 .pricing-card {
   display: grid;
   gap: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(11, 18, 30, 0.86);
 }
 
 .pricing-card.featured {
@@ -1008,7 +1008,7 @@
   width: min(820px, 100%);
   padding: 22px;
   border-radius: 24px;
-  background: #111118;
+  background: #0A0A0A;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -1030,7 +1030,7 @@
 .checkout-summary {
   padding: 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(12, 18, 31, 0.9);
   border: 1px solid var(--border);
 }
 
@@ -1055,7 +1055,7 @@
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(12, 18, 31, 0.9);
   border: 1px solid var(--border);
 }
 
