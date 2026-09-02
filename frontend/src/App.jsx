@@ -27,7 +27,9 @@ import './App.css';
 
 const siteSections = [
   { to: '/', label: 'Home' },
+  { to: '/explore', label: 'Explore' },
   { to: '/summits', label: 'Summits' },
+  { to: '/founder-meets', label: 'Founder Meets' },
   { to: '/speakers', label: 'Speakers' },
   { to: '/pricing', label: 'Pricing' },
 ];
@@ -142,6 +144,10 @@ function App() {
           <Route path="/pricing" element={<PricingPage openCheckout={openCheckout} />} />
           <Route path="/create-post" element={<CreatePostPage />} />
           <Route path="/profile" element={<ProfilePage user={user} posts={posts} />} />
+          <Route path="/my-posts" element={<MyPostsPage posts={posts} />} />
+          <Route path="/saved-posts" element={<SavedPostsPage posts={posts} />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/register" element={<RegisterPage setUser={setUser} />} />
           <Route path="*" element={<NotFound />} />
@@ -153,6 +159,8 @@ function App() {
 }
 
 function Layout({ children, user, onLogout }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -164,23 +172,23 @@ function Layout({ children, user, onLogout }) {
           </div>
         </div>
 
-        <nav className="main-nav" aria-label="Primary navigation">
+        <nav className={`main-nav${mobileMenuOpen ? ' open' : ''}`} aria-label="Primary navigation">
           {siteSections.map((section) => (
-            <NavLink key={section.to} to={section.to} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            <NavLink key={section.to} to={section.to} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setMobileMenuOpen(false)}>
               {section.label}
             </NavLink>
           ))}
         </nav>
 
         <div className="header-actions">
-          <button type="button" className="ghost-btn" aria-label="Notifications">
-            <Bell size={16} />
-          </button>
           {user ? (
             <>
               <Link className="user-badge" to="/profile">
                 <UserRound size={16} />
                 {user.name || 'Member'}
+              </Link>
+              <Link className="ghost-btn small" to="/notifications" aria-label="Notifications">
+                <Bell size={16} />
               </Link>
               <button type="button" className="primary-btn small" onClick={onLogout}>Logout</button>
             </>
@@ -190,6 +198,11 @@ function Layout({ children, user, onLogout }) {
               <Link className="primary-btn small" to="/register">Join now</Link>
             </>
           )}
+          <button type="button" className="mobile-menu-toggle" aria-label="Toggle menu" onClick={() => setMobileMenuOpen((cur) => !cur)}>
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
       </header>
 
@@ -747,6 +760,107 @@ function ProfilePage({ user, posts }) {
             <li>Saved 7 popular posts</li>
             <li>Registered for 3 events</li>
           </ul>
+        </div>
+      </div>
+
+      <div className="profile-actions">
+        <Link className="secondary-btn" to="/my-posts">My Posts</Link>
+        <Link className="secondary-btn" to="/saved-posts">Saved Posts</Link>
+        <Link className="secondary-btn" to="/notifications">Notifications</Link>
+        <Link className="secondary-btn" to="/settings">Settings</Link>
+      </div>
+    </section>
+  );
+}
+
+function MyPostsPage({ posts }) {
+  return (
+    <section className="content-section">
+      <div className="section-heading-row">
+        <div>
+          <span className="eyebrow">My Posts</span>
+          <h2>Published and draft insights</h2>
+        </div>
+      </div>
+      <div className="post-grid">
+        {posts.slice(0, 3).map((post) => <PostCard key={post.id} post={post} />)}
+      </div>
+    </section>
+  );
+}
+
+function SavedPostsPage({ posts }) {
+  return (
+    <section className="content-section">
+      <div className="section-heading-row">
+        <div>
+          <span className="eyebrow">Saved Posts</span>
+          <h2>Content you want to revisit</h2>
+        </div>
+      </div>
+      <div className="post-grid">
+        {posts.slice(1, 4).map((post) => <PostCard key={post.id} post={post} />)}
+      </div>
+    </section>
+  );
+}
+
+function NotificationsPage() {
+  const notifications = [
+    { title: 'New comment on your post', detail: 'Aisha replied to your AI governance article.', time: '2h ago' },
+    { title: 'Event reminder', detail: 'AI Product Summit opens in 24 hours.', time: 'Today' },
+    { title: 'New follower', detail: 'Rhea started following your profile.', time: '2 days ago' },
+  ];
+
+  return (
+    <section className="content-section">
+      <div className="section-heading-row">
+        <div>
+          <span className="eyebrow">Notifications</span>
+          <h2>Community updates</h2>
+        </div>
+      </div>
+      <div className="notification-list">
+        {notifications.map((note) => (
+          <div key={note.title} className="notification-item">
+            <div className="notification-dot" />
+            <div>
+              <strong>{note.title}</strong>
+              <p>{note.detail}</p>
+            </div>
+            <span>{note.time}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SettingsPage() {
+  return (
+    <section className="content-section">
+      <div className="section-heading-row">
+        <div>
+          <span className="eyebrow">Settings</span>
+          <h2>Account preferences</h2>
+        </div>
+      </div>
+      <div className="settings-grid">
+        <div className="settings-card">
+          <h3>Profile</h3>
+          <p>Update your name, role, bio, and location.</p>
+        </div>
+        <div className="settings-card">
+          <h3>Notifications</h3>
+          <p>Control event reminders, comments, and follower updates.</p>
+        </div>
+        <div className="settings-card">
+          <h3>Privacy</h3>
+          <p>Adjust visibility, personal data usage, and account controls.</p>
+        </div>
+        <div className="settings-card">
+          <h3>Security</h3>
+          <p>Change your password and review active sessions.</p>
         </div>
       </div>
     </section>

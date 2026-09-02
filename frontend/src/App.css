@@ -903,6 +903,59 @@
   border: 1px solid var(--border);
 }
 
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.notification-list,
+.settings-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-item,
+.settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(11, 18, 30, 0.86);
+  border: 1px solid var(--border);
+}
+
+.notification-item {
+  justify-content: flex-start;
+}
+
+.notification-item strong,
+.settings-card h3 {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.notification-item p,
+.settings-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.notification-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.7);
+}
+
+.settings-card {
+  display: block;
+}
+
 .editor-form {
   display: grid;
   gap: 16px;
