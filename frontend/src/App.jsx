@@ -28,7 +28,7 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
-  { to: '/explore', label: 'Explore' },
+  { to: '/explore', label: 'Explore', requiresAuth: true },
   { to: '/summits', label: 'Summits', requiresAuth: true },
   { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
   { to: '/speakers', label: 'Speakers', requiresAuth: true },
@@ -134,7 +134,7 @@ function App() {
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<HomePage user={user} posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
-          <Route path="/explore" element={<ExplorePage posts={posts} />} />
+          <Route path="/explore" element={<ProtectedRoute user={user}><ExplorePage posts={posts} /></ProtectedRoute>} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
@@ -197,7 +197,7 @@ function Layout({ children, user, onLogout }) {
         </nav>
 
         <div className="header-actions">
-          <Link className="icon-btn" to="/explore" aria-label="Search">
+          <Link className="icon-btn" to={user ? '/explore' : '/login'} aria-label="Search">
             <Search size={16} />
           </Link>
 
@@ -239,7 +239,7 @@ function Layout({ children, user, onLogout }) {
           <h4>Explore</h4>
           <div className="footer-links vertical-links">
             <Link to="/">Latest</Link>
-            <Link to="/explore">AI</Link>
+            <Link to={user ? '/explore' : '/login'}>AI</Link>
             <Link to={user ? '/founder-meets' : '/login'}>Startups</Link>
             <Link to={user ? '/summits' : '/login'}>Innovation</Link>
           </div>
@@ -248,7 +248,7 @@ function Layout({ children, user, onLogout }) {
         <div className="footer-column">
           <h4>Company</h4>
           <div className="footer-links vertical-links">
-            <Link to="/explore">About</Link>
+            <Link to={user ? '/explore' : '/login'}>About</Link>
             <Link to={user ? '/summits' : '/login'}>Contact</Link>
             <Link to="/pricing">Write for Us</Link>
           </div>
@@ -297,7 +297,7 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             NexziByte Tech Talk delivers the stories, people and ideas shaping AI, startups, cybersecurity, and the next generation of digital life.
           </p>
           <div className="cta-row">
-            <Link className="primary-btn" to="/explore">Explore TechTalk</Link>
+            <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk</Link>
             <Link className="secondary-btn" to={user ? '/summits' : '/login'}>See events</Link>
           </div>
           <div className="stats-row">
@@ -342,7 +342,7 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <span className="eyebrow">Editorial picks</span>
             <h2>Fresh insights from the frontier of tech</h2>
           </div>
-          <Link className="text-link" to="/explore">View all stories <ArrowRight size={16} /></Link>
+          <Link className="text-link" to={user ? '/explore' : '/login'}>View all stories <ArrowRight size={16} /></Link>
         </div>
 
         <div className="editorial-grid">
@@ -384,7 +384,7 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <span className="eyebrow">AI & innovation</span>
             <h2>Intelligence, systems and the next wave of product design</h2>
           </div>
-          <Link className="text-link" to="/explore">Explore AI <ArrowRight size={16} /></Link>
+          <Link className="text-link" to={user ? '/explore' : '/login'}>Explore AI <ArrowRight size={16} /></Link>
         </div>
 
         <div className="category-showcase">
