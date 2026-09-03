@@ -37,6 +37,41 @@ def test_auth_and_user_profile():
     assert 'password_hash' not in profile.json()
 
 
+def test_auth_profile_routes_and_home_data():
+    profile_email = 'profile-user@example.com'
+    client.post('/auth/register', json={'name': 'Profile User', 'email': profile_email, 'password': 'Password123'})
+    auth = token(profile_email, 'Password123')
+    me = client.get('/auth/me', headers=auth)
+    assert me.status_code == 200
+    assert me.json()['email'] == profile_email
+
+    updated = client.put('/auth/profile', json={
+        'name': 'Updated User',
+        'bio': 'Product and AI leader',
+        'location': 'Hyderabad',
+        'professional_role': 'AI Product Lead',
+        'profile_image': 'https://example.com/avatar.png',
+    }, headers=auth)
+    assert updated.status_code == 200
+    assert updated.json()['name'] == 'Updated User'
+    assert updated.json()['profile_image'] == 'https://example.com/avatar.png'
+
+    password_change = client.put('/auth/change-password', json={
+        'current_password': 'Password123',
+        'new_password': 'NewPassword456',
+    }, headers=auth)
+    assert password_change.status_code == 200
+
+    home = client.get('/home')
+    assert home.status_code == 200
+    assert 'featured_posts' in home.json()
+    assert 'trending_categories' in home.json()
+    assert 'upcoming_events' in home.json()
+    assert 'featured_speakers' in home.json()
+
+    assert client.post('/auth/login', data={'username': profile_email, 'password': 'NewPassword456'}).status_code == 200
+
+
 def test_cors_preflight_for_frontend():
     response = client.options('/posts', headers={
         'Origin': 'https://frontend.example',

@@ -39,7 +39,12 @@ def root():
 @app.exception_handler(HTTPException)
 async def http_error(_, exc): return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
 
-class RegisterIn(BaseModel): name: str = Field(min_length=1, max_length=120); email: EmailStr; password: str = Field(min_length=8, max_length=128)
+class RegisterIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    professional_role: str | None = None
+    profile_image: str | None = None
 class GoogleAuthIn(BaseModel): credential: str = Field(min_length=10)
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
@@ -65,6 +70,18 @@ class EventIn(BaseModel):
     title: str = Field(min_length=1, max_length=200); description: str | None = None; banner: str | None = None; date: date; time: datetime_module.time | None = None; location: str | None = None; agenda: str | None = None; speaker_ids: list[int] = []
     venue: str | None = None; founder_information: str | None = None; networking_info: str | None = None
 class RegistrationIn(BaseModel): event_type: Literal['summit', 'founder_meet']; event_id: int
+class ProfileUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    bio: str | None = None
+    location: str | None = None
+    profile_image: str | None = None
+    professional_role: str | None = None
+    skills: str | None = None
+    website: str | None = None
+
+class ChangePasswordIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 def item(obj):
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
@@ -90,12 +107,21 @@ def health(): return {'status': 'ok'}
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
-    if db.query(User).filter_by(email=body.email).first(): raise HTTPException(409, detail='Email already registered')
-    user = User(name=body.name, email=body.email, password_hash=hash_password(body.password))
+    normalized_email = body.email.lower().strip()
+    if db.query(User).filter_by(email=normalized_email).first(): raise HTTPException(409, detail='Email already registered')
+    user = User(
+        name=body.name.strip(),
+        email=normalized_email,
+        password_hash=hash_password(body.password),
+        professional_role=getattr(body, 'professional_role', None),
+        profile_image=getattr(body, 'profile_image', None),
+    )
     db.add(user); db.commit(); db.refresh(user); return user_item(user)
+
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter_by(email=form.username).first()
+    username = form.username.lower().strip()
+    user = db.query(User).filter_by(email=username).first()
     if not user or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
@@ -127,8 +153,35 @@ def google_login(body: GoogleAuthIn, db: Session = Depends(get_db)):
 
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
+@app.get('/auth/me')
+def auth_me(user: User = Depends(get_current_user)): return user_item(user)
+
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user)): return user_item(user)
+
+@app.put('/auth/profile')
+def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    fields = {
+        'name': body.name,
+        'bio': body.bio,
+        'location': body.location,
+        'profile_image': body.profile_image,
+        'professional_role': body.professional_role,
+        'skills': body.skills,
+    }
+    for key, value in fields.items():
+        if value is not None:
+            setattr(user, key, value.strip() if isinstance(value, str) else value)
+    db.add(user); db.commit(); db.refresh(user); return user_item(user)
+
+@app.put('/auth/change-password')
+def change_password(body: ChangePasswordIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail='Current password is incorrect')
+    if body.new_password == body.current_password:
+        raise HTTPException(status_code=400, detail='New password must be different from the current password')
+    user.password_hash = hash_password(body.new_password)
+    db.add(user); db.commit(); return {'detail': 'Password updated successfully'}
 
 @app.get('/users')
 def users(search: str | None = None, limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
@@ -147,6 +200,86 @@ def create_category(body: CategoryIn, db: Session = Depends(get_db), _: User = D
     x = Category(**body.model_dump()); db.add(x); db.commit(); db.refresh(x); return item(x)
 @app.get('/categories')
 def list_categories(db: Session = Depends(get_db)): return [item(x) for x in db.query(Category).filter_by(is_archived=False)]
+
+def normalize_tags(raw):
+    if not raw: return []
+    if isinstance(raw, str):
+        return [tag.strip() for tag in raw.split(',') if tag.strip()]
+    return [str(tag).strip() for tag in raw if str(tag).strip()]
+
+
+def serialize_post_summary(post):
+    return {
+        'id': post.id,
+        'title': post.title,
+        'excerpt': (post.content[:160] + '...') if len(post.content or '') > 160 else (post.content or ''),
+        'content': post.content,
+        'category': post.category.name if post.category else 'General',
+        'category_id': post.category_id,
+        'tags': normalize_tags(post.tags),
+        'author': post.author.name if post.author else 'Community member',
+        'authorRole': getattr(post.author, 'professional_role', None) or 'TechTalk contributor',
+        'publishedAt': post.created_at.strftime('%Y-%m-%d') if post.created_at else '2026-01-01',
+        'readTime': str(max(3, min(12, len((post.content or '').split()) // 150 + 3))) + ' min read',
+        'reactions': 0,
+        'comments': 0,
+        'image': post.cover_image or 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+    }
+
+
+def get_featured_posts(db: Session, limit: int = 4):
+    posts = db.query(Post).filter(Post.status == 'published').order_by(Post.created_at.desc()).limit(limit).all()
+    return [serialize_post_summary(post) for post in posts]
+
+
+def get_trending_categories(db: Session, limit: int = 6):
+    categories = db.query(Category, func.count(Post.id).label('post_count')).outerjoin(Post, Post.category_id == Category.id).filter(Category.is_archived.is_(False)).group_by(Category.id).order_by(func.count(Post.id).desc(), Category.name.asc()).limit(limit).all()
+    return [{'id': category.id, 'name': category.name, 'slug': category.slug, 'description': category.description, 'post_count': post_count} for category, post_count in categories]
+
+
+def get_upcoming_events(db: Session, limit: int = 6):
+    summits = db.query(Summit).filter(Summit.is_published.is_(True), Summit.date >= date.today()).order_by(Summit.date.asc()).limit(limit).all()
+    founder_meets = db.query(FounderMeet).filter(FounderMeet.is_published.is_(True), FounderMeet.date >= date.today()).order_by(FounderMeet.date.asc()).limit(limit).all()
+    return {
+        'summits': [event_response(event) for event in summits],
+        'founder_meets': [event_response(event) for event in founder_meets],
+    }
+
+
+def get_featured_speakers(db: Session, limit: int = 4):
+    speakers = db.query(Speaker).order_by(Speaker.id.asc()).limit(limit).all()
+    return [item(speaker) for speaker in speakers]
+
+
+@app.get('/posts/featured')
+def featured_posts(limit: int = Query(4, ge=1, le=12), db: Session = Depends(get_db)):
+    return get_featured_posts(db=db, limit=limit)
+
+
+@app.get('/categories/trending')
+def trending_categories(limit: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
+    return get_trending_categories(db=db, limit=limit)
+
+
+@app.get('/events/upcoming')
+def upcoming_events(limit: int = Query(6, ge=1, le=12), db: Session = Depends(get_db)):
+    return get_upcoming_events(db=db, limit=limit)
+
+
+@app.get('/speakers/featured')
+def featured_speakers(limit: int = Query(4, ge=1, le=12), db: Session = Depends(get_db)):
+    return get_featured_speakers(db=db, limit=limit)
+
+
+@app.get('/home')
+def home_data(db: Session = Depends(get_db)):
+    return {
+        'featured_posts': get_featured_posts(db=db),
+        'trending_categories': get_trending_categories(db=db),
+        'upcoming_events': get_upcoming_events(db=db),
+        'featured_speakers': get_featured_speakers(db=db),
+    }
+
 @app.put('/categories/{category_id}')
 def update_category(category_id: int, body: CategoryIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     x = one(db, Category, category_id); set_values(x, body.model_dump(), {'name','slug','description'}); db.commit(); return item(x)

@@ -20,6 +20,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20), default='user')
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    profile_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    professional_role: Mapped[str | None] = mapped_column(String(120), nullable=True)
     skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(120), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
