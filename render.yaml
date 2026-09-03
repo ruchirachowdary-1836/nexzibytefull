@@ -15,7 +15,7 @@ services:
       - key: GOOGLE_CLIENT_ID
         value: 925568395020-ggm3t5a2jt7hcrtpvkhap3m5qehbdgq1.apps.googleusercontent.com
       - key: CORS_ORIGINS
-        value: "*"
+        value: https://techtalk-frontend.onrender.com
   - type: web
     name: techtalk-frontend
     runtime: static

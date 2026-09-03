@@ -291,10 +291,10 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
 
       <section className="hero-section editorial-hero">
         <div className="hero-copy">
-          <span className="eyebrow">Technology publication</span>
-          <h1>Exploring technology. Inspiring tomorrow.</h1>
+          <span className="eyebrow">Daily signal</span>
+          <h1>Ideas, people and momentum shaping the next wave of technology.</h1>
           <p>
-            NexziByte Tech Talk delivers the stories, people and ideas shaping AI, startups, cybersecurity, and the next generation of digital life.
+            Discover the stories, conversations and leaders driving AI, product, startups, and digital transformation across the world.
           </p>
           <div className="cta-row">
             <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk</Link>
@@ -311,14 +311,14 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             </div>
             <div>
               <strong>96%</strong>
-              <span>Trust score</span>
+              <span>Signal quality</span>
             </div>
           </div>
         </div>
 
         <div className="hero-visual">
           <div className="hero-image-wrap">
-            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" alt="Technology editorial cover" />
+            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80" alt="Technology editorial cover" />
           </div>
           <div className="hero-mini-stack">
             {secondaryStories.slice(0, 2).map((story) => (
@@ -332,6 +332,14 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <span className="chip">Featured</span>
             <strong>{leadStory?.title}</strong>
             <small>{leadStory?.author} • {leadStory?.readTime}</small>
+          </div>
+          <div className="hero-mini-stack">
+            {secondaryStories.slice(0, 2).map((story) => (
+              <div key={story.id} className="hero-mini-card">
+                <span>{story.category}</span>
+                <strong>{story.title}</strong>
+              </div>
+            ))}
           </div>
         </div>
       </section>
