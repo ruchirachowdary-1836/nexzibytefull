@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
   Bell,
@@ -29,9 +29,9 @@ import './App.css';
 
 const siteSections = [
   { to: '/explore', label: 'Explore' },
-  { to: '/summits', label: 'Summits' },
-  { to: '/founder-meets', label: 'Founder Meets' },
-  { to: '/speakers', label: 'Speakers' },
+  { to: '/summits', label: 'Summits', requiresAuth: true },
+  { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
+  { to: '/speakers', label: 'Speakers', requiresAuth: true },
 ];
 
 const featureCards = [
@@ -133,14 +133,14 @@ function App() {
     <BrowserRouter>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<HomePage posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
+          <Route path="/" element={<HomePage user={user} posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
           <Route path="/explore" element={<ExplorePage posts={posts} />} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
-          <Route path="/summits" element={<SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} />} />
-          <Route path="/summits/:eventId" element={<SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} />} />
-          <Route path="/founder-meets" element={<FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
-          <Route path="/founder-meets/:eventId" element={<FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
-          <Route path="/speakers" element={<SpeakersPage speakers={speakers} />} />
+          <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
+          <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
+          <Route path="/founder-meets" element={<ProtectedRoute user={user}><FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
+          <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
+          <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
           <Route path="/pricing" element={<PricingPage openCheckout={openCheckout} />} />
           <Route path="/create-post" element={<CreatePostPage />} />
           <Route path="/profile" element={<ProfilePage user={user} posts={posts} />} />
@@ -158,6 +158,14 @@ function App() {
   );
 }
 
+function ProtectedRoute({ user, children }) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 function Layout({ children, user, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -172,11 +180,20 @@ function Layout({ children, user, onLogout }) {
         </div>
 
         <nav className={`main-nav${mobileMenuOpen ? ' open' : ''}`} aria-label="Primary navigation">
-          {siteSections.map((section) => (
-            <NavLink key={section.to} to={section.to} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setMobileMenuOpen(false)}>
-              {section.label}
-            </NavLink>
-          ))}
+          {siteSections.map((section) => {
+            const target = !user && section.requiresAuth ? '/login' : section.to;
+
+            return (
+              <NavLink
+                key={section.to}
+                to={target}
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {section.label}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="header-actions">
@@ -223,8 +240,8 @@ function Layout({ children, user, onLogout }) {
           <div className="footer-links vertical-links">
             <Link to="/">Latest</Link>
             <Link to="/explore">AI</Link>
-            <Link to="/founder-meets">Startups</Link>
-            <Link to="/summits">Innovation</Link>
+            <Link to={user ? '/founder-meets' : '/login'}>Startups</Link>
+            <Link to={user ? '/summits' : '/login'}>Innovation</Link>
           </div>
         </div>
 
@@ -232,7 +249,7 @@ function Layout({ children, user, onLogout }) {
           <h4>Company</h4>
           <div className="footer-links vertical-links">
             <Link to="/explore">About</Link>
-            <Link to="/summits">Contact</Link>
+            <Link to={user ? '/summits' : '/login'}>Contact</Link>
             <Link to="/pricing">Write for Us</Link>
           </div>
         </div>
@@ -251,7 +268,7 @@ function Layout({ children, user, onLogout }) {
   );
 }
 
-function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
+function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }) {
   const featuredPosts = posts.slice(0, 4);
   const highlightEvent = summits[0];
   const highlightMeet = founderMeets[0];
@@ -281,7 +298,7 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
           </p>
           <div className="cta-row">
             <Link className="primary-btn" to="/explore">Explore TechTalk</Link>
-            <Link className="secondary-btn" to="/register">Join the Community</Link>
+            <Link className="secondary-btn" to={user ? '/summits' : '/login'}>See events</Link>
           </div>
           <div className="stats-row">
             <div>
