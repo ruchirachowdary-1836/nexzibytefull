@@ -134,7 +134,7 @@ function App() {
     <BrowserRouter>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<HomePage user={user} posts={posts} />} />
+          <Route path="/" element={<HomePage user={user} posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
           <Route path="/explore" element={<ProtectedRoute user={user}><ExplorePage posts={posts} /></ProtectedRoute>} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
@@ -269,8 +269,10 @@ function Layout({ children, user, onLogout }) {
   );
 }
 
-function HomePage({ user, posts }) {
+function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }) {
   const featuredPosts = posts.slice(0, 4);
+  const highlightEvent = summits?.[0];
+  const highlightMeet = founderMeets?.[0];
   const leadStory = featuredPosts[0];
   const secondaryStories = featuredPosts.slice(1, 4);
 
@@ -338,11 +340,48 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
+      <section className="content-section trust-strip">
+        <div className="trust-strip-label">
+          <span className="eyebrow">Trusted signal</span>
+          <strong>Built for people shaping what comes next.</strong>
+        </div>
+        <div className="trust-metrics">
+          <span><strong>28K+</strong> readers</span>
+          <span><strong>140+</strong> contributors</span>
+          <span><strong>96%</strong> signal quality</span>
+          <span><strong>18</strong> technology categories</span>
+        </div>
+      </section>
+
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Trending topics</span>
+            <h2>What leaders are watching right now</h2>
+          </div>
+        </div>
+        <div className="trend-grid">
+          {[
+            'The future of AI agents',
+            'Why quantum computing matters now',
+            'The next generation of robotics',
+            'Your SaaS stack is becoming a strategic moat',
+            'Cybersecurity leaders are redesigning trust',
+            'The new economics of startup scale'
+          ].map((item, index) => (
+            <div key={item} className="trend-item">
+              <span className="trend-number">0{index + 1}</span>
+              <strong>{item}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="content-section editorial-grid-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">Editorial picks</span>
-            <h2>Fresh insights from the frontier of tech</h2>
+            <span className="eyebrow">Featured story</span>
+            <h2>The story setting the agenda this week</h2>
           </div>
           <Link className="text-link" to={user ? '/explore' : '/login'}>View all stories <ArrowRight size={16} /></Link>
         </div>
@@ -380,10 +419,38 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Latest tech stories</span>
+            <h2>Fresh reporting from the frontier of technology</h2>
+          </div>
+          <Link className="text-link" to={user ? '/explore' : '/login'}>Read the feed <ArrowRight size={16} /></Link>
+        </div>
+        <div className="story-columns latest-stories">
+          <div className="story-column large">
+            <img src={secondaryStories[0]?.image} alt={secondaryStories[0]?.title} />
+            <div className="story-body">
+              <span className="story-tag">{secondaryStories[0]?.category}</span>
+              <h3>{secondaryStories[0]?.title}</h3>
+              <p>{secondaryStories[0]?.excerpt}</p>
+            </div>
+          </div>
+          <div className="story-column small-list">
+            {posts.slice(2, 5).map((post) => (
+              <div key={post.id} className="small-list-item">
+                <span>{post.category}</span>
+                <strong>{post.title}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="content-section muted-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">AI & innovation</span>
+            <span className="eyebrow">Editor's picks</span>
             <h2>Intelligence, systems and the next wave of product design</h2>
           </div>
           <Link className="text-link" to={user ? '/explore' : '/login'}>Explore AI <ArrowRight size={16} /></Link>
@@ -407,31 +474,6 @@ function HomePage({ user, posts }) {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Trending technology</span>
-            <h2>What leaders are watching right now</h2>
-          </div>
-        </div>
-
-        <div className="trend-grid">
-          {[
-            'The future of AI agents',
-            'Why quantum computing matters now',
-            'The next generation of robotics',
-            'Your SaaS stack is becoming a strategic moat',
-            'Cybersecurity leaders are redesigning trust',
-            'The new economics of startup scale'
-          ].map((item, index) => (
-            <div key={item} className="trend-item">
-              <span className="trend-number">0{index + 1}</span>
-              <strong>{item}</strong>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -503,6 +545,64 @@ function HomePage({ user, posts }) {
             <span className="story-tag">Robotics</span>
             <h3>Human-centered automation is becoming a design challenge</h3>
           </div>
+        </div>
+      </section>
+
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">TechTalk summits</span>
+            <h2>High-signal rooms for builders and leaders</h2>
+          </div>
+          <Link className="text-link" to={user ? '/summits' : '/login'}>View summits <ArrowRight size={16} /></Link>
+        </div>
+        <div className="event-grid">
+          {highlightEvent ? <EventCard event={highlightEvent} type="summit" speakers={speakers} onCheckout={openCheckout} /> : null}
+        </div>
+      </section>
+
+      <section className="content-section muted-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Founder meets</span>
+            <h2>Conversations with people building the future</h2>
+          </div>
+          <Link className="text-link" to={user ? '/founder-meets' : '/login'}>Meet the founders <ArrowRight size={16} /></Link>
+        </div>
+        <div className="event-grid">
+          {highlightMeet ? <EventCard event={highlightMeet} type="founder" speakers={speakers} onCheckout={openCheckout} /> : null}
+        </div>
+      </section>
+
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Featured experts & speakers</span>
+            <h2>Meet the thinkers behind the signal</h2>
+          </div>
+          <Link className="text-link" to={user ? '/speakers' : '/login'}>Browse experts <ArrowRight size={16} /></Link>
+        </div>
+        <div className="speaker-grid">
+          {(speakers || []).slice(0, 4).map((speaker) => <SpeakerCard key={speaker.id} speaker={speaker} />)}
+        </div>
+      </section>
+
+      <section className="content-section muted-section community-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Why join TechTalk</span>
+            <h2>A sharper way to learn, connect and move forward.</h2>
+          </div>
+          <Link className="primary-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Join the community'}</Link>
+        </div>
+        <div className="feature-grid">
+          {featureCards.map(({ icon: Icon, title, text }) => (
+            <article key={title} className="feature-card card-surface">
+              <Icon size={22} />
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
         </div>
       </section>
 
