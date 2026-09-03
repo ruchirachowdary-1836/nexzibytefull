@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 html {
   scroll-behavior: smooth;
@@ -8,29 +8,30 @@ html {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #EAF3FF;
-  background: #061826;
+  color: #F8FAFC;
+  background: #070B14;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --bg: #061826;
-  --bg-strong: #0A2540;
-  --panel: rgba(10, 22, 34, 0.88);
-  --panel-strong: rgba(7, 16, 25, 0.96);
-  --card: #0A1C2E;
-  --card-soft: #0D2740;
-  --text: #F7FAFC;
-  --muted: #8BA0B7;
-  --border: rgba(56, 189, 248, 0.18);
-  --primary: #0066FF;
-  --primary-strong: #004fcc;
-  --secondary: #1683FF;
+  --bg: #070B14;
+  --bg-strong: #0D1324;
+  --panel: rgba(13, 19, 36, 0.9);
+  --panel-strong: rgba(19, 28, 49, 0.96);
+  --card: #0D1324;
+  --card-soft: #131C31;
+  --text: #F8FAFC;
+  --muted: #94A3B8;
+  --border: #1E293B;
+  --primary: #2563EB;
+  --primary-strong: #1D4ED8;
+  --secondary: #2563EB;
   --accent: #38BDF8;
-  --light-bg: #F7FAFC;
-  --dark-section: #081421;
-  --success: #4ade80;
-  --shadow: 0 24px 60px rgba(2, 12, 25, 0.55);
+  --light-bg: #F8FAFC;
+  --dark-section: #070B14;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
 }
 
 * {
@@ -46,9 +47,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(0, 102, 255, 0.22), transparent 22%),
-    radial-gradient(circle at right, rgba(56, 189, 248, 0.12), transparent 24%),
-    linear-gradient(180deg, var(--bg) 0%, #091d2d 38%, #071722 100%);
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.1), transparent 24%),
+    radial-gradient(circle at right, rgba(56, 189, 248, 0.05), transparent 22%),
+    var(--bg);
   color: var(--text);
 }
 
@@ -75,6 +76,15 @@ button {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
 }
 
 h1,
