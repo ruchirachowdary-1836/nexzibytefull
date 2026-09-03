@@ -17,7 +17,6 @@ import {
   Share2,
   ShieldCheck,
   Star,
-  Users,
   UserRound,
   Zap,
 } from 'lucide-react';
@@ -26,6 +25,7 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
+  { to: '/', label: 'Home', requiresAuth: false },
   { to: '/explore', label: 'Explore', requiresAuth: true },
   { to: '/explore', label: 'Topics', requiresAuth: true },
   { to: '/summits', label: 'Summits', requiresAuth: true },
@@ -126,7 +126,7 @@ function App() {
     <BrowserRouter>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<HomePage user={user} posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
+          <Route path="/" element={<HomePage user={user} posts={posts} />} />
           <Route path="/explore" element={<ProtectedRoute user={user}><ExplorePage posts={posts} /></ProtectedRoute>} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
@@ -274,10 +274,8 @@ function Layout({ children, user, onLogout }) {
   );
 }
 
-function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }) {
+function HomePage({ user, posts }) {
   const featuredPosts = posts.slice(0, 4);
-  const highlightEvent = summits?.[0];
-  const highlightMeet = founderMeets?.[0];
   const leadStory = featuredPosts[0];
   const secondaryStories = featuredPosts.slice(1, 4);
 
@@ -538,70 +536,6 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <span className="story-tag">Robotics</span>
             <h3>Human-centered automation is becoming a design challenge</h3>
           </div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">TechTalk summits</span>
-            <h2>Experience TechTalk Beyond the Screen.</h2>
-          </div>
-          <Link className="text-link" to={user ? '/summits' : '/login'}>View summits <ArrowRight size={16} /></Link>
-        </div>
-        {highlightEvent ? (
-          <article className="summit-feature-panel">
-            <img src={highlightEvent.banner} alt={highlightEvent.title} />
-            <div className="summit-feature-content">
-              <span className="eyebrow">Featured summit</span>
-              <h3>{highlightEvent.title}</h3>
-              <div className="summit-feature-meta">
-                <span><MapPin size={15} /> {highlightEvent.location}, India</span>
-                <span><CalendarDays size={15} /> September 24–25, 2026</span>
-              </div>
-              <p>{highlightEvent.description}</p>
-              <Link className="primary-btn" to={user ? `/summits/${highlightEvent.id}` : '/login'}>View Summit <ArrowRight size={15} /></Link>
-            </div>
-          </article>
-        ) : null}
-        <div className="event-grid summit-preview-grid">
-          {(summits || []).slice(0, 3).map((event) => <EventCard key={event.id} event={event} type="summit" speakers={speakers} onCheckout={openCheckout} />)}
-        </div>
-      </section>
-
-      <section className="content-section muted-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Founder meets</span>
-            <h2>Where Ideas Meet Opportunity.</h2>
-          </div>
-          <Link className="text-link" to={user ? '/founder-meets' : '/login'}>Meet the founders <ArrowRight size={16} /></Link>
-        </div>
-        <div className="founder-feature-panel">
-          {highlightMeet ? <img src={highlightMeet.banner} alt={highlightMeet.title} /> : null}
-          <div className="founder-feature-content">
-            <span className="eyebrow">Founders meet</span>
-            <h3>{highlightMeet?.title || 'Building the next generation of Indian startups'}</h3>
-            <div className="summit-feature-meta">
-              <span><MapPin size={15} /> {highlightMeet?.location || 'Hyderabad'} • October 2026</span>
-              <span><Users size={15} /> Curated networking</span>
-            </div>
-            <p>{highlightMeet?.networking_info || 'Meet ambitious founders, operators and investors through thoughtful conversations and high-trust networking.'}</p>
-            <Link className="secondary-btn" to={user ? `/founder-meets/${highlightMeet?.id}` : '/login'}>Explore Event <ArrowRight size={15} /></Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Featured experts & speakers</span>
-            <h2>Meet the thinkers behind the signal</h2>
-          </div>
-          <Link className="text-link" to={user ? '/speakers' : '/login'}>Browse experts <ArrowRight size={16} /></Link>
-        </div>
-        <div className="speaker-grid featured-speaker-grid">
-          {(speakers || []).slice(0, 4).map((speaker) => <SpeakerCard key={speaker.id} speaker={speaker} />)}
         </div>
       </section>
 
