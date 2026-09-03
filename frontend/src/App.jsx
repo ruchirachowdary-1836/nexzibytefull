@@ -296,13 +296,14 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
 
       <section className="hero-section editorial-hero">
         <div className="hero-copy">
-          <span className="eyebrow">Daily signal</span>
-          <h1>Ideas, people and momentum shaping the next wave of technology.</h1>
+          <span className="eyebrow">NEXZIBYTE PRESENTS</span>
+          <h1>Where Technology Meets the People Building Tomorrow.</h1>
           <p>
-            Discover the stories, conversations and leaders driving AI, product, startups, and digital transformation across the world.
+            Discover breakthrough ideas, emerging technologies, industry voices, and conversations shaping the future.
           </p>
           <div className="cta-row">
-            <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk</Link>
+            <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk <ArrowRight size={15} /></Link>
+            <Link className="secondary-btn" to="/register">Join the Community</Link>
           </div>
           <div className="stats-row">
             <div>
@@ -328,18 +329,10 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
               </div>
             ))}
           </div>
-          <div className="hero-floating-card">
-            <span className="chip">Featured</span>
-            <strong>{leadStory?.title}</strong>
-            <small>{leadStory?.author} • {leadStory?.readTime}</small>
-          </div>
-          <div className="hero-mini-stack">
-            {secondaryStories.slice(0, 2).map((story) => (
-              <div key={story.id} className="hero-mini-card">
-                <span>{story.category}</span>
-                <strong>{story.title}</strong>
-              </div>
-            ))}
+          <div className="hero-floating-card hero-featured-story">
+            <span className="chip">Featured story</span>
+            <strong>{leadStory?.title || 'The future of AI agents'}</strong>
+            <small>{leadStory?.category || 'AI'} <span aria-hidden="true">•</span> {leadStory?.readTime || '6 min read'}</small>
           </div>
         </div>
       </section>
@@ -364,19 +357,17 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <h2>What leaders are watching right now</h2>
           </div>
         </div>
-        <div className="trend-grid">
+        <div className="trend-grid topic-pills">
           {[
-            'The future of AI agents',
-            'Why quantum computing matters now',
-            'The next generation of robotics',
-            'Your SaaS stack is becoming a strategic moat',
-            'Cybersecurity leaders are redesigning trust',
-            'The new economics of startup scale'
-          ].map((item, index) => (
-            <div key={item} className="trend-item">
-              <span className="trend-number">0{index + 1}</span>
-              <strong>{item}</strong>
-            </div>
+            'Artificial Intelligence',
+            'Cybersecurity',
+            'Cloud Computing',
+            'Startups',
+            'Web Development',
+            'Data Science',
+            'Future of Work'
+          ].map((item) => (
+            <Link key={item} className="topic-pill" to={user ? '/explore' : '/login'}>{item}</Link>
           ))}
         </div>
       </section>
