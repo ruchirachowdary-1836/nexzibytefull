@@ -28,6 +28,7 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
+  { to: '/', label: 'Home', requiresAuth: false },
   { to: '/explore', label: 'Explore', requiresAuth: true },
   { to: '/summits', label: 'Summits', requiresAuth: true },
   { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
