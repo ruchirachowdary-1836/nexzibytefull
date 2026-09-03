@@ -19,6 +19,7 @@ import {
   Sparkles,
   Star,
   TrendingUp,
+  Users,
   UserRound,
   Zap,
 } from 'lucide-react';
@@ -448,29 +449,24 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Editor's picks</span>
-            <h2>Intelligence, systems and the next wave of product design</h2>
+            <h2>Stories worth your attention</h2>
           </div>
-          <Link className="text-link" to={user ? '/explore' : '/login'}>Explore AI <ArrowRight size={16} /></Link>
+          <Link className="text-link" to={user ? '/explore' : '/login'}>Explore all picks <ArrowRight size={16} /></Link>
         </div>
 
-        <div className="category-showcase">
-          <div className="featured-article card-surface">
-            <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80" alt="AI research" />
-            <div className="story-body">
-              <span className="story-tag">Artificial Intelligence</span>
-              <h3>Why AI copilots are becoming strategic operating systems for modern teams</h3>
-              <p>From research workflows to product velocity, intelligent assistants are reshaping how companies plan, build and learn.</p>
-            </div>
-          </div>
-
-          <div className="mini-list">
-            {posts.slice(0, 3).map((post) => (
-              <div key={post.id} className="mini-list-item">
-                <strong>{post.title}</strong>
-                <small>{post.category} • {post.readTime}</small>
-              </div>
-            ))}
-          </div>
+        <div className="editors-picks-list">
+          {[
+            'The New Era of AI Infrastructure',
+            'Why Cybersecurity Is Becoming Autonomous',
+            'Building Products in the Age of AI',
+            'What Developers Should Learn Next'
+          ].map((title, index) => (
+            <Link key={title} className="editors-pick-row" to={user ? '/explore' : '/login'}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <strong>{title}</strong>
+              <ArrowRight size={18} />
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -549,12 +545,27 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">TechTalk summits</span>
-            <h2>High-signal rooms for builders and leaders</h2>
+            <h2>Experience TechTalk Beyond the Screen.</h2>
           </div>
           <Link className="text-link" to={user ? '/summits' : '/login'}>View summits <ArrowRight size={16} /></Link>
         </div>
-        <div className="event-grid">
-          {highlightEvent ? <EventCard event={highlightEvent} type="summit" speakers={speakers} onCheckout={openCheckout} /> : null}
+        {highlightEvent ? (
+          <article className="summit-feature-panel">
+            <img src={highlightEvent.banner} alt={highlightEvent.title} />
+            <div className="summit-feature-content">
+              <span className="eyebrow">Featured summit</span>
+              <h3>{highlightEvent.title}</h3>
+              <div className="summit-feature-meta">
+                <span><MapPin size={15} /> {highlightEvent.location}, India</span>
+                <span><CalendarDays size={15} /> September 24–25, 2026</span>
+              </div>
+              <p>{highlightEvent.description}</p>
+              <Link className="primary-btn" to={user ? `/summits/${highlightEvent.id}` : '/login'}>View Summit <ArrowRight size={15} /></Link>
+            </div>
+          </article>
+        ) : null}
+        <div className="event-grid summit-preview-grid">
+          {(summits || []).slice(0, 3).map((event) => <EventCard key={event.id} event={event} type="summit" speakers={speakers} onCheckout={openCheckout} />)}
         </div>
       </section>
 
@@ -562,12 +573,22 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Founder meets</span>
-            <h2>Conversations with people building the future</h2>
+            <h2>Where Ideas Meet Opportunity.</h2>
           </div>
           <Link className="text-link" to={user ? '/founder-meets' : '/login'}>Meet the founders <ArrowRight size={16} /></Link>
         </div>
-        <div className="event-grid">
-          {highlightMeet ? <EventCard event={highlightMeet} type="founder" speakers={speakers} onCheckout={openCheckout} /> : null}
+        <div className="founder-feature-panel">
+          {highlightMeet ? <img src={highlightMeet.banner} alt={highlightMeet.title} /> : null}
+          <div className="founder-feature-content">
+            <span className="eyebrow">Founders meet</span>
+            <h3>{highlightMeet?.title || 'Building the next generation of Indian startups'}</h3>
+            <div className="summit-feature-meta">
+              <span><MapPin size={15} /> {highlightMeet?.location || 'Hyderabad'} • October 2026</span>
+              <span><Users size={15} /> Curated networking</span>
+            </div>
+            <p>{highlightMeet?.networking_info || 'Meet ambitious founders, operators and investors through thoughtful conversations and high-trust networking.'}</p>
+            <Link className="secondary-btn" to={user ? `/founder-meets/${highlightMeet?.id}` : '/login'}>Explore Event <ArrowRight size={15} /></Link>
+          </div>
         </div>
       </section>
 
