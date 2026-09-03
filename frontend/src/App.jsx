@@ -133,7 +133,7 @@ function App() {
     <BrowserRouter>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<HomePage user={user} posts={posts} summits={summits} founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} />} />
+          <Route path="/" element={<HomePage user={user} posts={posts} />} />
           <Route path="/explore" element={<ProtectedRoute user={user}><ExplorePage posts={posts} /></ProtectedRoute>} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
@@ -268,10 +268,8 @@ function Layout({ children, user, onLogout }) {
   );
 }
 
-function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }) {
+function HomePage({ user, posts }) {
   const featuredPosts = posts.slice(0, 4);
-  const highlightEvent = summits[0];
-  const highlightMeet = founderMeets[0];
   const leadStory = featuredPosts[0];
   const secondaryStories = featuredPosts.slice(1, 4);
 
@@ -298,16 +296,11 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
           </p>
           <div className="cta-row">
             <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk</Link>
-            <Link className="secondary-btn" to={user ? '/summits' : '/login'}>See events</Link>
           </div>
           <div className="stats-row">
             <div>
               <strong>28K+</strong>
               <span>Readers</span>
-            </div>
-            <div>
-              <strong>42</strong>
-              <span>Live events</span>
             </div>
             <div>
               <strong>96%</strong>
@@ -509,31 +502,6 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
             <span className="story-tag">Robotics</span>
             <h3>Human-centered automation is becoming a design challenge</h3>
           </div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Events</span>
-            <h2>High-signal experiences designed for builders and leaders</h2>
-          </div>
-        </div>
-        <div className="event-grid">
-          <EventCard event={highlightEvent} type="summit" speakers={speakers} onCheckout={openCheckout} />
-          <EventCard event={highlightMeet} type="founder" speakers={speakers} onCheckout={openCheckout} />
-        </div>
-      </section>
-
-      <section className="content-section muted-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Experts</span>
-            <h2>Meet the thinkers behind the signal</h2>
-          </div>
-        </div>
-        <div className="speaker-grid">
-          {speakers.slice(0, 4).map((speaker) => <SpeakerCard key={speaker.id} speaker={speaker} />)}
         </div>
       </section>
 
