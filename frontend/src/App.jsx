@@ -397,7 +397,7 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
           </article>
 
           <div className="stacked-story-list">
-            {secondaryStories.map((post) => (
+            {secondaryStories.slice(0, 2).map((post) => (
               <article key={post.id} className="mini-story card-surface">
                 <img src={post.image} alt={post.title} />
                 <div>
@@ -418,27 +418,29 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Latest tech stories</span>
-            <h2>Fresh reporting from the frontier of technology</h2>
+            <h2>Latest from TechTalk</h2>
           </div>
           <Link className="text-link" to={user ? '/explore' : '/login'}>Read the feed <ArrowRight size={16} /></Link>
         </div>
-        <div className="story-columns latest-stories">
-          <div className="story-column large">
-            <img src={secondaryStories[0]?.image} alt={secondaryStories[0]?.title} />
-            <div className="story-body">
-              <span className="story-tag">{secondaryStories[0]?.category}</span>
-              <h3>{secondaryStories[0]?.title}</h3>
-              <p>{secondaryStories[0]?.excerpt}</p>
-            </div>
-          </div>
-          <div className="story-column small-list">
-            {posts.slice(2, 5).map((post) => (
-              <div key={post.id} className="small-list-item">
-                <span>{post.category}</span>
-                <strong>{post.title}</strong>
+        <div className="latest-story-grid">
+          {posts.slice(1, 4).map((post) => (
+            <article key={post.id} className="latest-story-card">
+              <img src={post.image} alt={post.title} />
+              <div className="latest-story-content">
+                <div className="latest-story-kicker">
+                  <span>{post.category}</span>
+                  <span aria-hidden="true">•</span>
+                  <span>{post.readTime}</span>
+                </div>
+                <h3>{post.title}</h3>
+                <p>{post.excerpt}</p>
+                <div className="latest-story-meta">
+                  <span>{post.author}</span>
+                  <span>{post.publishedAt}</span>
+                </div>
               </div>
-            ))}
-          </div>
+            </article>
+          ))}
         </div>
       </section>
 
