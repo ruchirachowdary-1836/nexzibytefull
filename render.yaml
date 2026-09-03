@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
-        value: 925568395020-ggm3t5a2jt7hcrtpvkhap3m5qehbdgq1.apps.googleusercontent.com
+        value: 925568395020-16foju7r94jc2dcabim6lnlvigkcghft.apps.googleusercontent.com
       - key: CORS_ORIGINS
         value: https://techtalk-frontend.onrender.com
   - type: web
@@ -26,4 +26,4 @@ services:
       - key: VITE_API_URL
         value: https://techtalk-backend-shob.onrender.com
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 925568395020-ggm3t5a2jt7hcrtpvkhap3m5qehbdgq1.apps.googleusercontent.com
+        value: 925568395020-16foju7r94jc2dcabim6lnlvigkcghft.apps.googleusercontent.com
