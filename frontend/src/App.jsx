@@ -16,9 +16,7 @@ import {
   Search,
   Share2,
   ShieldCheck,
-  Sparkles,
   Star,
-  TrendingUp,
   Users,
   UserRound,
   Zap,
@@ -33,12 +31,6 @@ const siteSections = [
   { to: '/summits', label: 'Summits', requiresAuth: true },
   { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
   { to: '/speakers', label: 'Speakers', requiresAuth: true },
-];
-
-const featureCards = [
-  { icon: Sparkles, title: 'Executive learning', text: 'Access high-signal industry insight designed for product, engineering and leadership decision-makers.' },
-  { icon: TrendingUp, title: 'Career growth', text: 'Learn from experienced operators and founders who are building the next generation of technology businesses.' },
-  { icon: ShieldCheck, title: 'High-trust network', text: 'Build relationships with credible professionals in a focused, premium environment.' },
 ];
 
 const howItWorks = [
@@ -237,39 +229,47 @@ function Layout({ children, user, onLogout }) {
 
       <footer className="site-footer">
         <div className="footer-column brand-column">
-          <div className="footer-brand">Nexzibyte Tech Talk</div>
-          <p>Exploring technology. Inspiring tomorrow.</p>
+          <div className="footer-brand">TECHTALK</div>
+          <p>Where technology meets the people building tomorrow.</p>
         </div>
 
         <div className="footer-column">
-          <h4>Explore</h4>
+          <h4>Knowledge</h4>
           <div className="footer-links vertical-links">
-            <Link to="/">Latest</Link>
-            <Link to={user ? '/explore' : '/login'}>AI</Link>
-            <Link to={user ? '/founder-meets' : '/login'}>Startups</Link>
-            <Link to={user ? '/summits' : '/login'}>Innovation</Link>
+            <Link to={user ? '/explore' : '/login'}>Explore</Link>
+            <Link to={user ? '/explore' : '/login'}>Topics</Link>
+            <Link to={user ? '/explore' : '/login'}>Trending</Link>
           </div>
         </div>
 
         <div className="footer-column">
-          <h4>Company</h4>
+          <h4>Events</h4>
+          <div className="footer-links vertical-links">
+            <Link to={user ? '/summits' : '/login'}>Summits</Link>
+            <Link to={user ? '/founder-meets' : '/login'}>Founder Meets</Link>
+            <Link to={user ? '/speakers' : '/login'}>Speakers</Link>
+          </div>
+        </div>
+
+        <div className="footer-column">
+          <h4>Community</h4>
           <div className="footer-links vertical-links">
             <Link to={user ? '/explore' : '/login'}>About</Link>
-            <Link to={user ? '/summits' : '/login'}>Contact</Link>
-            <Link to="/pricing">Write for Us</Link>
+            <Link to="/register">Join TechTalk</Link>
+            <a href="mailto:hello@nexzibyte.com">Contact</a>
           </div>
         </div>
 
         <div className="footer-column">
-          <h4>Social</h4>
+          <h4>NEXZIBYTE</h4>
           <div className="footer-links social-links">
             <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
             <a href="https://x.com" target="_blank" rel="noreferrer">X</a>
           </div>
         </div>
       </footer>
-      <div className="footer-bottom">© 2026 Nexzibyte Tech Talk. All rights reserved.</div>
+      <div className="footer-bottom">© 2026 NexziByte</div>
     </div>
   );
 }
@@ -600,7 +600,7 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
           </div>
           <Link className="text-link" to={user ? '/speakers' : '/login'}>Browse experts <ArrowRight size={16} /></Link>
         </div>
-        <div className="speaker-grid">
+        <div className="speaker-grid featured-speaker-grid">
           {(speakers || []).slice(0, 4).map((speaker) => <SpeakerCard key={speaker.id} speaker={speaker} />)}
         </div>
       </section>
@@ -609,14 +609,19 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Why join TechTalk</span>
-            <h2>A sharper way to learn, connect and move forward.</h2>
+            <h2>Technology Is Better When Ideas Are Shared.</h2>
           </div>
           <Link className="primary-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Join the community'}</Link>
         </div>
-        <div className="feature-grid">
-          {featureCards.map(({ icon: Icon, title, text }) => (
+        <div className="feature-grid benefit-grid">
+          {[
+            { number: '01', title: 'Discover', text: 'Explore technology shaping the future.' },
+            { number: '02', title: 'Learn', text: 'Access insights from builders and experts.' },
+            { number: '03', title: 'Share', text: 'Publish your ideas and technical knowledge.' },
+            { number: '04', title: 'Connect', text: 'Meet people building what comes next.' },
+          ].map(({ number, title, text }) => (
             <article key={title} className="feature-card card-surface">
-              <Icon size={22} />
+              <span className="benefit-number">{number}</span>
               <h3>{title}</h3>
               <p>{text}</p>
             </article>
@@ -626,13 +631,12 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
 
       <section className="content-section newsletter-box premium-newsletter">
         <div>
-          <span className="eyebrow">Newsletter</span>
-          <h2>The Future of Technology, Delivered to Your Inbox.</h2>
-          <p>Get the most important technology stories, innovations and insights without the noise.</p>
+          <span className="eyebrow">Stay ahead of technology.</span>
+          <h2>The most important conversations in technology, delivered directly to you.</h2>
         </div>
         <form className="newsletter-form">
           <input type="email" placeholder="Enter your email address" />
-          <button type="button" className="primary-btn">Subscribe</button>
+          <button type="button" className="primary-btn">Subscribe <ArrowRight size={15} /></button>
         </form>
       </section>
     </>
@@ -1653,7 +1657,7 @@ function EventCard({ event, type, speakers = [], onCheckout }) {
 
 function SpeakerCard({ speaker }) {
   return (
-    <article className="speaker-card">
+    <article className="speaker-card professional-speaker-card">
       <img src={speaker.photo} alt={speaker.name} />
       <div className="speaker-body">
         <h3>{speaker.name}</h3>
@@ -1663,6 +1667,7 @@ function SpeakerCard({ speaker }) {
         <div className="tag-row">
           {(speaker.expertise || []).slice(0, 3).map((item) => <span key={item} className="tag-pill">{item}</span>)}
         </div>
+        <Link className="speaker-profile-link" to="/speakers">View profile <ArrowRight size={15} /></Link>
       </div>
     </article>
   );
