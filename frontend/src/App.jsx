@@ -320,6 +320,14 @@ function HomePage({ user, posts, summits, founderMeets, speakers, openCheckout }
           <div className="hero-image-wrap">
             <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" alt="Technology editorial cover" />
           </div>
+          <div className="hero-mini-stack">
+            {secondaryStories.slice(0, 2).map((story) => (
+              <div key={story.id} className="hero-mini-card">
+                <span>{story.category}</span>
+                <strong>{story.title}</strong>
+              </div>
+            ))}
+          </div>
           <div className="hero-floating-card">
             <span className="chip">Featured</span>
             <strong>{leadStory?.title}</strong>
@@ -1293,31 +1301,44 @@ function LoginPage({ setUser }) {
 
   return (
     <section className="content-section auth-page">
-      <div className="auth-card">
-        <span className="eyebrow">Welcome back</span>
-        <h2>Log in to TechTalk</h2>
-        <div className="auth-socials">
-          <button type="button" className="secondary-btn full-width">Continue with LinkedIn</button>
-          <div ref={googleButtonRef} className="google-auth-button" />
+      <div className="auth-shell">
+        <div className="auth-spotlight">
+          <span className="eyebrow">Member access</span>
+          <h2>Access the next wave of product, AI, and startup intelligence.</h2>
+          <p>Join a premium network of builders, founders, researchers, and operators shaping tomorrow’s technology decisions.</p>
+          <ul>
+            <li>Private event registrations</li>
+            <li>Curated founder and speaker access</li>
+            <li>Exclusive community updates</li>
+          </ul>
         </div>
-        {googleError ? <p className="form-error">{googleError}</p> : null}
-        <form onSubmit={handleSubmit} className="editor-form compact-form">
-          <label>
-            Email
-            <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          </label>
-          <label>
-            Password
-            <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
-          </label>
-          <div className="switch-row">
-            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Remember me</label>
-            <Link to="/register">Forgot password?</Link>
+
+        <div className="auth-card">
+          <span className="eyebrow">Welcome back</span>
+          <h2>Log in to TechTalk</h2>
+          <div className="auth-socials">
+            <button type="button" className="secondary-btn full-width">Continue with LinkedIn</button>
+            <div ref={googleButtonRef} className="google-auth-button" />
           </div>
-          {error ? <p className="form-error">{error}</p> : null}
-          <button type="submit" className="primary-btn">Log in</button>
-        </form>
-        <p className="auth-link">New here? <Link to="/register">Create an account</Link></p>
+          {googleError ? <p className="form-error">{googleError}</p> : null}
+          <form onSubmit={handleSubmit} className="editor-form compact-form">
+            <label>
+              Email
+              <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+            </label>
+            <label>
+              Password
+              <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+            </label>
+            <div className="switch-row">
+              <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Remember me</label>
+              <Link to="/register">Forgot password?</Link>
+            </div>
+            {error ? <p className="form-error">{error}</p> : null}
+            <button type="submit" className="primary-btn">Log in</button>
+          </form>
+          <p className="auth-link">New here? <Link to="/register">Create an account</Link></p>
+        </div>
       </div>
     </section>
   );
@@ -1408,41 +1429,55 @@ function RegisterPage({ setUser }) {
 
   return (
     <section className="content-section auth-page">
-      <div className="auth-card">
-        <span className="eyebrow">Join the community</span>
-        <h2>Create your TechTalk account</h2>
-        <div className="auth-socials">
-          <button type="button" className="secondary-btn full-width">Sign up with LinkedIn</button>
-          <div ref={googleButtonRef} className="google-auth-button" />
+      <div className="auth-shell">
+        <div className="auth-spotlight">
+          <span className="eyebrow">Member access</span>
+          <h2>Build a smarter network around your next breakthrough.</h2>
+          <p>Create your profile to unlock founders, expert sessions, private events and premium learning opportunities.</p>
+          <ul>
+            <li>Join premium events</li>
+            <li>Follow curated tech leaders</li>
+            <li>Access community conversations</li>
+          </ul>
         </div>
-        {googleError ? <p className="form-error">{googleError}</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
-        <form onSubmit={handleSubmit} className="editor-form compact-form">
-          <label>
-            Full name
-            <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          </label>
-          <label>
-            Email
-            <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-          </label>
-          <label>
-            Professional role
-            <input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} />
-          </label>
-          <label>
-            Password
-            <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
-          </label>
-          <label>
-            Confirm password
-            <input type="password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
-          </label>
-          <div className="switch-row">
-            <label className="checkbox-inline"><input type="checkbox" checked={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.checked })} /> I agree to the terms</label>
+
+        <div className="auth-card">
+          <span className="eyebrow">Join the community</span>
+          <h2>Create your TechTalk account</h2>
+          <div className="auth-socials">
+            <button type="button" className="secondary-btn full-width">Sign up with LinkedIn</button>
+            <div ref={googleButtonRef} className="google-auth-button" />
           </div>
-          <button type="submit" className="primary-btn">Create account</button>
-        </form>
+          {googleError ? <p className="form-error">{googleError}</p> : null}
+          {error ? <p className="form-error">{error}</p> : null}
+          <form onSubmit={handleSubmit} className="editor-form compact-form">
+            <label>
+              Full name
+              <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            </label>
+            <label>
+              Email
+              <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+            </label>
+            <label>
+              Professional role
+              <input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} />
+            </label>
+            <label>
+              Password
+              <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+            </label>
+            <label>
+              Confirm password
+              <input type="password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
+            </label>
+            <div className="switch-row">
+              <label className="checkbox-inline"><input type="checkbox" checked={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.checked })} /> I agree to the terms and privacy policy</label>
+            </div>
+            <button type="submit" className="primary-btn">Create account</button>
+          </form>
+          <p className="auth-link">Already a member? <Link to="/login">Log in</Link></p>
+        </div>
       </div>
     </section>
   );
