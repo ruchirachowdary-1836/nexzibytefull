@@ -19,19 +19,28 @@
   border-radius: 18px;
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
+  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.topbar.scrolled {
+  background: rgba(8, 13, 23, 0.96);
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: 0 16px 38px rgba(2, 6, 23, 0.42);
 }
 
 .brand-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 180px;
+  gap: 8px;
+  min-width: 220px;
+  color: var(--text);
+  text-decoration: none;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -45,11 +54,25 @@
 }
 
 .brand-name {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.brand-divider {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.brand-product {
+  color: var(--muted);
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 .brand-subtitle {
+  display: none;
   font-size: 0.74rem;
   color: var(--muted);
   letter-spacing: 0.08em;
@@ -82,6 +105,22 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.search-link,
+.sign-in-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.search-link:hover,
+.sign-in-link:hover {
+  color: var(--text);
 }
 
 .icon-btn {

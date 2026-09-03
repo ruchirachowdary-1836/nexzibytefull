@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
-  Bell,
   Bookmark,
   CalendarDays,
   Check,
@@ -28,8 +27,8 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
-  { to: '/', label: 'Home', requiresAuth: false },
   { to: '/explore', label: 'Explore', requiresAuth: true },
+  { to: '/explore', label: 'Topics', requiresAuth: true },
   { to: '/summits', label: 'Summits', requiresAuth: true },
   { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
   { to: '/speakers', label: 'Speakers', requiresAuth: true },
@@ -169,16 +168,24 @@ function ProtectedRoute({ user, children }) {
 
 function Layout({ children, user, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setHasScrolled(window.scrollY > 16);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-wrap">
-          <div className="brand-mark">T</div>
-          <div>
-            <div className="brand-name">TechTalk</div>
-          </div>
-        </div>
+      <header className={`topbar${hasScrolled ? ' scrolled' : ''}`}>
+        <Link className="brand-wrap" to="/">
+          <span className="brand-mark">N</span>
+          <span className="brand-name">NEXZIBYTE</span>
+          <span className="brand-divider">/</span>
+          <span className="brand-product">TECHTALK</span>
+        </Link>
 
         <nav className={`main-nav${mobileMenuOpen ? ' open' : ''}`} aria-label="Primary navigation">
           {siteSections.map((section) => {
@@ -186,7 +193,7 @@ function Layout({ children, user, onLogout }) {
 
             return (
               <NavLink
-                key={section.to}
+                key={`${section.to}-${section.label}`}
                 to={target}
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
                 onClick={() => setMobileMenuOpen(false)}
@@ -198,8 +205,9 @@ function Layout({ children, user, onLogout }) {
         </nav>
 
         <div className="header-actions">
-          <Link className="icon-btn" to={user ? '/explore' : '/login'} aria-label="Search">
+          <Link className="search-link" to={user ? '/explore' : '/login'} aria-label="Search">
             <Search size={16} />
+            <span>Search</span>
           </Link>
 
           {user ? (
@@ -208,16 +216,12 @@ function Layout({ children, user, onLogout }) {
                 <UserRound size={16} />
                 {user.name || 'Profile'}
               </Link>
-              <Link className="ghost-btn small" to="/notifications" aria-label="Notifications">
-                <Bell size={16} />
-              </Link>
-              <Link className="secondary-btn small" to="/create-post">Create Post</Link>
-              <button type="button" className="primary-btn small" onClick={onLogout}>Logout</button>
+              <button type="button" className="primary-btn small" onClick={onLogout}>Sign out</button>
             </>
           ) : (
             <>
-              <Link className="secondary-btn small" to="/login">Login</Link>
-              <Link className="primary-btn small" to="/register">Join TechTalk</Link>
+              <Link className="sign-in-link" to="/login">Sign In</Link>
+              <Link className="primary-btn small join-community-btn" to="/register">Join Community <ArrowRight size={14} /></Link>
             </>
           )}
           <button type="button" className="mobile-menu-toggle" aria-label="Toggle menu" onClick={() => setMobileMenuOpen((cur) => !cur)}>
