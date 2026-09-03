@@ -3,6 +3,7 @@ import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate, useParams } f
 import {
   ArrowRight,
   Bell,
+  Bookmark,
   CalendarDays,
   Check,
   Compass,
@@ -14,6 +15,7 @@ import {
   MessageSquare,
   Mic,
   Search,
+  Share2,
   ShieldCheck,
   Sparkles,
   Star,
@@ -520,13 +522,38 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
 function ExplorePage({ posts }) {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('Latest');
+  const [savedPosts, setSavedPosts] = useState([]);
+
   const categories = useMemo(() => ['All', ...new Set(posts.map((post) => post.category))], [posts]);
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
-    const haystack = `${post.title} ${post.excerpt} ${post.author} ${(post.tags || []).join(' ')}`.toLowerCase();
-    return matchesCategory && haystack.includes(query.toLowerCase());
-  });
+  const filteredPosts = useMemo(() => {
+    const lowerQuery = query.toLowerCase();
+    const results = posts.filter((post) => {
+      const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
+      const haystack = `${post.title} ${post.excerpt} ${post.author} ${(post.tags || []).join(' ')}`.toLowerCase();
+      const matchesQuery = !lowerQuery || haystack.includes(lowerQuery);
+      return matchesCategory && matchesQuery;
+    });
+
+    switch (sortBy) {
+      case 'Most liked':
+        return [...results].sort((a, b) => (b.reactions || 0) - (a.reactions || 0));
+      case 'Most commented':
+        return [...results].sort((a, b) => (b.comments || 0) - (a.comments || 0));
+      case 'Oldest':
+        return [...results].sort((a, b) => new Date(a.publishedAt) - new Date(b.publishedAt));
+      case 'Latest':
+      default:
+        return [...results].sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    }
+  }, [posts, query, selectedCategory, sortBy]);
+
+  const trendingTopics = ['AI', 'React', 'Cloud', 'Cybersecurity', 'Data Science', 'Web Development', 'Startups'];
+
+  const toggleSave = (postId) => {
+    setSavedPosts((current) => (current.includes(postId) ? current.filter((id) => id !== postId) : [...current, postId]));
+  };
 
   return (
     <section className="content-section">
@@ -551,8 +578,27 @@ function ExplorePage({ posts }) {
         ))}
       </div>
 
+      <div className="sort-row">
+        <label>
+          Sort by
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+            <option>Latest</option>
+            <option>Most liked</option>
+            <option>Most commented</option>
+            <option>Oldest</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="trending-strip">
+        <span className="eyebrow subtle-eyebrow">Trending</span>
+        <div className="trending-tags">
+          {trendingTopics.map((topic) => <span key={topic} className="tag-pill">{topic}</span>)}
+        </div>
+      </div>
+
       <div className="post-grid">
-        {filteredPosts.length ? filteredPosts.map((post) => <PostCard key={post.id} post={post} />) : <EmptyState text="No posts match your filters." />}
+        {filteredPosts.length ? filteredPosts.map((post) => <PostCard key={post.id} post={post} isSaved={savedPosts.includes(post.id)} onSave={toggleSave} />) : <EmptyState text="No posts match your filters." />}
       </div>
     </section>
   );
@@ -562,6 +608,8 @@ function PostDetailPage({ posts }) {
   const { postId } = useParams();
   const post = posts.find((item) => item.id === Number(postId));
   if (!post) return <EmptyState text="This post is not available." />;
+
+  const relatedPosts = posts.filter((item) => item.id !== post.id).slice(0, 3);
 
   return (
     <section className="content-section article-page">
@@ -586,19 +634,47 @@ function PostDetailPage({ posts }) {
           {(post.tags || []).map((tag) => <span key={tag} className="tag-pill">{tag}</span>)}
         </div>
         <p className="lead">{post.excerpt}</p>
+
+        <div className="article-actions article-actions-row">
+          <button type="button" className="ghost-btn"><Heart size={16} /> {post.reactions}</button>
+          <button type="button" className="ghost-btn"><MessageSquare size={16} /> {post.comments}</button>
+          <button type="button" className="ghost-btn"><Share2 size={16} /> Share</button>
+        </div>
+
         <div className="article-content">
           {(post.content || '').split('\n\n').map((paragraph, index) => <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>)}
         </div>
-        <div className="article-actions">
-          <button type="button" className="ghost-btn"><Heart size={16} /> {post.reactions}</button>
-          <button type="button" className="ghost-btn"><MessageSquare size={16} /> {post.comments}</button>
+
+        <div className="toc-panel">
+          <h3>Table of contents</h3>
+          <ul>
+            {(post.tags || []).slice(0, 4).map((tag) => <li key={tag}>{tag}</li>)}
+          </ul>
         </div>
       </article>
+
+      <div className="related-posts">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Related posts</span>
+            <h2>More to read</h2>
+          </div>
+        </div>
+        <div className="post-grid compact-grid">
+          {relatedPosts.map((item) => <PostCard key={item.id} post={item} />)}
+        </div>
+      </div>
     </section>
   );
 }
 
 function SummitsPage({ summits, speakers, openCheckout }) {
+  const [activeFilter, setActiveFilter] = useState('upcoming');
+  const upcomingSummits = (summits || []).filter((event) => event.status !== 'past');
+  const pastSummits = (summits || []).filter((event) => event.status === 'past');
+  const featuredSummit = (summits || [])[0] || null;
+  const visibleSummits = activeFilter === 'upcoming' ? upcomingSummits : pastSummits;
+
   return (
     <section className="content-section">
       <div className="section-heading-row">
@@ -607,8 +683,33 @@ function SummitsPage({ summits, speakers, openCheckout }) {
           <h2>Learn from operators, founders and product leaders</h2>
         </div>
       </div>
+
+      {featuredSummit ? (
+        <div className="featured-event-panel card-surface">
+          <img src={featuredSummit.banner} alt={featuredSummit.title} />
+          <div className="featured-event-copy">
+            <span className="chip">Featured summit</span>
+            <h3>{featuredSummit.title}</h3>
+            <p>{featuredSummit.description}</p>
+            <div className="meta-list">
+              <span><CalendarDays size={16} /> {featuredSummit.date}</span>
+              <span><MapPin size={16} /> {featuredSummit.location}</span>
+              <span><ShieldCheck size={16} /> {featuredSummit.status === 'past' ? 'Completed' : 'Registration open'}</span>
+            </div>
+            <button type="button" className="primary-btn" onClick={() => openCheckout?.(featuredSummit, 'Growth')}>Register</button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="toolbar-row">
+        <div className="pill-group">
+          <button type="button" className={activeFilter === 'upcoming' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('upcoming')}>Upcoming</button>
+          <button type="button" className={activeFilter === 'past' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('past')}>Past</button>
+        </div>
+      </div>
+
       <div className="event-grid">
-        {summits.map((event) => <EventCard key={event.id} event={event} type="summit" speakers={speakers} onCheckout={openCheckout} />)}
+        {visibleSummits.length ? visibleSummits.map((event) => <EventCard key={event.id} event={event} type="summit" speakers={speakers} onCheckout={openCheckout} />) : <EmptyState text="No summits available in this section yet." />}
       </div>
     </section>
   );
@@ -667,6 +768,12 @@ function SummitDetailPage({ summits, speakers, openCheckout }) {
 }
 
 function FounderMeetsPage({ founderMeets, speakers, openCheckout }) {
+  const [activeFilter, setActiveFilter] = useState('upcoming');
+  const upcomingMeetups = (founderMeets || []).filter((event) => event.status !== 'past');
+  const pastMeetups = (founderMeets || []).filter((event) => event.status === 'past');
+  const featuredMeet = (founderMeets || [])[0] || null;
+  const visibleMeetups = activeFilter === 'upcoming' ? upcomingMeetups : pastMeetups;
+
   return (
     <section className="content-section">
       <div className="section-heading-row">
@@ -675,8 +782,33 @@ function FounderMeetsPage({ founderMeets, speakers, openCheckout }) {
           <h2>High-intent conversations for builders and operators</h2>
         </div>
       </div>
+
+      {featuredMeet ? (
+        <div className="featured-event-panel card-surface">
+          <img src={featuredMeet.banner} alt={featuredMeet.title} />
+          <div className="featured-event-copy">
+            <span className="chip">Featured founder meet</span>
+            <h3>{featuredMeet.title}</h3>
+            <p>{featuredMeet.description}</p>
+            <div className="meta-list">
+              <span><CalendarDays size={16} /> {featuredMeet.date}</span>
+              <span><MapPin size={16} /> {featuredMeet.location}</span>
+              <span><Compass size={16} /> {featuredMeet.networking_info}</span>
+            </div>
+            <button type="button" className="primary-btn" onClick={() => openCheckout?.(featuredMeet, 'Founder')}>Reserve spot</button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="toolbar-row">
+        <div className="pill-group">
+          <button type="button" className={activeFilter === 'upcoming' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('upcoming')}>Upcoming</button>
+          <button type="button" className={activeFilter === 'past' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('past')}>Past</button>
+        </div>
+      </div>
+
       <div className="event-grid">
-        {founderMeets.map((event) => <EventCard key={event.id} event={event} type="founder" speakers={speakers} onCheckout={openCheckout} />)}
+        {visibleMeetups.length ? visibleMeetups.map((event) => <EventCard key={event.id} event={event} type="founder" speakers={speakers} onCheckout={openCheckout} />) : <EmptyState text="No founder meets available in this section yet." />}
       </div>
     </section>
   );
@@ -773,17 +905,30 @@ function PricingPage({ openCheckout }) {
 
 function CreatePostPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', content: '', category: 'Artificial Intelligence' });
+  const [form, setForm] = useState({
+    title: '',
+    content: '',
+    category: 'Artificial Intelligence',
+    tags: '',
+    coverImage: '',
+    preview: false,
+  });
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setForm((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      await apiService.createPost({ title: form.title, content: form.content, category_id: 1 });
+      await apiService.createPost({
+        title: form.title,
+        content: form.content,
+        category_id: 1,
+        tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        image: form.coverImage || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+      });
       navigate('/explore');
     } catch {
       navigate('/explore');
@@ -811,10 +956,29 @@ function CreatePostPage() {
           </select>
         </label>
         <label>
+          Tags
+          <input name="tags" value={form.tags} onChange={handleChange} placeholder="AI, UX, Product, Leadership" />
+        </label>
+        <label>
+          Cover image URL
+          <input name="coverImage" value={form.coverImage} onChange={handleChange} placeholder="https://example.com/cover.jpg" />
+        </label>
+        <label>
           Content
           <textarea name="content" value={form.content} onChange={handleChange} rows="10" placeholder="Write your article here..." />
         </label>
+
+        <div className="preview-box">
+          <h3>Preview</h3>
+          <div className="preview-card">
+            <span className="chip">{form.category}</span>
+            <h4>{form.title || 'Untitled article'}</h4>
+            <p>{form.content ? form.content.slice(0, 120) : 'Your story preview will appear here.'}</p>
+          </div>
+        </div>
+
         <div className="editor-actions">
+          <label className="checkbox-inline"><input type="checkbox" name="preview" checked={form.preview} onChange={handleChange} /> Enable preview mode</label>
           <button type="button" className="secondary-btn">Save draft</button>
           <button type="submit" className="primary-btn">Publish</button>
         </div>
@@ -826,10 +990,12 @@ function CreatePostPage() {
 function ProfilePage({ user, posts }) {
   const profile = user || {
     name: 'Aarav Nair',
+    title: 'Senior Product Strategist',
     email: 'aarav@techtalk.dev',
     bio: 'Product-minded technologist exploring AI, design and software systems.',
     skills: ['AI', 'React', 'Product strategy'],
     location: 'Hyderabad, India',
+    links: { portfolio: 'https://example.com', linkedin: 'https://linkedin.com', x: 'https://x.com' },
   };
 
   return (
@@ -839,10 +1005,20 @@ function ProfilePage({ user, posts }) {
         <div>
           <span className="eyebrow">Profile</span>
           <h2>{profile.name}</h2>
+          <p className="profile-title">{profile.title || 'Community member'}</p>
           <p>{profile.bio}</p>
           <div className="profile-meta">
             <span><Globe size={15} /> {profile.location || 'Remote'}</span>
             <span><Compass size={15} /> Product-minded engineer</span>
+          </div>
+          <div className="profile-links">
+            {profile.links ? (
+              <>
+                <a href={profile.links.portfolio} target="_blank" rel="noreferrer">Portfolio</a>
+                <a href={profile.links.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+                <a href={profile.links.x} target="_blank" rel="noreferrer">X</a>
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -861,6 +1037,21 @@ function ProfilePage({ user, posts }) {
             <li>Saved 7 popular posts</li>
             <li>Registered for 3 events</li>
           </ul>
+        </div>
+      </div>
+
+      <div className="profile-stats">
+        <div className="stat-box">
+          <strong>{posts.length}</strong>
+          <span>Published posts</span>
+        </div>
+        <div className="stat-box">
+          <strong>7</strong>
+          <span>Saved posts</span>
+        </div>
+        <div className="stat-box">
+          <strong>3</strong>
+          <span>Events joined</span>
         </div>
       </div>
 
@@ -946,22 +1137,71 @@ function SettingsPage() {
           <h2>Account preferences</h2>
         </div>
       </div>
+
       <div className="settings-grid">
         <div className="settings-card">
-          <h3>Profile</h3>
-          <p>Update your name, role, bio, and location.</p>
+          <h3>Profile settings</h3>
+          <form className="editor-form compact-form">
+            <label>
+              Full name
+              <input defaultValue="Aarav Nair" />
+            </label>
+            <label>
+              Professional title
+              <input defaultValue="Senior Product Strategist" />
+            </label>
+            <label>
+              Bio
+              <textarea rows="4" defaultValue="Product-minded technologist exploring AI, design and software systems." />
+            </label>
+            <label>
+              Location
+              <input defaultValue="Hyderabad, India" />
+            </label>
+          </form>
         </div>
+
         <div className="settings-card">
-          <h3>Notifications</h3>
-          <p>Control event reminders, comments, and follower updates.</p>
+          <h3>Account settings</h3>
+          <form className="editor-form compact-form">
+            <label>
+              Email
+              <input type="email" defaultValue="aarav@techtalk.dev" />
+            </label>
+            <label>
+              Preferred role
+              <input defaultValue="Product leader" />
+            </label>
+            <label>
+              Website
+              <input defaultValue="https://example.com" />
+            </label>
+          </form>
         </div>
+
         <div className="settings-card">
-          <h3>Privacy</h3>
-          <p>Adjust visibility, personal data usage, and account controls.</p>
+          <h3>Notification preferences</h3>
+          <div className="toggle-stack">
+            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Comments and replies</label>
+            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Event reminders</label>
+            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Followers and community updates</label>
+            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Registration updates</label>
+          </div>
         </div>
+
         <div className="settings-card">
-          <h3>Security</h3>
-          <p>Change your password and review active sessions.</p>
+          <h3>Privacy & security</h3>
+          <form className="editor-form compact-form">
+            <label>
+              Current password
+              <input type="password" defaultValue="••••••••" />
+            </label>
+            <label>
+              New password
+              <input type="password" placeholder="Enter a new password" />
+            </label>
+            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> Make profile visible to the public</label>
+          </form>
         </div>
       </div>
     </section>
@@ -1069,8 +1309,9 @@ function LoginPage({ setUser }) {
 function RegisterPage({ setUser }) {
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'Product Leader', terms: false });
   const [googleError, setGoogleError] = useState('');
+  const [error, setError] = useState('');
 
   const handleGoogleRegister = useCallback(async ({ credential }) => {
     try {
@@ -1121,13 +1362,29 @@ function RegisterPage({ setUser }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
+      setError('Please complete all required fields.');
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (!form.terms) {
+      setError('Please accept the terms and conditions to continue.');
+      return;
+    }
+
     try {
-      await apiService.register(form);
+      await apiService.register({ ...form, role: form.role });
       const profile = await apiService.getCurrentUser();
-      setUser(profile || { name: form.name, email: form.email });
+      setUser(profile || { name: form.name, email: form.email, role: form.role });
       navigate('/profile');
     } catch {
-      setUser({ name: form.name, email: form.email });
+      setUser({ name: form.name, email: form.email, role: form.role });
       navigate('/profile');
     }
   };
@@ -1142,6 +1399,7 @@ function RegisterPage({ setUser }) {
           <div ref={googleButtonRef} className="google-auth-button" />
         </div>
         {googleError ? <p className="form-error">{googleError}</p> : null}
+        {error ? <p className="form-error">{error}</p> : null}
         <form onSubmit={handleSubmit} className="editor-form compact-form">
           <label>
             Full name
@@ -1152,11 +1410,19 @@ function RegisterPage({ setUser }) {
             <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
           </label>
           <label>
+            Professional role
+            <input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} />
+          </label>
+          <label>
             Password
             <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
           </label>
+          <label>
+            Confirm password
+            <input type="password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
+          </label>
           <div className="switch-row">
-            <label className="checkbox-inline"><input type="checkbox" defaultChecked /> I agree to the terms</label>
+            <label className="checkbox-inline"><input type="checkbox" checked={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.checked })} /> I agree to the terms</label>
           </div>
           <button type="submit" className="primary-btn">Create account</button>
         </form>
@@ -1165,11 +1431,18 @@ function RegisterPage({ setUser }) {
   );
 }
 
-function PostCard({ post }) {
+function PostCard({ post, isSaved = false, onSave }) {
   const authorName = post.author || 'Community member';
+  const authorInitial = authorName.charAt(0).toUpperCase();
+
   return (
     <article className="post-card">
-      <img src={post.image} alt={post.title} />
+      <div className="card-image-wrap">
+        <img src={post.image} alt={post.title} />
+        <button type="button" className={`save-btn${isSaved ? ' active' : ''}`} onClick={() => onSave?.(post.id)} aria-label="Save post">
+          <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+        </button>
+      </div>
       <div className="post-body">
         <div className="meta-row small-meta">
           <span className="chip">{post.category}</span>
@@ -1177,15 +1450,22 @@ function PostCard({ post }) {
         </div>
         <Link className="post-title" to={`/posts/${post.id}`}>{post.title}</Link>
         <p>{post.excerpt}</p>
+        <div className="tag-row compact-tags">
+          {(post.tags || []).slice(0, 3).map((tag) => <span key={tag} className="tag-pill">{tag}</span>)}
+        </div>
         <div className="post-footer">
           <div className="author-inline">
-            <div className="avatar-circle small">{authorName.charAt(0)}</div>
+            <div className="avatar-circle small">{authorInitial}</div>
             <span>{authorName}</span>
           </div>
           <div className="stat-row">
             <span><Heart size={14} /> {post.reactions}</span>
             <span><MessageSquare size={14} /> {post.comments}</span>
           </div>
+        </div>
+        <div className="post-meta-row">
+          <span>{post.readTime}</span>
+          <span>{post.authorRole || 'Editor'}</span>
         </div>
       </div>
     </article>
@@ -1203,6 +1483,7 @@ function EventCard({ event, type, speakers = [], onCheckout }) {
       <div className="event-body">
         <div className="meta-row small-meta">
           <span className="chip">{type === 'summit' ? 'Summit' : 'Founder meet'}</span>
+          <span>{event.status === 'past' ? 'Completed' : 'Registration open'}</span>
           <span>{event.date}</span>
         </div>
         <Link className="event-title" to={route}>{event.title}</Link>
@@ -1231,6 +1512,7 @@ function SpeakerCard({ speaker }) {
         <h3>{speaker.name}</h3>
         <p className="speaker-role">{speaker.designation}</p>
         <p className="speaker-company">{speaker.company}</p>
+        <p className="speaker-bio">{speaker.bio || 'Technology leader helping teams navigate product, leadership and innovation.'}</p>
         <div className="tag-row">
           {(speaker.expertise || []).slice(0, 3).map((item) => <span key={item} className="tag-pill">{item}</span>)}
         </div>
