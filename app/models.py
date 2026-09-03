@@ -24,9 +24,42 @@ class User(Base):
     professional_role: Mapped[str | None] = mapped_column(String(120), nullable=True)
     skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     posts = relationship('Post', back_populates='author')
+    settings = relationship('UserSettings', back_populates='user', uselist=False)
+    notifications = relationship('Notification', back_populates='user')
+
+
+class UserSkill(Base):
+    __tablename__ = 'user_skills'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    skill: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserLink(Base):
+    __tablename__ = 'user_links'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    label: Mapped[str] = mapped_column(String(80))
+    url: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserSettings(Base):
+    __tablename__ = 'user_settings'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), unique=True)
+    profile_settings: Mapped[str | None] = mapped_column(Text, nullable=True, default='{}')
+    account_settings: Mapped[str | None] = mapped_column(Text, nullable=True, default='{}')
+    notification_preferences: Mapped[str | None] = mapped_column(Text, nullable=True, default='{"comments": true, "reactions": true, "followers": true, "event_updates": true, "registration_updates": true}')
+    privacy: Mapped[str | None] = mapped_column(Text, nullable=True, default='{}')
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user = relationship('User', back_populates='settings')
 
 
 class Category(Base):
@@ -54,6 +87,21 @@ class Post(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     author = relationship('User', back_populates='posts')
     category = relationship('Category', back_populates='posts')
+
+
+class Tag(Base):
+    __tablename__ = 'tags'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class PostTag(Base):
+    __tablename__ = 'post_tags'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey('posts.id'))
+    tag_id: Mapped[int] = mapped_column(ForeignKey('tags.id'))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Comment(Base):
@@ -123,3 +171,15 @@ class Registration(Base):
     event_type: Mapped[str] = mapped_column(String(20)); event_id: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default='registered')
     registered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = 'notifications'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    type: Mapped[str] = mapped_column(String(40), default='general')
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user = relationship('User', back_populates='notifications')

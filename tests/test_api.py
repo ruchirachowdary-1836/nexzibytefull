@@ -213,3 +213,56 @@ def test_user_and_speaker_validation():
     status_update = client.patch('/users/1/status?active=false', headers=admin)
     assert status_update.status_code == 200
     assert 'password_hash' not in status_update.json()
+
+
+def test_extended_profile_notification_and_admin_routes():
+    db = SessionLocal()
+    admin_user = db.query(User).filter_by(email='admin@example.com').first()
+    if not admin_user:
+        admin_user = User(name='Admin', email='admin@example.com', password_hash=hash_password('AdminPass123'), role='admin', is_active=True)
+        db.add(admin_user)
+    else:
+        admin_user.is_active = True
+        admin_user.role = 'admin'
+    db.commit(); db.close()
+
+    admin = token('admin@example.com', 'AdminPass123')
+    user = token('test@example.com', 'Password123')
+
+    tag = client.post('/tags', json={'name': 'AI'}, headers=admin)
+    assert tag.status_code == 201
+
+    settings = client.put('/users/me/settings', json={
+        'notification_preferences': {'comments': True, 'reactions': True, 'followers': True, 'event_updates': True, 'registration_updates': True},
+        'privacy': {'profile_visibility': 'public'},
+    }, headers=user)
+    assert settings.status_code == 200
+    assert client.get('/users/me/settings', headers=user).status_code == 200
+
+    category = client.post('/categories', json={'name': 'Cybersecurity', 'slug': 'cybersecurity'}, headers=admin)
+    assert category.status_code == 201
+    post = client.post('/posts', json={'title': 'Security best practices', 'content': 'A long article about cybersecurity.', 'category_id': category.json()['id'], 'tags': 'AI, Security'}, headers=user)
+    assert post.status_code == 201
+    post_id = post.json()['id']
+    assert client.patch(f'/posts/{post_id}/publish', headers=user).status_code == 200
+    assert client.post(f'/posts/{post_id}/comments', json={'content': 'Nice write-up'}, headers=user).status_code == 201
+    assert client.post(f'/posts/{post_id}/reactions', headers=user).json()['reacted'] is True
+    assert client.get('/notifications', headers=user).status_code == 200
+    assert client.get('/users/me/posts', headers=user).status_code == 200
+
+    speaker = client.post('/speakers', json={'name': 'Event Speaker', 'designation': 'CTO', 'company': 'NexziByte'}, headers=admin)
+    assert speaker.status_code == 201
+    summit = client.post('/summits', json={'title': 'AI Leadership Summit', 'date': '2031-02-18', 'location': 'Bengaluru', 'speaker_ids': [speaker.json()['id']]}, headers=admin)
+    assert summit.status_code == 201
+    registration = client.post(f"/summits/{summit.json()['id']}/register", headers=user)
+    assert registration.status_code == 201
+    assert client.get('/users/me/registrations', headers=user).status_code == 200
+
+    dashboard = client.get('/admin/dashboard', headers=admin)
+    assert dashboard.status_code == 200
+    assert 'Total Users' in dashboard.json()
+    assert client.get('/admin/posts', headers=admin).status_code == 200
+    assert client.get('/admin/registrations', headers=admin).status_code == 200
+    assert client.get(f"/summits/{summit.json()['id']}/agenda", headers=admin).status_code == 200
+    assert client.get(f"/summits/{summit.json()['id']}/speakers", headers=admin).status_code == 200
+    assert client.get(f"/summits/{summit.json()['id']}/related", headers=admin).status_code == 200

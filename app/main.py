@@ -78,10 +78,21 @@ class ProfileUpdateIn(BaseModel):
     professional_role: str | None = None
     skills: str | None = None
     website: str | None = None
+    linkedin_url: str | None = None
 
 class ChangePasswordIn(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+class TagIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+class UserSettingsIn(BaseModel):
+    profile_settings: dict | None = None
+    account_settings: dict | None = None
+    notification_preferences: dict | None = None
+    privacy: dict | None = None
+
 
 def item(obj):
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
@@ -102,6 +113,44 @@ def attach_speakers(db, event, speaker_ids):
     event.speakers = speakers
 def get_event(db, event_type, event_id): return one(db, Summit if event_type == 'summit' else FounderMeet, event_id)
 
+def ensure_user_settings(db: Session, user: User):
+    settings_record = db.query(UserSettings).filter_by(user_id=user.id).first()
+    if not settings_record:
+        settings_record = UserSettings(user_id=user.id)
+        db.add(settings_record)
+        db.commit()
+        db.refresh(settings_record)
+    return settings_record
+
+
+def add_notification(db: Session, user_id: int, notification_type: str, title: str, message: str):
+    notification = Notification(user_id=user_id, type=notification_type, title=title, message=message)
+    db.add(notification)
+    db.commit()
+    db.refresh(notification)
+    return item(notification)
+
+
+def user_profile_payload(user: User, db: Session):
+    skills = [row.skill for row in db.query(UserSkill).filter_by(user_id=user.id).all()]
+    links = [item(row) for row in db.query(UserLink).filter_by(user_id=user.id).all()]
+    posts = [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+    activity = {
+        'posts_count': len(posts),
+        'comments_count': db.query(Comment).filter_by(user_id=user.id).count(),
+        'reactions_count': db.query(Reaction).filter_by(user_id=user.id).count(),
+        'saved_posts_count': db.query(SavedPost).filter_by(user_id=user.id).count(),
+        'registrations_count': db.query(Registration).filter_by(user_id=user.id).count(),
+    }
+    return {
+        **user_item(user),
+        'skills': skills or (user.skills.split(',') if user.skills else []),
+        'links': links,
+        'posts': posts,
+        'activity': activity,
+        'settings': item(ensure_user_settings(db, user)),
+    }
+
 @app.get('/health')
 def health(): return {'status': 'ok'}
 
@@ -116,7 +165,9 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         professional_role=getattr(body, 'professional_role', None),
         profile_image=getattr(body, 'profile_image', None),
     )
-    db.add(user); db.commit(); db.refresh(user); return user_item(user)
+    db.add(user); db.commit(); db.refresh(user)
+    ensure_user_settings(db, user)
+    return user_item(user)
 
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -148,6 +199,7 @@ def google_login(body: GoogleAuthIn, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
+        ensure_user_settings(db, user)
     elif not user.is_active:
         raise HTTPException(401, detail='This user account is inactive.')
 
@@ -168,6 +220,8 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         'profile_image': body.profile_image,
         'professional_role': body.professional_role,
         'skills': body.skills,
+        'website': body.website,
+        'linkedin_url': body.linkedin_url,
     }
     for key, value in fields.items():
         if value is not None:
@@ -183,13 +237,65 @@ def change_password(body: ChangePasswordIn, db: Session = Depends(get_db), user:
     user.password_hash = hash_password(body.new_password)
     db.add(user); db.commit(); return {'detail': 'Password updated successfully'}
 
+@app.get('/users/me/posts')
+def my_posts(status: str | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    q = db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False))
+    if status:
+        if status not in {'published', 'draft'}:
+            raise HTTPException(422, detail='status must be published or draft')
+        q = q.filter(Post.status == status)
+    return [make_post_payload(post) for post in q.order_by(Post.created_at.desc()).all()]
+
+@app.get('/users/me/settings')
+def my_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return item(ensure_user_settings(db, user))
+
+@app.put('/users/me/settings')
+def update_settings(body: UserSettingsIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    settings_record = ensure_user_settings(db, user)
+    if body.profile_settings is not None: settings_record.profile_settings = str(body.profile_settings)
+    if body.account_settings is not None: settings_record.account_settings = str(body.account_settings)
+    if body.notification_preferences is not None: settings_record.notification_preferences = str(body.notification_preferences)
+    if body.privacy is not None: settings_record.privacy = str(body.privacy)
+    db.add(settings_record)
+    db.commit()
+    db.refresh(settings_record)
+    return item(settings_record)
+
+@app.put('/users/me')
+def update_user_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return update_profile(body, db, user)
+
+@app.get('/users/{user_id}')
+def user_detail(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    user = one(db, User, user_id)
+    if current_user.role != 'admin' and current_user.id != user.id:
+        raise HTTPException(403, detail='Not permitted')
+    return user_profile_payload(user, db)
+
+@app.get('/users/{user_id}/posts')
+def user_posts(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    user = one(db, User, user_id)
+    if current_user.role != 'admin' and current_user.id != user.id:
+        raise HTTPException(403, detail='Not permitted')
+    return [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+
+@app.get('/users/{user_id}/activity')
+def user_activity(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    user = one(db, User, user_id)
+    if current_user.role != 'admin' and current_user.id != user.id:
+        raise HTTPException(403, detail='Not permitted')
+    return {
+        'recent_posts': [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).limit(5).all()],
+        'recent_comments': [item(comment) for comment in db.query(Comment).filter_by(user_id=user.id).order_by(Comment.created_at.desc()).limit(5).all()],
+        'recent_registrations': [item(reg) for reg in db.query(Registration).filter_by(user_id=user.id).order_by(Registration.registered_at.desc()).limit(5).all()],
+    }
+
 @app.get('/users')
 def users(search: str | None = None, limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
     q = db.query(User)
     if search: q = q.filter(or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%')))
     return {'total': q.count(), 'items': [user_item(x) for x in q.offset(offset).limit(limit)]}
-@app.get('/users/{user_id}')
-def user_detail(user_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)): return user_item(one(db, User, user_id))
 @app.patch('/users/{user_id}/status')
 def user_status(user_id: int, active: bool, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     u = one(db, User, user_id); u.is_active = active; db.commit(); return user_item(u)
@@ -200,6 +306,25 @@ def create_category(body: CategoryIn, db: Session = Depends(get_db), _: User = D
     x = Category(**body.model_dump()); db.add(x); db.commit(); db.refresh(x); return item(x)
 @app.get('/categories')
 def list_categories(db: Session = Depends(get_db)): return [item(x) for x in db.query(Category).filter_by(is_archived=False)]
+
+@app.get('/tags')
+def list_tags(db: Session = Depends(get_db)):
+    return [item(x) for x in db.query(Tag).order_by(Tag.name.asc())]
+
+@app.post('/tags', status_code=201)
+def create_tag(body: TagIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    body.name = body.name.strip()
+    if not body.name:
+        raise HTTPException(422, detail='Tag name is required')
+    existing = db.query(Tag).filter_by(name=body.name).first()
+    if existing:
+        raise HTTPException(409, detail='Tag already exists')
+    tag = Tag(name=body.name)
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    return item(tag)
+
 
 def normalize_tags(raw):
     if not raw: return []
@@ -287,46 +412,173 @@ def update_category(category_id: int, body: CategoryIn, db: Session = Depends(ge
 def archive_category(category_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     x = one(db, Category, category_id); x.is_archived=True; db.commit(); return {'detail':'Category archived'}
 
+def make_post_payload(post):
+    return {
+        'id': post.id,
+        'title': post.title,
+        'content': post.content,
+        'excerpt': (post.content[:160] + '...') if post.content and len(post.content) > 160 else (post.content or ''),
+        'category_id': post.category_id,
+        'category': post.category.name if post.category else 'General',
+        'tags': normalize_tags(post.tags),
+        'cover_image': post.cover_image,
+        'status': post.status,
+        'author_id': post.author_id,
+        'author': post.author.name if post.author else 'Community member',
+        'authorRole': getattr(post.author, 'professional_role', None) or 'TechTalk contributor',
+        'publishedAt': post.created_at.strftime('%Y-%m-%d') if post.created_at else '2026-01-01',
+        'readTime': str(max(3, min(12, max(1, len((post.content or '').split()) // 150 + 3)))) + ' min read',
+        'reactions': db_query_count(post.id, 'reactions', db=None) if False else 0,
+        'comments': 0,
+        'image': post.cover_image or 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
+    }
+
+
 @app.post('/posts', status_code=201)
 def create_post(body: PostIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    one(db, Category, body.category_id); x=Post(author_id=user.id, **body.model_dump()); db.add(x); db.commit(); db.refresh(x); return item(x)
+    one(db, Category, body.category_id)
+    payload = body.model_dump()
+    payload['tags'] = ', '.join(normalize_tags(payload.get('tags'))) if payload.get('tags') is not None else None
+    x = Post(author_id=user.id, **payload)
+    db.add(x); db.commit(); db.refresh(x); return make_post_payload(x)
+
+
 @app.get('/posts')
-def list_posts(category: int | None=None, status: str | None=None, author: int | None=None, db: Session=Depends(get_db)):
-    q=db.query(Post).filter_by(is_archived=False)
-    if category: q=q.filter(Post.category_id==category)
-    if status: q=q.filter(Post.status==status)
-    if author: q=q.filter(Post.author_id==author)
-    return [item(x) for x in q.order_by(Post.created_at.desc())]
+def list_posts(category: int | None = None, status: str | None = None, author: int | None = None, search: str | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db)):
+    q = db.query(Post).filter_by(is_archived=False)
+    if category: q = q.filter(Post.category_id == category)
+    if status: q = q.filter(Post.status == status)
+    if author: q = q.filter(Post.author_id == author)
+    if search:
+        term = f'%{search.lower()}%'
+        q = q.filter(or_(func.lower(Post.title).like(term), func.lower(Post.content).like(term), func.lower(Post.tags).like(term)))
+    if sort == 'latest':
+        q = q.order_by(Post.created_at.desc())
+    elif sort == 'popular':
+        q = q.order_by(Post.created_at.desc())
+    else:
+        q = q.order_by(Post.created_at.desc())
+    items = q.offset((page - 1) * limit).limit(limit).all()
+    return [make_post_payload(x) for x in items]
+
+
+@app.get('/posts/search')
+def search_posts(query: str = Query(..., min_length=1), category: int | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db)):
+    return list_posts(category=category, status=None, author=None, search=query, sort=sort, page=page, limit=limit, db=db)
+
+
+@app.get('/posts/trending')
+def trending_posts(limit: int = Query(6, ge=1, le=20), db: Session = Depends(get_db)):
+    posts = db.query(Post).filter(Post.is_archived.is_(False), Post.status == 'published').all()
+    ranked = []
+    for post in posts:
+        reactions = db.query(Reaction).filter_by(post_id=post.id).count()
+        comments = db.query(Comment).filter_by(post_id=post.id).count()
+        rank = reactions * 2 + comments + (1 if post.status == 'published' else 0)
+        ranked.append((rank, post))
+    ranked.sort(key=lambda row: row[0], reverse=True)
+    return [make_post_payload(post) for _, post in ranked[:limit]]
+
+
 @app.get('/posts/{post_id}')
-def post_detail(post_id:int, db:Session=Depends(get_db)): return item(one(db,Post,post_id))
+def post_detail(post_id:int, db:Session=Depends(get_db)):
+    post = one(db, Post, post_id)
+    if post.is_archived:
+        raise HTTPException(404, detail='Post not found')
+    return make_post_payload(post)
+
+
+@app.get('/posts/{post_id}/related')
+def related_posts(post_id:int, limit: int = Query(3, ge=1, le=12), db:Session=Depends(get_db)):
+    post = one(db, Post, post_id)
+    q = db.query(Post).filter(Post.is_archived.is_(False), Post.id != post_id, Post.status == 'published')
+    if post.category_id:
+        q = q.filter(Post.category_id == post.category_id)
+    related = q.order_by(Post.created_at.desc()).limit(limit).all()
+    if len(related) < limit:
+        fallback = db.query(Post).filter(Post.is_archived.is_(False), Post.id != post_id, Post.status == 'published').order_by(Post.created_at.desc()).limit(limit).all()
+        merged = []
+        seen = {item.id for item in related}
+        for item in fallback:
+            if item.id not in seen:
+                merged.append(item)
+            if len(related) + len(merged) >= limit:
+                break
+        related.extend(merged)
+    return [make_post_payload(item) for item in related[:limit]]
+
+
 @app.put('/posts/{post_id}')
 def update_post(post_id:int, body:PostIn, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); one(db,Category,body.category_id); set_values(x,body.model_dump(),{'title','content','category_id','tags','cover_image'}); db.commit(); return item(x)
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); one(db,Category,body.category_id)
+    payload = body.model_dump()
+    payload['tags'] = ', '.join(normalize_tags(payload.get('tags'))) if payload.get('tags') is not None else None
+    for key in ('title','content','category_id','tags','cover_image'):
+        if key in payload and payload[key] is not None:
+            setattr(x, key, payload[key])
+    db.commit(); db.refresh(x); return make_post_payload(x)
+
+
+@app.post('/posts/{post_id}/publish')
+def publish_post(post_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published'; db.commit(); return make_post_payload(x)
+
+
+@app.post('/posts/{post_id}/draft')
+def draft_post(post_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='draft'; db.commit(); return make_post_payload(x)
+
+
 @app.patch('/posts/{post_id}/{action}')
 def post_action(post_id:int, action:Literal['publish','unpublish'], db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published' if action=='publish' else 'draft'; db.commit(); return item(x)
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published' if action=='publish' else 'draft'; db.commit(); return make_post_payload(x)
+
+
 @app.delete('/posts/{post_id}')
 def archive_post(post_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
     x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.is_archived=True; db.commit(); return {'detail':'Post archived'}
 
+
 @app.post('/posts/{post_id}/comments', status_code=201)
 def comment(post_id:int, body:CommentIn, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    one(db,Post,post_id); x=Comment(post_id=post_id,user_id=user.id,content=body.content); db.add(x);db.commit();db.refresh(x);return item(x)
+    post = one(db,Post,post_id)
+    x=Comment(post_id=post_id,user_id=user.id,content=body.content)
+    db.add(x);db.commit();db.refresh(x)
+    add_notification(db, post.author_id, 'comment', 'New comment', f'{user.name} commented on your post: {post.title}')
+    return item(x)
+
+
 @app.get('/posts/{post_id}/comments')
-def comments(post_id:int,db:Session=Depends(get_db)): return [item(x) for x in db.query(Comment).filter_by(post_id=post_id).order_by(Comment.created_at)]
+def comments(post_id:int,db:Session=Depends(get_db)):
+    return [item(x) for x in db.query(Comment).filter_by(post_id=post_id).order_by(Comment.created_at)]
+
+
+@app.put('/comments/{comment_id}')
+def update_comment(comment_id:int, body:CommentIn, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    x=one(db,Comment,comment_id); admin_or_owner(user,x.user_id); x.content=body.content; db.commit(); return item(x)
+
+
 @app.delete('/comments/{comment_id}')
 def delete_comment(comment_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     x=one(db,Comment,comment_id); admin_or_owner(user,x.user_id);db.delete(x);db.commit();return {'detail':'Comment deleted'}
+
+
 @app.post('/posts/{post_id}/reactions')
 def toggle_reaction(post_id:int,reaction_type:Literal['like','upvote']='like',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    one(db,Post,post_id);x=db.query(Reaction).filter_by(post_id=post_id,user_id=user.id).first()
-    if x: db.delete(x);db.commit();return {'reacted':False}
-    x=Reaction(post_id=post_id,user_id=user.id,reaction_type=reaction_type);db.add(x);db.commit();return {'reacted':True,'reaction':item(x)}
+    post = one(db,Post,post_id)
+    x=db.query(Reaction).filter_by(post_id=post_id,user_id=user.id).first()
+    if x:
+        db.delete(x);db.commit();return {'reacted':False}
+    x=Reaction(post_id=post_id,user_id=user.id,reaction_type=reaction_type);db.add(x);db.commit()
+    add_notification(db, post.author_id, 'reaction', 'New reaction', f'{user.name} reacted to your post: {post.title}')
+    return {'reacted':True,'reaction':item(x)}
 @app.post('/posts/{post_id}/save')
 def save_post(post_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     one(db,Post,post_id)
     if db.query(SavedPost).filter_by(post_id=post_id,user_id=user.id).first(): raise HTTPException(409,detail='Post already saved')
-    db.add(SavedPost(post_id=post_id,user_id=user.id));db.commit();return {'detail':'Post saved'}
+    db.add(SavedPost(post_id=post_id,user_id=user.id));db.commit();
+    add_notification(db, user.id, 'save', 'Post saved', 'Your post has been added to your saved collection.')
+    return {'detail':'Post saved'}
 @app.delete('/posts/{post_id}/save')
 def unsave_post(post_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     x=db.query(SavedPost).filter_by(post_id=post_id,user_id=user.id).first()
@@ -335,6 +587,25 @@ def unsave_post(post_id:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 @app.get('/users/me/saved-posts')
 def saved_posts(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     ids=[x.post_id for x in db.query(SavedPost).filter_by(user_id=user.id)];return [item(x) for x in db.query(Post).filter(Post.id.in_(ids))] if ids else []
+
+@app.get('/notifications')
+def list_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [item(notification) for notification in db.query(Notification).filter_by(user_id=user.id).order_by(Notification.created_at.desc()).all()]
+
+@app.put('/notifications/{notification_id}/read')
+def read_notification(notification_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    notification = one(db, Notification, notification_id)
+    if notification.user_id != user.id:
+        raise HTTPException(403, detail='Not permitted')
+    notification.is_read = True
+    db.commit()
+    return item(notification)
+
+@app.put('/notifications/read-all')
+def read_all_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    db.query(Notification).filter_by(user_id=user.id, is_read=False).update({'is_read': True})
+    db.commit()
+    return {'detail': 'All notifications marked as read'}
 
 @app.post('/speakers', status_code=201)
 def create_speaker(body: SpeakerIn, db: Session=Depends(get_db), _:User=Depends(require_admin)):
@@ -391,6 +662,22 @@ def create_summit(body:EventIn,db:Session=Depends(get_db),_:User=Depends(require
 def list_summits(status:str|None=None,db:Session=Depends(get_db)): return list_events(db,Summit,status)
 @app.get('/summits/{event_id}')
 def summit_detail(event_id:int,db:Session=Depends(get_db)): return event_response(one(db,Summit,event_id))
+@app.get('/summits/{event_id}/agenda')
+def summit_agenda(event_id:int,db:Session=Depends(get_db)):
+    event = one(db, Summit, event_id)
+    return {'agenda': event.agenda or '', 'title': event.title}
+@app.get('/summits/{event_id}/speakers')
+def summit_speakers_detail(event_id:int,db:Session=Depends(get_db)):
+    event = one(db, Summit, event_id)
+    return {'speakers': [item(s) for s in event.speakers]}
+@app.get('/summits/{event_id}/sponsors')
+def summit_sponsors(event_id:int,db:Session=Depends(get_db)):
+    return {'sponsors': []}
+@app.get('/summits/{event_id}/related')
+def summit_related(event_id:int,db:Session=Depends(get_db), limit: int = Query(3, ge=1, le=12)):
+    event = one(db, Summit, event_id)
+    items = db.query(Summit).filter(Summit.id != event_id, Summit.is_published.is_(True)).order_by(Summit.date.asc()).limit(limit).all()
+    return [event_response(item) for item in items]
 @app.put('/summits/{event_id}')
 def update_summit(event_id:int,body:EventIn,db:Session=Depends(get_db),_:User=Depends(require_admin)): return update_event(db,Summit,event_id,body)
 @app.patch('/summits/{event_id}/{action}')
@@ -405,6 +692,19 @@ def create_founder_meet(body:EventIn,db:Session=Depends(get_db),_:User=Depends(r
 def list_founder_meets(status:str|None=None,db:Session=Depends(get_db)): return list_events(db,FounderMeet,status)
 @app.get('/founder-meets/{event_id}')
 def founder_meet_detail(event_id:int,db:Session=Depends(get_db)): return event_response(one(db,FounderMeet,event_id))
+@app.get('/founder-meets/{event_id}/agenda')
+def founder_meet_agenda(event_id:int,db:Session=Depends(get_db)):
+    event = one(db, FounderMeet, event_id)
+    return {'agenda': event.agenda or '', 'title': event.title}
+@app.get('/founder-meets/{event_id}/speakers')
+def founder_meet_speakers_detail(event_id:int,db:Session=Depends(get_db)):
+    event = one(db, FounderMeet, event_id)
+    return {'speakers': [item(s) for s in event.speakers]}
+@app.get('/founder-meets/{event_id}/related')
+def founder_meet_related(event_id:int,db:Session=Depends(get_db), limit: int = Query(3, ge=1, le=12)):
+    event = one(db, FounderMeet, event_id)
+    items = db.query(FounderMeet).filter(FounderMeet.id != event_id, FounderMeet.is_published.is_(True)).order_by(FounderMeet.date.asc()).limit(limit).all()
+    return [event_response(item) for item in items]
 @app.put('/founder-meets/{event_id}')
 def update_founder_meet(event_id:int,body:EventIn,db:Session=Depends(get_db),_:User=Depends(require_admin)): return update_event(db,FounderMeet,event_id,body)
 @app.patch('/founder-meets/{event_id}/{action}')
@@ -417,10 +717,30 @@ def delete_founder_meet(event_id:int,db:Session=Depends(get_db),_:User=Depends(r
 def create_registration(body:RegistrationIn,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     get_event(db,body.event_type,body.event_id)
     if db.query(Registration).filter_by(user_id=user.id,**body.model_dump()).first(): raise HTTPException(409,detail='Already registered for this event')
-    x=Registration(user_id=user.id,**body.model_dump());db.add(x);db.commit();db.refresh(x);return item(x)
+    x=Registration(user_id=user.id,**body.model_dump());db.add(x);db.commit();db.refresh(x)
+    add_notification(db, user.id, 'event_update', 'Event registration confirmed', f'You are registered for the {body.event_type.replace("_", " ")} event.')
+    return item(x)
+
+@app.post('/summits/{event_id}/register', status_code=201)
+def register_for_summit(event_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    return create_registration(RegistrationIn(event_type='summit', event_id=event_id), db, user)
+
+@app.post('/founder-meets/{event_id}/register', status_code=201)
+def register_for_founder_meet(event_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    return create_registration(RegistrationIn(event_type='founder_meet', event_id=event_id), db, user)
+
+@app.get('/users/me/registrations')
+def my_registrations(db:Session=Depends(get_db), user:User=Depends(get_current_user)):
+    return [item(reg) for reg in db.query(Registration).filter_by(user_id=user.id).order_by(Registration.registered_at.desc()).all()]
+
 @app.patch('/registrations/{registration_id}/cancel')
 def cancel_registration(registration_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     x=one(db,Registration,registration_id);admin_or_owner(user,x.user_id);x.status='cancelled';db.commit();return item(x)
+
+@app.delete('/registrations/{registration_id}')
+def delete_registration(registration_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    x=one(db,Registration,registration_id);admin_or_owner(user,x.user_id);db.delete(x);db.commit();return {'detail':'Registration deleted'}
+
 @app.get('/registrations')
 def list_registrations(event_type:str|None=None,event_id:int|None=None,status:str|None=None,db:Session=Depends(get_db),_:User=Depends(require_admin)):
     q=db.query(Registration)
@@ -448,3 +768,50 @@ def posts_by_category(db:Session=Depends(get_db),_:User=Depends(require_admin)):
 @app.get('/dashboard/registrations-by-event')
 def registrations_by_event(db:Session=Depends(get_db),_:User=Depends(require_admin)):
     rows=db.query(Registration.event_type,Registration.event_id,func.count(Registration.id)).group_by(Registration.event_type,Registration.event_id).all();return [{'event_type':t,'event_id':i,'count':c} for t,i,c in rows]
+
+@app.get('/admin/dashboard')
+def admin_dashboard(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return {
+        'Total Users': db.query(func.count(User.id)).scalar(),
+        'Total Posts': db.query(func.count(Post.id)).scalar(),
+        'Published Posts': db.query(func.count(Post.id)).filter(Post.status == 'published').scalar(),
+        'Total Categories': db.query(func.count(Category.id)).scalar(),
+        'Upcoming Summits': db.query(func.count(Summit.id)).filter(Summit.date >= date.today()).scalar(),
+        'Upcoming Founder Meets': db.query(func.count(FounderMeet.id)).filter(FounderMeet.date >= date.today()).scalar(),
+        'Total Speakers': db.query(func.count(Speaker.id)).scalar(),
+        'Total Registrations': db.query(func.count(Registration.id)).scalar(),
+    }
+
+@app.get('/admin/users')
+def admin_users(search: str | None = None, limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    q = db.query(User)
+    if search:
+        q = q.filter(or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%')))
+    return {'total': q.count(), 'items': [user_item(x) for x in q.offset(offset).limit(limit)]}
+
+@app.put('/admin/users/{user_id}/status')
+def admin_user_status(user_id: int, active: bool = Query(...), db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return user_status(user_id, active, db, _)
+
+@app.get('/admin/posts')
+def admin_posts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return [make_post_payload(post) for post in db.query(Post).filter(Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+
+@app.put('/admin/posts/{post_id}/publish')
+def admin_publish_post(post_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    post = one(db, Post, post_id)
+    post.status = 'published'
+    db.commit()
+    return make_post_payload(post)
+
+@app.get('/admin/events')
+def admin_events(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return {
+        'summits': [event_response(x) for x in db.query(Summit).order_by(Summit.date.asc()).all()],
+        'founder_meets': [event_response(x) for x in db.query(FounderMeet).order_by(FounderMeet.date.asc()).all()],
+    }
+
+@app.get('/admin/registrations')
+def admin_registrations(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return [item(reg) for reg in db.query(Registration).order_by(Registration.registered_at.desc()).all()]
+
