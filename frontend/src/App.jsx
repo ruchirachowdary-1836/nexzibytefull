@@ -26,14 +26,10 @@ import { apiService } from './lib/api';
 import './App.css';
 
 const siteSections = [
-  { to: '/', label: 'Latest' },
-  { to: '/explore', label: 'AI' },
-  { to: '/explore', label: 'Technology' },
-  { to: '/founder-meets', label: 'Startups' },
-  { to: '/explore', label: 'Cybersecurity' },
-  { to: '/summits', label: 'Innovation' },
-  { to: '/explore', label: 'Gadgets' },
-  { to: '/pricing', label: 'Careers' },
+  { to: '/explore', label: 'Explore' },
+  { to: '/summits', label: 'Summits' },
+  { to: '/founder-meets', label: 'Founder Meets' },
+  { to: '/speakers', label: 'Speakers' },
 ];
 
 const featureCards = [
@@ -167,10 +163,9 @@ function Layout({ children, user, onLogout }) {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-wrap">
-          <div className="brand-mark">N</div>
+          <div className="brand-mark">T</div>
           <div>
-            <div className="brand-name">Nexzibyte</div>
-            <div className="brand-subtitle">Tech Talk</div>
+            <div className="brand-name">TechTalk</div>
           </div>
         </div>
 
@@ -183,21 +178,26 @@ function Layout({ children, user, onLogout }) {
         </nav>
 
         <div className="header-actions">
+          <Link className="icon-btn" to="/explore" aria-label="Search">
+            <Search size={16} />
+          </Link>
+
           {user ? (
             <>
               <Link className="user-badge" to="/profile">
                 <UserRound size={16} />
-                {user.name || 'Member'}
+                {user.name || 'Profile'}
               </Link>
               <Link className="ghost-btn small" to="/notifications" aria-label="Notifications">
                 <Bell size={16} />
               </Link>
+              <Link className="secondary-btn small" to="/create-post">Create Post</Link>
               <button type="button" className="primary-btn small" onClick={onLogout}>Logout</button>
             </>
           ) : (
             <>
               <Link className="secondary-btn small" to="/login">Login</Link>
-              <Link className="primary-btn small" to="/register">Join now</Link>
+              <Link className="primary-btn small" to="/register">Join TechTalk</Link>
             </>
           )}
           <button type="button" className="mobile-menu-toggle" aria-label="Toggle menu" onClick={() => setMobileMenuOpen((cur) => !cur)}>
@@ -278,8 +278,8 @@ function HomePage({ posts, summits, founderMeets, speakers, openCheckout }) {
             NexziByte Tech Talk delivers the stories, people and ideas shaping AI, startups, cybersecurity, and the next generation of digital life.
           </p>
           <div className="cta-row">
-            <Link className="primary-btn" to="/explore">Read the latest</Link>
-            <Link className="secondary-btn" to="/pricing">Join the network</Link>
+            <Link className="primary-btn" to="/explore">Explore TechTalk</Link>
+            <Link className="secondary-btn" to="/register">Join the Community</Link>
           </div>
           <div className="stats-row">
             <div>
