@@ -1478,7 +1478,6 @@ function RegisterPage({ setUser }) {
           <span className="eyebrow">Join the community</span>
           <h2>Create your TechTalk account</h2>
           <div className="auth-socials">
-            <button type="button" className="secondary-btn full-width">Sign up with LinkedIn</button>
             <div ref={googleButtonRef} className="google-auth-button" />
           </div>
           {googleError ? <p className="form-error">{googleError}</p> : null}
