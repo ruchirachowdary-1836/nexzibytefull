@@ -141,6 +141,7 @@ function App() {
           <Route path="/saved-posts" element={<SavedPostsPage posts={posts} />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/scanner" element={<ProtectedRoute user={user}><ScannerPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/register" element={<RegisterPage setUser={setUser} />} />
           <Route path="*" element={<NotFound />} />
@@ -209,6 +210,7 @@ function Layout({ children, user, onLogout }) {
                 <UserRound size={16} />
                 {user.name || 'Profile'}
               </Link>
+              <Link className="ghost-btn small" to="/scanner">Scanner</Link>
               <button type="button" className="primary-btn small" onClick={onLogout}>Sign out</button>
             </>
           ) : (
@@ -1607,6 +1609,37 @@ function SpeakerCard({ speaker }) {
 }
 
 function CheckoutModal({ event, plan, onClose }) {
+  const [passType, setPassType] = useState('Visitor - Free');
+  const [company, setCompany] = useState('');
+  const [attendeeName, setAttendeeName] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const passCode = `TT-${event?.id || 'MEM'}-${(attendeeName || 'GUEST').replace(/\s+/g, '').slice(0, 5).toUpperCase()}`;
+
+  if (confirmed) {
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="checkout-modal confirmation-modal" onClick={(eventObject) => eventObject.stopPropagation()}>
+          <div className="modal-header">
+            <div>
+              <span className="eyebrow">Registration confirmed</span>
+              <h3>Your access pass is ready.</h3>
+            </div>
+            <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+          </div>
+          <div className="pass-ticket">
+            <div>
+              <span className="chip">{passType}</span>
+              <h4>{event?.title || `${plan} membership`}</h4>
+              <p>{attendeeName || 'Registered attendee'}{company ? ` • ${company}` : ''}</p>
+              <strong>{passCode}</strong>
+            </div>
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(passCode)}`} alt="Scannable event pass QR code" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="checkout-modal" onClick={(eventObject) => eventObject.stopPropagation()}>
@@ -1632,7 +1665,26 @@ function CheckoutModal({ event, plan, onClose }) {
             </ul>
           </div>
 
-          <form className="checkout-form">
+          <form className="checkout-form" onSubmit={(eventObject) => { eventObject.preventDefault(); setConfirmed(true); }}>
+            {event ? (
+              <>
+                <label>
+                  Attendee name
+                  <input type="text" value={attendeeName} onChange={(eventObject) => setAttendeeName(eventObject.target.value)} placeholder="Your full name" required />
+                </label>
+                <label>
+                  Company name
+                  <input type="text" value={company} onChange={(eventObject) => setCompany(eventObject.target.value)} placeholder="Company or organization" required />
+                </label>
+                <label>
+                  Pass type
+                  <select value={passType} onChange={(eventObject) => setPassType(eventObject.target.value)}>
+                    <option>Visitor - Free</option>
+                    <option>Delegate - ₹250</option>
+                  </select>
+                </label>
+              </>
+            ) : null}
             <label>
               Cardholder name
               <input type="text" placeholder="Alex Morgan" />
@@ -1655,7 +1707,7 @@ function CheckoutModal({ event, plan, onClose }) {
               Billing email
               <input type="email" placeholder="alex@email.com" />
             </label>
-            <button type="button" className="primary-btn full-width" onClick={onClose}>Complete payment</button>
+            <button type="submit" className="primary-btn full-width">Complete registration</button>
           </form>
         </div>
       </div>
@@ -1665,6 +1717,52 @@ function CheckoutModal({ event, plan, onClose }) {
 
 function EmptyState({ text }) {
   return <div className="empty-state">{text}</div>;
+}
+
+function ScannerPage() {
+  const [code, setCode] = useState('');
+  const [result, setResult] = useState(null);
+
+  const verifyPass = (event) => {
+    event.preventDefault();
+    const normalized = code.trim();
+    if (!normalized) {
+      setResult({ valid: false, message: 'Enter a pass code to verify.' });
+      return;
+    }
+    setResult({
+      valid: normalized.toUpperCase().startsWith('TT-'),
+      message: normalized.toUpperCase().startsWith('TT-')
+        ? 'Pass verified. Allow entry and confirm the attendee details.'
+        : 'Pass not recognized. Check the QR code or pass ID and try again.',
+    });
+  };
+
+  return (
+    <section className="content-section scanner-page">
+      <div className="scanner-intro">
+        <span className="eyebrow">Event operations</span>
+        <h2>Scan and verify event passes.</h2>
+        <p>Use the pass ID encoded in a registration QR code to validate attendee access at the door.</p>
+      </div>
+      <div className="scanner-layout">
+        <div className="scanner-frame">
+          <div className="scanner-corner scanner-corner-top" />
+          <div className="scanner-line" />
+          <strong>Ready to scan</strong>
+          <span>Camera integration can be connected to the production scanner device.</span>
+        </div>
+        <form className="scanner-form" onSubmit={verifyPass}>
+          <label>
+            Pass ID
+            <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="TT-2026-001" />
+          </label>
+          <button type="submit" className="primary-btn">Verify pass</button>
+          {result ? <div className={`scanner-result${result.valid ? ' valid' : ' invalid'}`}>{result.message}</div> : null}
+        </form>
+      </div>
+    </section>
+  );
 }
 
 function NotFound() {
