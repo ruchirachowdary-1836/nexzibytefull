@@ -27,11 +27,11 @@ import './App.css';
 
 const siteSections = [
   { to: '/', label: 'Home', requiresAuth: false },
-  { to: '/explore', label: 'Explore', requiresAuth: true },
-  { to: '/explore', label: 'Topics', requiresAuth: true },
-  { to: '/summits', label: 'Summits', requiresAuth: true },
-  { to: '/founder-meets', label: 'Founder Meets', requiresAuth: true },
-  { to: '/speakers', label: 'Speakers', requiresAuth: true },
+  { to: '/explore', label: 'Community', requiresAuth: true },
+  { to: '/summits', label: 'Services', requiresAuth: true },
+  { to: '/founder-meets', label: 'Resources', requiresAuth: true },
+  { to: '/speakers', label: 'About', requiresAuth: true },
+  { to: '/pricing', label: 'Partner', requiresAuth: false },
 ];
 
 const howItWorks = [
@@ -185,10 +185,9 @@ function Layout({ children, user, onLogout }) {
     <div className="app-shell">
       <header className={`topbar${hasScrolled ? ' scrolled' : ''}${user ? ' authenticated' : ''}`}>
         <Link className="brand-wrap" to="/">
-          <span className="brand-mark">N</span>
-          <span className="brand-name">NEXZIBYTE</span>
-          <span className="brand-divider">/</span>
-          <span className="brand-product">TECHTALK</span>
+          <span className="brand-mark">T</span>
+          <span className="brand-name">Tech<span>Talk</span></span>
+          <span className="brand-product">/ NEXZIBYTE</span>
         </Link>
 
         <nav className={`main-nav${mobileMenuOpen ? ' open' : ''}`} aria-label="Primary navigation">
@@ -227,16 +226,16 @@ function Layout({ children, user, onLogout }) {
               {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? (
                 <>
                   <SignInButton mode="modal">
-                    <button type="button" className="sign-in-link">Sign In</button>
+                    <button type="button" className="sign-in-link">Login</button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <button type="button" className="primary-btn small join-community-btn">Join Community <ArrowRight size={14} /></button>
+                    <button type="button" className="primary-btn small join-community-btn">Join community <ArrowRight size={14} /></button>
                   </SignUpButton>
                 </>
               ) : (
                 <>
-                  <Link className="sign-in-link" to="/login">Sign In</Link>
-                  <Link className="primary-btn small join-community-btn" to="/register">Join Community <ArrowRight size={14} /></Link>
+                  <Link className="sign-in-link" to="/login">Login</Link>
+                  <Link className="primary-btn small join-community-btn" to="/register">Join community <ArrowRight size={14} /></Link>
                 </>
               )}
             </>
