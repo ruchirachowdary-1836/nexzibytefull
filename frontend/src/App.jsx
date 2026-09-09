@@ -563,6 +563,31 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
+      <section className="content-section career-momentum-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Career momentum</span>
+            <h2>Turn your next opportunity into a deliberate move.</h2>
+            <p className="section-intro">Practical guidance for building stronger career signal, sharper conversations and more confident technical leadership.</p>
+          </div>
+          <Link className="secondary-btn" to={user ? '/profile' : '/register'}>Build your member profile <ArrowRight size={15} /></Link>
+        </div>
+        <div className="career-momentum-grid">
+          {[
+            { icon: <Compass size={20} />, eyebrow: 'Direction', title: 'Clarify your next chapter', text: 'Use focused prompts and peer conversations to make your strengths, goals and next step easier to articulate.' },
+            { icon: <ShieldCheck size={20} />, eyebrow: 'Signal', title: 'Make your work easier to trust', text: 'Shape a stronger professional story with practical portfolio, profile and project positioning insights.' },
+            { icon: <MessageSquare size={20} />, eyebrow: 'Readiness', title: 'Practice the conversations that matter', text: 'Prepare for interviews, stakeholder reviews and founder conversations with frameworks built for real scenarios.' },
+          ].map((item) => (
+            <article key={item.title} className="career-momentum-card card-surface">
+              <div className="feature-icon">{item.icon}</div>
+              <span className="story-tag small-tag">{item.eyebrow}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="content-section muted-section community-section">
         <div className="section-heading-row">
           <div>
