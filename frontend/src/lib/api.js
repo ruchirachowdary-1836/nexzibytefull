@@ -148,12 +148,19 @@ export const apiService = {
       throw new Error(detail || error?.message || 'Google authentication failed.');
     }
   },
-  async register({ name, email, password }) {
-    return safeRequest(() => api.post('/auth/register', { name, email, password }), {
-      name,
-      email,
-      password,
-    });
+  async register({ name, email, password, role }) {
+    try {
+      const response = await api.post('/auth/register', {
+        name,
+        email,
+        password,
+        professional_role: role,
+      });
+      return response.data;
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      throw new Error(detail || error?.message || 'Registration failed.');
+    }
   },
   async getCurrentUser() {
     const token = readStoredToken();
