@@ -68,3 +68,10 @@ when the current browser origin is absent from this list; it occurs before the
 TechTalk backend receives the credential. The production Render frontend URL is
 `https://techtalk-frontend-acvb.onrender.com`; it must be registered in Google Cloud
 Console and configured as the frontend origin in Render.
+
+If Google displays an **unverified app** warning while the consent screen is in
+testing, add the Google account under **Google Auth Platform → Audience →
+Test users**. This is a Google consent-screen status and cannot be resolved by
+frontend code. For public use, complete Google's app verification and publish
+the consent screen after configuring the required branding, authorized domain,
+privacy policy, and requested scopes.

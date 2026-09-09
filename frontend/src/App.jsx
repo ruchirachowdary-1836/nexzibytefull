@@ -173,7 +173,7 @@ function Layout({ children, user, onLogout }) {
 
   return (
     <div className="app-shell">
-      <header className={`topbar${hasScrolled ? ' scrolled' : ''}`}>
+      <header className={`topbar${hasScrolled ? ' scrolled' : ''}${user ? ' authenticated' : ''}`}>
         <Link className="brand-wrap" to="/">
           <span className="brand-mark">N</span>
           <span className="brand-name">NEXZIBYTE</span>
@@ -1355,6 +1355,7 @@ function LoginPage({ setUser }) {
             <button type="button" className="secondary-btn full-width">Continue with LinkedIn</button>
             <div ref={googleButtonRef} className="google-auth-button" />
           </div>
+          <p className="oauth-note">Google may show an unverified-app warning while this OAuth consent screen is in testing. Add your email as a test user in Google Cloud Console to continue.</p>
           {googleError ? <p className="form-error">{googleError}</p> : null}
           <form onSubmit={handleSubmit} className="editor-form compact-form">
             <label>
@@ -1482,6 +1483,7 @@ function RegisterPage({ setUser }) {
           <div className="auth-socials">
             <div ref={googleButtonRef} className="google-auth-button" />
           </div>
+          <p className="oauth-note">Google may show an unverified-app warning while this OAuth consent screen is in testing. Add your email as a test user in Google Cloud Console to continue.</p>
           {googleError ? <p className="form-error">{googleError}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <form onSubmit={handleSubmit} className="editor-form compact-form">

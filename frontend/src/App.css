@@ -28,6 +28,26 @@
   box-shadow: 0 16px 38px rgba(2, 6, 23, 0.42);
 }
 
+.topbar.authenticated {
+  gap: 14px;
+}
+
+.topbar.authenticated .main-nav {
+  gap: 4px;
+}
+
+.topbar.authenticated .nav-link {
+  padding-inline: 9px;
+  font-size: 0.86rem;
+}
+
+.oauth-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
 .brand-wrap {
   display: flex;
   align-items: center;
@@ -2627,6 +2647,15 @@ h1, h2, h3, h4 {
     justify-content: center;
   }
 
+  .topbar.authenticated .brand-wrap {
+    margin-right: auto;
+  }
+
+  .topbar.authenticated .main-nav {
+    order: 3;
+    width: 100%;
+  }
+
   .hero-section,
   .feature-grid,
   .benefit-grid,
@@ -2714,6 +2743,18 @@ h1, h2, h3, h4 {
     width: 100%;
     justify-content: flex-end;
     flex-wrap: wrap;
+  }
+
+  .topbar.authenticated .header-actions {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .topbar.authenticated .user-badge {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .newsletter-form,
