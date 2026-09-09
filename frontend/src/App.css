@@ -4637,6 +4637,294 @@ h1, h2, h3, h4 {
   text-transform: uppercase;
 }
 
+.about-page {
+  margin: -28px -28px 0;
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.about-hero {
+  padding: 38px clamp(20px, 7vw, 100px) 70px;
+  background: #171717;
+}
+
+.about-hero-image {
+  position: relative;
+  min-height: 520px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-align: center;
+}
+
+.about-hero-image::after {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 12, 39, 0.72);
+  content: '';
+}
+
+.about-hero-image > img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-hero-image > div {
+  position: relative;
+  z-index: 1;
+  color: #f6f3ed;
+}
+
+.about-hero h1 {
+  margin: 20px 0;
+  font-size: clamp(4rem, 9vw, 9rem);
+  line-height: 0.82;
+  letter-spacing: -0.09em;
+  text-transform: uppercase;
+}
+
+.about-hero h1 mark,
+.about-mission h2 mark,
+.about-story h2 mark,
+.about-team h2 mark,
+.about-news h2 mark,
+.about-gallery h2 mark,
+.about-contact h2 mark {
+  padding: 0 0.1em;
+  color: #241d28;
+  background: var(--career-lime);
+}
+
+.about-hero p {
+  max-width: 350px;
+  margin: 0 auto 28px;
+  color: #ddd7d0;
+}
+
+.about-mission,
+.about-story,
+.about-news,
+.about-gallery,
+.about-contact {
+  padding: 90px clamp(24px, 8vw, 110px);
+}
+
+.about-mission {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  background: #171717;
+  color: #f6f3ed;
+}
+
+.about-mission h2,
+.about-story h2,
+.about-team h2,
+.about-news h2,
+.about-gallery h2,
+.about-contact h2 {
+  margin: 0 0 20px;
+  font-size: clamp(2.7rem, 5vw, 5.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.about-mission p {
+  max-width: 530px;
+  margin: 0;
+  color: #c8c2bc;
+  line-height: 1.5;
+}
+
+.about-story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 70px;
+  align-items: center;
+}
+
+.about-story-images {
+  display: grid;
+  gap: 10px;
+}
+
+.about-story-images img {
+  width: 76%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.about-story-images img:nth-child(2) {
+  width: 62%;
+  margin-left: 20%;
+}
+
+.about-story p {
+  color: #625d58;
+  line-height: 1.5;
+}
+
+.about-team {
+  padding: 90px clamp(24px, 8vw, 110px);
+  background: #171717;
+  color: #f6f3ed;
+  text-align: center;
+}
+
+.about-team .career-kicker,
+.about-gallery .career-kicker {
+  color: var(--career-lime);
+}
+
+.about-team-grid {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(2, 0.7fr);
+  gap: 12px;
+  max-width: 950px;
+  margin: 40px auto 0;
+}
+
+.about-team-statement {
+  display: flex;
+  min-height: 270px;
+  align-items: end;
+  padding: 22px;
+  background: var(--career-lilac);
+  color: #171717;
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 0.95;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.about-team-statement mark {
+  background: var(--career-lime);
+}
+
+.about-team-card {
+  position: relative;
+  min-height: 270px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.about-team-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-team-card div {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: grid;
+  gap: 5px;
+}
+
+.about-team-card strong,
+.about-team-card span {
+  width: fit-content;
+  padding: 5px 8px;
+  background: #f6f3ed;
+  color: #171717;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.about-news {
+  text-align: center;
+}
+
+.about-news-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 35px;
+}
+
+.about-news-grid article {
+  padding: 12px;
+  border: 1px solid #171717;
+  text-align: left;
+}
+
+.about-news-image {
+  height: 180px;
+  overflow: hidden;
+}
+
+.about-news-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-news-grid h3 {
+  min-height: 48px;
+  margin: 16px 0;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+}
+
+.about-news-grid .career-lilac-btn {
+  width: 100%;
+  border: 0;
+}
+
+.about-gallery {
+  background: #171717;
+  color: #f6f3ed;
+  text-align: center;
+}
+
+.about-gallery-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-rows: repeat(3, 180px);
+  gap: 10px;
+  max-width: 950px;
+  margin: 38px auto 0;
+}
+
+.about-gallery-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.gallery-image-0 {
+  grid-row: span 2;
+}
+
+.gallery-image-3 {
+  grid-column: 2;
+  grid-row: span 2;
+}
+
+.about-contact {
+  text-align: center;
+}
+
+.about-contact p {
+  margin: 0 auto 25px;
+  color: #625d58;
+}
+
+.about-contact .career-dark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
 .pricing-reference-page {
   margin: -28px -28px 0;
   background: #f6f3ed;
@@ -4954,6 +5242,8 @@ h1, h2, h3, h4 {
   .cv-review-process,
   .cv-review-faq,
   .cv-review-newsletter,
+  .about-mission,
+  .about-story,
   .coaching-trust,
   .coaching-pillars,
   .coaching-accelerator,
@@ -5075,6 +5365,10 @@ h1, h2, h3, h4 {
     margin: -20px -16px 0;
   }
 
+  .about-page {
+    margin: -20px -16px 0;
+  }
+
   .coaching-page {
     margin: -20px -16px 0;
   }
@@ -5120,6 +5414,21 @@ h1, h2, h3, h4 {
   .resource-card-grid,
   .success-story-grid {
     grid-template-columns: 1fr;
+  }
+
+  .about-team-grid,
+  .about-news-grid,
+  .about-gallery-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .about-gallery-grid img,
+  .gallery-image-0,
+  .gallery-image-3 {
+    grid-column: auto;
+    grid-row: auto;
+    min-height: 220px;
   }
 
   .coaching-pillar-grid article:nth-child(3),
