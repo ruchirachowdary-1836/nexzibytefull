@@ -28,7 +28,7 @@ import './App.css';
 const siteSections = [
   { to: '/', label: 'Home', requiresAuth: false },
   { to: '/explore', label: 'Community', requiresAuth: true },
-  { to: '/summits', label: 'Services', requiresAuth: true },
+  { to: '/services', label: 'Services', requiresAuth: false },
   { to: '/founder-meets', label: 'Resources', requiresAuth: true },
   { to: '/speakers', label: 'About', requiresAuth: true },
   { to: '/pricing', label: 'Partner', requiresAuth: false },
@@ -122,6 +122,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
+          <Route path="/services" element={<ServicesPage user={user} />} />
           <Route path="/founder-meets" element={<ProtectedRoute user={user}><FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
@@ -759,6 +760,62 @@ function SummitsPage({ summits, speakers, openCheckout }) {
             <button type="button" className="career-dark-btn">Subscribe <ArrowRight size={17} /></button>
           </form>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function ServicesPage({ user }) {
+  return (
+    <div className="services-page">
+      <section className="services-hero">
+        <span className="career-kicker">NEXZIBYTE / SERVICES</span>
+        <h1>Make your next<br /><mark>move count.</mark></h1>
+        <p>Practical, personal support to help you present your experience with confidence and make progress in your career.</p>
+      </section>
+
+      <section className="services-list">
+        <article className="service-feature-card">
+          <div className="service-feature-number">01</div>
+          <div className="service-feature-copy">
+            <span className="career-service-tag">Get noticed</span>
+            <h2>CV &amp; LinkedIn<br /><mark>review.</mark></h2>
+            <p>Turn your experience into a clear, compelling professional story. Get focused feedback on your CV and LinkedIn profile so the right opportunities can find you.</p>
+            <ul>
+              <li><Check size={17} /> Detailed CV structure and content feedback</li>
+              <li><Check size={17} /> LinkedIn headline, profile and positioning review</li>
+              <li><Check size={17} /> Practical edits you can apply immediately</li>
+            </ul>
+            <Link className="career-dark-btn service-action" to={user ? '/pricing' : '/login'}>Book your review <ArrowRight size={17} /></Link>
+          </div>
+          <div className="service-feature-art service-review-art" aria-hidden="true">
+            <span>YOUR<br /><em>story</em><br />deserves<br />to be seen.</span>
+          </div>
+        </article>
+
+        <article className="service-feature-card service-coaching-card">
+          <div className="service-feature-number">02</div>
+          <div className="service-feature-copy">
+            <span className="career-service-tag">Go further</span>
+            <h2>Individual<br /><mark>coaching.</mark></h2>
+            <p>Get a focused thought partner for your next career move. Work through decisions, prepare for important conversations and leave with a plan you can act on.</p>
+            <ul>
+              <li><Check size={17} /> One-to-one support built around your goals</li>
+              <li><Check size={17} /> Interview, promotion and career-change preparation</li>
+              <li><Check size={17} /> Clear next steps and accountability</li>
+            </ul>
+            <Link className="career-lilac-btn service-action" to={user ? '/pricing' : '/login'}>Explore coaching <ArrowRight size={17} /></Link>
+          </div>
+          <div className="service-feature-art service-coaching-art" aria-hidden="true">
+            <span>BUILD<br /><em>your</em><br />next<br />chapter.</span>
+          </div>
+        </article>
+      </section>
+
+      <section className="services-cta">
+        <span className="career-kicker">Not sure where to start?</span>
+        <h2>Start with the move<br /><mark>that feels right.</mark></h2>
+        <Link className="career-dark-btn" to={user ? '/pricing' : '/login'}>Talk to the community <ArrowRight size={17} /></Link>
       </section>
     </div>
   );

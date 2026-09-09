@@ -3646,6 +3646,173 @@ h1, h2, h3, h4 {
   font: inherit;
 }
 
+.services-page {
+  margin: -28px -28px 0;
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.services-hero {
+  padding: clamp(74px, 10vw, 150px) clamp(28px, 8vw, 110px) 100px;
+  text-align: center;
+}
+
+.services-hero .career-kicker,
+.services-cta .career-kicker {
+  color: #171717;
+}
+
+.services-hero h1 {
+  margin: 26px 0;
+  font-size: clamp(4rem, 10vw, 9.5rem);
+  line-height: 0.82;
+  letter-spacing: -0.09em;
+  text-transform: uppercase;
+}
+
+.services-hero h1 mark,
+.service-feature-copy h2 mark,
+.services-cta h2 mark {
+  padding: 0 0.1em;
+  color: #241d28;
+  background: var(--career-lilac);
+}
+
+.services-hero p {
+  max-width: 600px;
+  margin: 0 auto;
+  color: #5e5954;
+  font-size: 1.15rem;
+  line-height: 1.55;
+}
+
+.services-list {
+  display: grid;
+  gap: 16px;
+  padding: 0 clamp(20px, 4vw, 54px) 80px;
+  background: #151515;
+}
+
+.service-feature-card {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) minmax(280px, 0.85fr);
+  min-height: 520px;
+  overflow: hidden;
+  background: #f6f3ed;
+}
+
+.service-feature-number {
+  padding: 26px 14px;
+  background: var(--career-lime);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.service-feature-copy {
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.service-feature-copy h2 {
+  margin: 22px 0 18px;
+  font-size: clamp(2.7rem, 5vw, 5.6rem);
+  line-height: 0.86;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.service-feature-copy > p {
+  max-width: 550px;
+  color: #5e5954;
+  line-height: 1.55;
+}
+
+.service-feature-copy ul {
+  display: grid;
+  gap: 11px;
+  margin: 26px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.service-feature-copy li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.service-feature-copy li svg {
+  flex: 0 0 auto;
+  color: #8c5b9d;
+}
+
+.service-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  text-decoration: none;
+}
+
+.service-feature-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: #171717;
+  font-size: clamp(2.7rem, 5vw, 5.5rem);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.service-feature-art span {
+  transform: rotate(-8deg);
+}
+
+.service-feature-art em {
+  color: var(--career-lilac);
+  font-style: normal;
+}
+
+.service-review-art {
+  background: var(--career-lilac);
+}
+
+.service-coaching-card {
+  background: #dcd7ff;
+}
+
+.service-coaching-card .service-feature-number {
+  background: #b8a7ff;
+}
+
+.service-coaching-art {
+  background: var(--career-lime);
+}
+
+.services-cta {
+  padding: clamp(64px, 8vw, 110px) 24px;
+  text-align: center;
+}
+
+.services-cta h2 {
+  margin: 20px 0 34px;
+  font-size: clamp(3rem, 6vw, 6rem);
+  line-height: 0.85;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.services-cta .career-dark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
 .pricing-reference-page {
   margin: -28px -28px 0;
   background: #f6f3ed;
@@ -3948,7 +4115,8 @@ h1, h2, h3, h4 {
   }
 
   .events-featured-card,
-  .events-newsletter {
+  .events-newsletter,
+  .service-feature-card {
     grid-template-columns: 1fr;
   }
 
@@ -4057,6 +4225,10 @@ h1, h2, h3, h4 {
     margin: -20px -16px 0;
   }
 
+  .services-page {
+    margin: -20px -16px 0;
+  }
+
   .pricing-reference-page {
     margin: -20px -16px 0;
   }
@@ -4068,6 +4240,14 @@ h1, h2, h3, h4 {
 
   .events-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .service-feature-number {
+    min-height: 52px;
+  }
+
+  .service-feature-art {
+    min-height: 280px;
   }
 
   .pricing-plan-grid,
