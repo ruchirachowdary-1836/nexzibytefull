@@ -4433,6 +4433,180 @@ h1, h2, h3, h4 {
   font-style: normal;
 }
 
+.resource-center-page,
+.success-stories-page {
+  margin: -28px -28px 0;
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.resource-center-hero,
+.success-stories-hero {
+  padding: 82px 24px 58px;
+  background: #171717;
+  color: #f6f3ed;
+  text-align: center;
+}
+
+.resource-center-hero h1,
+.success-stories-hero h1 {
+  margin: 20px 0;
+  font-size: clamp(3.8rem, 8vw, 8rem);
+  line-height: 0.82;
+  letter-spacing: -0.09em;
+  text-transform: uppercase;
+}
+
+.resource-center-hero h1 mark,
+.success-stories-hero h1 mark {
+  padding: 0 0.1em;
+  color: #241d28;
+  background: var(--career-lime);
+}
+
+.resource-center-hero p,
+.success-stories-hero p {
+  margin: 0 auto 24px;
+  color: #c8c2bc;
+}
+
+.resource-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.resource-filters button {
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.resource-filters button.active {
+  background: var(--career-lime);
+  color: #171717;
+}
+
+.resource-card-grid,
+.success-story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 64px 24px 90px;
+}
+
+.resource-card-grid article,
+.success-story-grid article {
+  overflow: hidden;
+  border: 1px solid #171717;
+  border-radius: 5px;
+  background: #f6f3ed;
+}
+
+.resource-card-art,
+.success-story-art {
+  display: grid;
+  min-height: 165px;
+  place-items: center;
+  padding: 20px;
+  background: var(--career-lime);
+  color: #171717;
+  text-align: center;
+}
+
+.resource-card-art span {
+  max-width: 190px;
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.resource-card-copy,
+.success-story-copy {
+  padding: 14px;
+}
+
+.resource-card-copy small,
+.success-story-copy small {
+  display: inline-block;
+  padding: 5px 8px;
+  border: 1px solid #171717;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.resource-card-copy p {
+  min-height: 48px;
+  color: #625d58;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.resource-card-copy .career-lilac-btn,
+.success-story-copy .career-lilac-btn {
+  width: 100%;
+  border: 0;
+}
+
+.success-stories-hero {
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.success-stories-hero .career-kicker {
+  color: #171717;
+}
+
+.success-stories-hero p {
+  color: #625d58;
+}
+
+.success-story-art {
+  min-height: 165px;
+  place-items: start;
+  text-align: left;
+}
+
+.success-story-art h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.success-story-art span {
+  align-self: end;
+  padding: 5px 8px;
+  background: #f6f3ed;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.story-tone-1 {
+  background: #171717;
+  color: #f6f3ed;
+}
+
+.story-tone-2 {
+  background: var(--career-lilac);
+}
+
+.success-story-copy h3 {
+  margin: 14px 0 16px;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
 .pricing-reference-page {
   margin: -28px -28px 0;
   background: #f6f3ed;
@@ -4866,6 +5040,11 @@ h1, h2, h3, h4 {
     margin: -20px -16px 0;
   }
 
+  .resource-center-page,
+  .success-stories-page {
+    margin: -20px -16px 0;
+  }
+
   .coaching-page {
     margin: -20px -16px 0;
   }
@@ -4905,6 +5084,11 @@ h1, h2, h3, h4 {
   .coaching-benefit-grid,
   .coaching-package-grid,
   .coaching-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-card-grid,
+  .success-story-grid {
     grid-template-columns: 1fr;
   }
 

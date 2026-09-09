@@ -125,6 +125,8 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/services" element={<ServicesPage user={user} />} />
           <Route path="/services/cv-linkedin-review" element={<CvLinkedinReviewPage user={user} />} />
           <Route path="/services/individual-coaching" element={<IndividualCoachingPage user={user} />} />
+          <Route path="/resources/resource-center" element={<ResourceCenterPage />} />
+          <Route path="/resources/success-stories" element={<SuccessStoriesPage />} />
           <Route path="/founder-meets" element={<ProtectedRoute user={user}><FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
@@ -218,6 +220,20 @@ function Layout({ children, user, onLogout }) {
                       <span>Find out pricing options</span>
                       <ArrowRight size={18} />
                     </Link>
+                  </div>
+                </div>
+              );
+            }
+
+            if (section.label === 'Resources') {
+              return (
+                <div key={section.label} className="nav-dropdown">
+                  <NavLink to={target} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setMobileMenuOpen(false)}>
+                    Resources <span className="nav-caret">⌄</span>
+                  </NavLink>
+                  <div className="nav-dropdown-menu">
+                    <Link to="/resources/resource-center" onClick={() => setMobileMenuOpen(false)}><strong>Resource Center</strong><span>Tools for your next move</span><ArrowRight size={18} /></Link>
+                    <Link to="/resources/success-stories" onClick={() => setMobileMenuOpen(false)}><strong>Success Stories</strong><span>See member career wins</span><ArrowRight size={18} /></Link>
                   </div>
                 </div>
               );
@@ -918,6 +934,48 @@ function IndividualCoachingPage({ user }) {
       <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '£599', 'Land interviews'], ['Ultimate', '£1,199', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the {name} programme <ArrowRight size={16} /></Link></article>)}</div></section>
 
       <section className="coaching-community"><div><span className="career-kicker">Keep growing with us</span><h2>Join the TechTalk<br /><mark>community.</mark></h2><p>Get expert-led webinars, practical workshops, templates, member discounts and accountability support alongside your coaching.</p><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the community now <ArrowRight size={16} /></Link></div><div className="coaching-community-art">YOUR<br /><em>next</em><br />chapter.</div></section>
+    </div>
+  );
+}
+
+function ResourceCenterPage() {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const resources = [
+    ['CV templates', 'Job seekers', 'Download ATS-friendly templates you can use in your next application.'],
+    ['Interview questions', 'Job seekers', 'Prepare for your next interview with commonly asked questions.'],
+    ['Interview answers', 'Job seekers', 'Learn how to answer interview questions using a clear STAR method.'],
+    ['LinkedIn optimiser', 'Career growth', 'Improve your profile positioning and become easier to find.'],
+    ['Cover letter template', 'Job seekers', 'Tell a focused story that connects your experience to the role.'],
+    ['Career planning guide', 'Career growth', 'Build a practical plan for your next 90 days of growth.'],
+  ];
+  const visibleResources = activeFilter === 'All' ? resources : resources.filter((resource) => resource[1] === activeFilter);
+
+  return (
+    <div className="resource-center-page">
+      <section className="resource-center-hero">
+        <span className="career-kicker">NEXZIBYTE / RESOURCES</span>
+        <h1>Resource<br /><mark>center.</mark></h1>
+        <p>Essential tools and resources for job seekers and career growth.</p>
+        <div className="resource-filters">{['All', 'Job seekers', 'Career growth'].map((filter) => <button key={filter} type="button" className={activeFilter === filter ? 'active' : ''} onClick={() => setActiveFilter(filter)}>{filter}</button>)}</div>
+      </section>
+      <section className="resource-card-grid">{visibleResources.map(([title, category, description], index) => <article key={title}><div className="resource-card-art"><span>{title}</span></div><div className="resource-card-copy"><small>{category}</small><p>{description}</p><button type="button" className="career-lilac-btn">Download <ArrowRight size={16} /></button></div></article>)}</section>
+    </div>
+  );
+}
+
+function SuccessStoriesPage() {
+  const stories = [
+    ['From application to offer in under 2 weeks', 'Tatiana L', 'Customer'],
+    ['From Argentina to London with visa sponsorship', 'Florencia M', 'Finance'],
+    ['From career pivot to job offer in 1 month', 'Charmaine W', 'Operations'],
+    ['One job offer from messaging the right person', 'Daniel R', 'Tech sales'],
+    ['One job offer from the hidden job market', 'Aisha K', 'Product'],
+    ['From KFC to tech sales in 2 weeks', 'Tadiwa M', 'Tech sales'],
+  ];
+  return (
+    <div className="success-stories-page">
+      <section className="success-stories-hero"><span className="career-kicker">NEXZIBYTE / COMMUNITY</span><h1>Meet our<br /><mark>success stories.</mark></h1><p>See how TechTalk has shaped real careers.</p><div className="resource-filters"><button type="button" className="active">All</button><button type="button">Marketing</button><button type="button">Customer</button><button type="button">Finance</button><button type="button">Tech</button></div></section>
+      <section className="success-story-grid">{stories.map(([headline, name, role], index) => <article key={name}><div className={`success-story-art story-tone-${index % 3}`}><h2>{headline}</h2><span>{role}</span></div><div className="success-story-copy"><small>{role}</small><h3>{name}</h3><button type="button" className="career-lilac-btn">Read story <ArrowRight size={16} /></button></div></article>)}</section>
     </div>
   );
 }
