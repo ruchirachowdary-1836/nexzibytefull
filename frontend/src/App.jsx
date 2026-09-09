@@ -194,6 +194,32 @@ function Layout({ children, user, onLogout }) {
           {siteSections.map((section) => {
             const target = !user && section.requiresAuth ? '/login' : section.to;
 
+            if (section.label === 'Community') {
+              return (
+                <div key={section.label} className="nav-dropdown">
+                  <NavLink
+                    to={target}
+                    className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Community <span className="nav-caret">⌄</span>
+                  </NavLink>
+                  <div className="nav-dropdown-menu">
+                    <Link to={user ? '/summits' : '/login'} onClick={() => setMobileMenuOpen(false)}>
+                      <strong>Events</strong>
+                      <span>Explore career-growth events</span>
+                      <ArrowRight size={18} />
+                    </Link>
+                    <Link to="/pricing" onClick={() => setMobileMenuOpen(false)}>
+                      <strong>Pricing</strong>
+                      <span>Find out pricing options</span>
+                      <ArrowRight size={18} />
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <NavLink
                 key={`${section.to}-${section.label}`}
@@ -674,42 +700,67 @@ function SummitsPage({ summits, speakers, openCheckout }) {
   const visibleSummits = activeFilter === 'upcoming' ? upcomingSummits : pastSummits;
 
   return (
-    <section className="content-section">
-      <div className="section-heading-row">
-        <div>
-          <span className="eyebrow">TechTalk summits</span>
-          <h2>Learn from operators, founders and product leaders</h2>
-        </div>
-      </div>
+    <div className="events-page">
+      <section className="events-intro">
+        <span className="career-kicker">NEXZIBYTE / COMMUNITY</span>
+        <h1>Join our next<br /><mark>event.</mark></h1>
+        <p>Meet the people building what comes next. Join practical conversations, founder rooms and high-signal events designed to move your career forward.</p>
+      </section>
 
-      {featuredSummit ? (
-        <div className="featured-event-panel card-surface">
-          <img src={featuredSummit.banner} alt={featuredSummit.title} />
-          <div className="featured-event-copy">
-            <span className="chip">Featured summit</span>
-            <h3>{featuredSummit.title}</h3>
-            <p>{featuredSummit.description}</p>
-            <div className="meta-list">
-              <span><CalendarDays size={16} /> {featuredSummit.date}</span>
-              <span><MapPin size={16} /> {featuredSummit.location}</span>
-              <span><ShieldCheck size={16} /> {featuredSummit.status === 'past' ? 'Completed' : 'Registration open'}</span>
-            </div>
-            <button type="button" className="primary-btn" onClick={() => openCheckout?.(featuredSummit, 'Growth')}>Register</button>
+      <section className="events-upcoming">
+        <div className="events-section-title">
+          <h2><mark>Upcoming</mark> events</h2>
+          <div className="events-filter">
+            <button type="button" className={activeFilter === 'upcoming' ? 'active' : ''} onClick={() => setActiveFilter('upcoming')}>Upcoming</button>
+            <button type="button" className={activeFilter === 'past' ? 'active' : ''} onClick={() => setActiveFilter('past')}>Past</button>
           </div>
         </div>
-      ) : null}
+        {featuredSummit && activeFilter === 'upcoming' ? (
+          <article className="events-featured-card">
+            <div className="events-featured-image"><img src={featuredSummit.banner} alt={featuredSummit.title} /></div>
+            <div className="events-featured-copy">
+              <div className="events-tags"><span>In-person</span><span>Career growth</span><span>Community</span></div>
+              <h3>{featuredSummit.title}</h3>
+              <p>{featuredSummit.description}</p>
+              <div className="events-date"><CalendarDays size={16} /> {featuredSummit.date} <span>•</span> {featuredSummit.location}</div>
+              <button type="button" className="career-lilac-btn" onClick={() => openCheckout?.(featuredSummit, 'Growth')}>Sign up to join <ArrowRight size={18} /></button>
+            </div>
+          </article>
+        ) : null}
+      </section>
 
-      <div className="toolbar-row">
-        <div className="pill-group">
-          <button type="button" className={activeFilter === 'upcoming' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('upcoming')}>Upcoming</button>
-          <button type="button" className={activeFilter === 'past' ? 'chip-btn active' : 'chip-btn'} onClick={() => setActiveFilter('past')}>Past</button>
+      <section className="events-grid-section">
+        <div className="events-section-title">
+          <h2>{activeFilter === 'upcoming' ? 'More ways to connect' : <><mark>Past</mark> events</>}</h2>
         </div>
-      </div>
+        <div className="events-card-grid">
+          {visibleSummits.length ? visibleSummits.map((event) => (
+            <article key={event.id} className="events-dark-card">
+              <div className="events-card-accent" />
+              <div className="events-tags"><span>{event.status === 'past' ? 'Webinar' : 'In-person'}</span><span>Career growth</span></div>
+              <h3>{event.title}</h3>
+              <p>{event.description}</p>
+              <div className="events-date"><CalendarDays size={16} /> {event.date} <span>•</span> {event.location}</div>
+              <button type="button" className="career-lilac-btn" onClick={() => openCheckout?.(event, 'Growth')}>Sign up to join <ArrowRight size={17} /></button>
+            </article>
+          )) : <EmptyState text={`No ${activeFilter} events available yet.`} />}
+        </div>
+      </section>
 
-      <div className="event-grid">
-        {visibleSummits.length ? visibleSummits.map((event) => <EventCard key={event.id} event={event} type="summit" speakers={speakers} onCheckout={openCheckout} />) : <EmptyState text="No summits available in this section yet." />}
-      </div>
-    </section>
+      <section className="events-newsletter">
+        <div>
+          <span className="career-kicker">Stay in the loop</span>
+          <h2>Sign up for our<br /><mark>newsletter.</mark></h2>
+        </div>
+        <div>
+          <p>Get weekly event alerts, practical career advice and behind-the-scenes updates from the TechTalk community.</p>
+          <form className="events-newsletter-form">
+            <input type="email" placeholder="Enter email address" aria-label="Email address" />
+            <button type="button" className="career-dark-btn">Subscribe <ArrowRight size={17} /></button>
+          </form>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -871,33 +922,88 @@ function SpeakersPage({ speakers }) {
 }
 
 function PricingPage({ openCheckout }) {
-  return (
-    <section className="content-section pricing-page">
-      <div className="section-heading-row">
-        <div>
-          <span className="eyebrow">Membership</span>
-          <h2>Choose the plan that matches your next move</h2>
-        </div>
-      </div>
+  const [openQuestion, setOpenQuestion] = useState(0);
+  const benefits = [
+    ['Access the full TechTalk community', 'Connect with people across product, marketing, sales and engineering. Learn from others, share wins and grow together.'],
+    ['Live weekly sessions with industry leaders', 'Join practical sessions with recruiters, hiring managers, founders and top performers who share what it really takes to grow.'],
+    ['Monthly in-person events', 'Build real relationships with peers, mentors and people working at ambitious technology companies.'],
+    ['High-quality feedback from experts', 'Get thoughtful feedback on your CV, LinkedIn profile and professional story before your next move.'],
+    ['Weekly Q&A and strategy calls', 'Ask questions, get unstuck and leave with clear next steps for your career journey.'],
+    ['Role-specific templates and resources', 'Use practical tools for applications, negotiations, performance reviews and career planning.'],
+  ];
 
-      <div className="pricing-grid">
-        {pricingPlans.map((plan) => (
-          <div key={plan.name} className={plan.name === 'Growth' ? 'pricing-card featured' : 'pricing-card'}>
-            <div className="plan-header">
-              <span className="chip">{plan.name}</span>
-              <div className="plan-price">{plan.price}<span>/mo</span></div>
+  return (
+    <div className="pricing-reference-page">
+      <section className="pricing-hero">
+        <span className="career-kicker">NEXZIBYTE / MEMBERSHIP</span>
+        <h1>Join the TechTalk<br /><mark>community today.</mark></h1>
+        <div className="pricing-plan-grid">
+          {pricingPlans.slice(0, 2).map((plan, index) => (
+            <article key={plan.name} className={`pricing-reference-card${index === 1 ? ' light' : ''}`}>
+              <span className="pricing-plan-label">{index === 0 ? 'Job seeker hub' : 'Career growth hub'}</span>
+              <div className="pricing-reference-price">{index === 0 ? '$49' : '$140'} <span>/ {index === 0 ? 'month' : 'quarter'}</span></div>
+              <span className="pricing-highlight">{index === 0 ? 'Get hired' : 'Level up'}</span>
+              <ul>
+                {plan.perks.concat(index === 0 ? ['Accountability groups to stay motivated', 'Individual support from career coaches'] : ['Career growth resources', 'Upskill Lab for new AI skills']).slice(0, 7).map((perk) => <li key={perk}><Check size={16} /> {perk}</li>)}
+              </ul>
+              <button type="button" className="career-lilac-btn" onClick={() => openCheckout(null, plan.name)}>Become a full member <ArrowRight size={17} /></button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="pricing-benefits">
+        <span className="career-kicker">Membership benefits</span>
+        <h2>Everything you need to get<br /><mark>hired, grow and thrive.</mark></h2>
+        <div className="pricing-benefit-grid">
+          {benefits.map(([title, text], index) => (
+            <article key={title}>
+              <span className="pricing-benefit-icon">{String(index + 1).padStart(2, '0')}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="pricing-testimonials">
+        <div className="pricing-testimonials-heading">
+          <span className="career-kicker">Member stories</span>
+          <h2>Real tools.<br /><mark>Real results.</mark></h2>
+        </div>
+        <div className="pricing-review-grid">
+          {testimonials.map((testimonial) => (
+            <article key={testimonial.name}>
+              <div className="pricing-review-stars">★★★★★</div>
+              <strong>{testimonial.name}</strong>
+              <span>{testimonial.role}</span>
+              <p>“{testimonial.quote}”</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="pricing-faq">
+        <div>
+          <span className="career-kicker">Questions, answered</span>
+          <h2>Frequently<br /><mark>asked.</mark></h2>
+        </div>
+        <div className="career-faq-list">
+          {faqs.concat([
+            { q: 'Can I cancel anytime?', a: 'Yes. Your membership is flexible and you can cancel before your next billing period.' },
+            { q: 'Do I need to be technical to join?', a: 'No. TechTalk is for anyone building a career in technology, from operations and sales to engineering and leadership.' },
+          ]).map((faq, index) => (
+            <div key={faq.q} className={`career-faq-item${openQuestion === index ? ' open' : ''}`}>
+              <button type="button" onClick={() => setOpenQuestion(openQuestion === index ? -1 : index)}>
+                <span>{faq.q}</span>
+                <span className="career-faq-icon">{openQuestion === index ? '−' : '+'}</span>
+              </button>
+              {openQuestion === index ? <p>{faq.a}</p> : null}
             </div>
-            <p>{plan.description}</p>
-            <ul>
-              {plan.perks.map((perk) => <li key={perk}><Check size={16} /> {perk}</li>)}
-            </ul>
-            <button type="button" className="primary-btn" onClick={() => openCheckout(null, plan.name)}>
-              Choose {plan.name}
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
