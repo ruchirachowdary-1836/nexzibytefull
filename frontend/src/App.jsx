@@ -1429,9 +1429,11 @@ function LoginPage({ setUser }) {
           <span className="eyebrow">Welcome back</span>
           <h2>Log in to TechTalk</h2>
           <div className="auth-socials">
-            <SignInButton mode="modal">
-              <button type="button" className="secondary-btn full-width">Continue with Clerk</button>
-            </SignInButton>
+            {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? (
+              <SignInButton mode="modal">
+                <button type="button" className="secondary-btn full-width">Continue with Clerk</button>
+              </SignInButton>
+            ) : <p className="form-error">Clerk authentication is not configured for this deployment.</p>}
           </div>
           <form onSubmit={handleSubmit} className="editor-form compact-form">
             <label>
@@ -1509,9 +1511,11 @@ function RegisterPage({ setUser }) {
           <span className="eyebrow">Join the community</span>
           <h2>Create your TechTalk account</h2>
           <div className="auth-socials">
-            <SignUpButton mode="modal">
-              <button type="button" className="secondary-btn full-width">Create account with Clerk</button>
-            </SignUpButton>
+            {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? (
+              <SignUpButton mode="modal">
+                <button type="button" className="secondary-btn full-width">Create account with Clerk</button>
+              </SignUpButton>
+            ) : <p className="form-error">Clerk authentication is not configured for this deployment.</p>}
           </div>
           {error ? <p className="form-error">{error}</p> : null}
           <form onSubmit={handleSubmit} className="editor-form compact-form">
