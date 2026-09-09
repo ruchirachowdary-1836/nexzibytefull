@@ -2335,16 +2335,6 @@ h1, h2, h3, h4 {
   margin-bottom: 18px;
 }
 
-.google-auth-button {
-  display: block;
-  width: 100%;
-}
-
-.google-auth-button > div,
-.google-auth-button iframe {
-  width: 100% !important;
-}
-
 .checkbox-inline {
   display: inline-flex;
   align-items: center;

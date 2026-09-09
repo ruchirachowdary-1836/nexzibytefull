@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -58,27 +58,6 @@ const faqs = [
   { q: 'Can I register for events without a membership?', a: 'Yes. Event tickets can be purchased individually, and memberships unlock deeper access and price benefits.' },
   { q: 'How do refunds work?', a: 'Refunds are offered for cancellations made before the event date, with the option to transfer your seat.' },
 ];
-
-const loadGoogleScript = () => new Promise((resolve, reject) => {
-  if (typeof window === 'undefined') return reject(new Error('Google sign-in is only available in the browser.'));
-  if (window.google?.accounts?.id) return resolve();
-
-  const existingScript = document.querySelector('script[data-google-gsi="true"]');
-  if (existingScript) {
-    existingScript.addEventListener('load', () => resolve(), { once: true });
-    existingScript.addEventListener('error', () => reject(new Error('Google script failed to load.')), { once: true });
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.src = 'https://accounts.google.com/gsi/client';
-  script.async = true;
-  script.defer = true;
-  script.dataset.googleGsi = 'true';
-  script.onload = () => resolve();
-  script.onerror = () => reject(new Error('Google script failed to load.'));
-  document.head.appendChild(script);
-});
 
 function App() {
   const [user, setUser] = useState(null);
@@ -1417,57 +1396,8 @@ function SettingsPage() {
 
 function LoginPage({ setUser }) {
   const navigate = useNavigate();
-  const googleButtonRef = useRef(null);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [googleError, setGoogleError] = useState('');
-
-  const handleGoogleLogin = useCallback(async ({ credential }) => {
-    try {
-      const response = await apiService.loginWithGoogle(credential);
-      const token = response?.access_token;
-      if (!token) throw new Error('Google login failed');
-      const profile = await apiService.getCurrentUser();
-      setUser(profile || { name: 'Google member', email: 'google-member@techtalk.dev' });
-      navigate('/profile');
-    } catch (error) {
-      setGoogleError(error.message || 'Unable to verify your Google account. Please try again.');
-    }
-  }, [navigate, setUser]);
-
-  useEffect(() => {
-    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-      setGoogleError('Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to your frontend .env file.');
-      return undefined;
-    }
-
-    let cancelled = false;
-    loadGoogleScript()
-      .then(() => {
-        if (cancelled || !googleButtonRef.current || !window.google?.accounts?.id) return;
-        if (googleButtonRef.current.dataset.googleInitialized === 'true') return;
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleGoogleLogin,
-        });
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'continue_with',
-          shape: 'pill',
-          logo_alignment: 'left',
-        });
-        googleButtonRef.current.dataset.googleInitialized = 'true';
-      })
-      .catch(() => {
-        if (!cancelled) setGoogleError('Google sign-in could not load.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [handleGoogleLogin]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1499,11 +1429,10 @@ function LoginPage({ setUser }) {
           <span className="eyebrow">Welcome back</span>
           <h2>Log in to TechTalk</h2>
           <div className="auth-socials">
-            <button type="button" className="secondary-btn full-width">Continue with LinkedIn</button>
-            <div ref={googleButtonRef} className="google-auth-button" />
+            <SignInButton mode="modal">
+              <button type="button" className="secondary-btn full-width">Continue with Clerk</button>
+            </SignInButton>
           </div>
-          <p className="oauth-note">Google may show an unverified-app warning while this OAuth consent screen is in testing. Add your email as a test user in Google Cloud Console to continue.</p>
-          {googleError ? <p className="form-error">{googleError}</p> : null}
           <form onSubmit={handleSubmit} className="editor-form compact-form">
             <label>
               Email
@@ -1529,57 +1458,8 @@ function LoginPage({ setUser }) {
 
 function RegisterPage({ setUser }) {
   const navigate = useNavigate();
-  const googleButtonRef = useRef(null);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'Product Leader', terms: false });
-  const [googleError, setGoogleError] = useState('');
   const [error, setError] = useState('');
-
-  const handleGoogleRegister = useCallback(async ({ credential }) => {
-    try {
-      const response = await apiService.loginWithGoogle(credential);
-      const token = response?.access_token;
-      if (!token) throw new Error('Google registration failed');
-      const profile = await apiService.getCurrentUser();
-      setUser(profile || { name: 'Google member', email: 'google-member@techtalk.dev' });
-      navigate('/profile');
-    } catch (error) {
-      setGoogleError(error.message || 'Google registration failed. Please try again.');
-    }
-  }, [navigate, setUser]);
-
-  useEffect(() => {
-    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-      setGoogleError('Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to your frontend .env file.');
-      return undefined;
-    }
-
-    let cancelled = false;
-    loadGoogleScript()
-      .then(() => {
-        if (cancelled || !googleButtonRef.current || !window.google?.accounts?.id) return;
-        if (googleButtonRef.current.dataset.googleInitialized === 'true') return;
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleGoogleRegister,
-        });
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'signup_with',
-          shape: 'pill',
-          logo_alignment: 'left',
-        });
-        googleButtonRef.current.dataset.googleInitialized = 'true';
-      })
-      .catch(() => {
-        if (!cancelled) setGoogleError('Google sign-in could not load.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [handleGoogleRegister]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1629,10 +1509,10 @@ function RegisterPage({ setUser }) {
           <span className="eyebrow">Join the community</span>
           <h2>Create your TechTalk account</h2>
           <div className="auth-socials">
-            <div ref={googleButtonRef} className="google-auth-button" />
+            <SignUpButton mode="modal">
+              <button type="button" className="secondary-btn full-width">Create account with Clerk</button>
+            </SignUpButton>
           </div>
-          <p className="oauth-note">Google may show an unverified-app warning while this OAuth consent screen is in testing. Add your email as a test user in Google Cloud Console to continue.</p>
-          {googleError ? <p className="form-error">{googleError}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <form onSubmit={handleSubmit} className="editor-form compact-form">
             <label>

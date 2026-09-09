@@ -5,7 +5,6 @@ class Settings(BaseSettings):
     db_url: str = "sqlite:///./techtalk.db"
     jwt_secret: str = "change-this-in-production"
     access_token_expire_minutes: int = 60
-    google_client_id: str = ""
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
     cors_origins: str = "*"

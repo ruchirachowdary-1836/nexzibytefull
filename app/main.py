@@ -6,8 +6,6 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -45,7 +43,6 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     professional_role: str | None = None
     profile_image: str | None = None
-class GoogleAuthIn(BaseModel): credential: str = Field(min_length=10)
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
 class CommentIn(BaseModel): content: str = Field(min_length=1, max_length=5000)
@@ -174,39 +171,6 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
     if not user or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
-    return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
-
-@app.post('/auth/google')
-def google_login(body: GoogleAuthIn, db: Session = Depends(get_db)):
-    if not settings.google_client_id:
-        raise HTTPException(500, detail='Google OAuth is not configured on the server.')
-    try:
-        payload = id_token.verify_oauth2_token(body.credential, google_requests.Request(), settings.google_client_id)
-    except ValueError as exc:
-        reason = str(exc).strip()
-        detail = 'Google credential was rejected. Verify the OAuth client ID, authorized origin, and that the account is allowed as a test user.'
-        if reason:
-            detail = f'{detail} Provider detail: {reason}'
-        raise HTTPException(401, detail=detail) from exc
-
-    email = payload.get('email')
-    if not email:
-        raise HTTPException(401, detail='Google account email is required.')
-
-    user = db.query(User).filter_by(email=email).first()
-    if not user:
-        user = User(
-            name=payload.get('name') or email.split('@')[0],
-            email=email,
-            password_hash=hash_password(f"google-oauth::{payload.get('sub')}::{email}"),
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        ensure_user_settings(db, user)
-    elif not user.is_active:
-        raise HTTPException(401, detail='This user account is inactive.')
-
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
 @app.get('/auth/me')
