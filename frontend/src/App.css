@@ -274,7 +274,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #d1ff3f;
+  background: #55E6C1;
   color: #151515;
   font-size: 1.15rem;
   font-weight: 900;
@@ -292,7 +292,7 @@
 }
 
 .brand-name span {
-  color: #d1ff3f;
+  color: #55E6C1;
 }
 
 .brand-divider {
@@ -365,7 +365,7 @@
 }
 
 .nav-dropdown-menu a:hover {
-  background: #dda1ff;
+  background: #FFC857;
 }
 
 .nav-dropdown-menu strong {
@@ -413,7 +413,7 @@
 .nav-link:hover,
 .nav-link.active {
   background: rgba(209, 255, 63, 0.12);
-  color: #d1ff3f;
+  color: #55E6C1;
 }
 
 .header-actions {
@@ -429,7 +429,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #d1ff3f;
+  color: #55E6C1;
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -442,7 +442,7 @@
   border: 0;
   padding: 11px 28px;
   background: transparent;
-  border: 1px solid #d1ff3f;
+  border: 1px solid #55E6C1;
   border-radius: 999px;
   font: inherit;
   cursor: pointer;
@@ -458,7 +458,7 @@
   min-height: 42px;
   padding: 11px 24px;
   border-radius: 999px;
-  background: #d1ff3f;
+  background: #55E6C1;
   color: #151515;
   font-size: 0.74rem;
   font-weight: 900;
@@ -3091,8 +3091,8 @@ h1, h2, h3, h4 {
 
 .career-home {
   --career-black: #151515;
-  --career-lime: #d1ff3f;
-  --career-lilac: #dda1ff;
+  --career-lime: #55E6C1;
+  --career-lilac: #FFC857;
   margin: -28px -28px 0;
   color: #f6f3ed;
   background: var(--career-black);
@@ -5048,7 +5048,7 @@ h1, h2, h3, h4 {
   min-height: 270px;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #dda1ff, #d1ff3f);
+  background: linear-gradient(145deg, #FFC857, #55E6C1);
 }
 
 .team-initials {
