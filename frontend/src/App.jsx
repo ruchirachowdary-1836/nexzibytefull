@@ -299,369 +299,76 @@ function Layout({ children, user, onLogout }) {
 }
 
 function HomePage({ user, posts }) {
-  const featuredPosts = posts.slice(0, 4);
-  const leadStory = featuredPosts[0];
-  const secondaryStories = featuredPosts.slice(1, 4);
-
   return (
-    <>
-      <div className="breaking-bar">
-        <span className="breaking-label">Trending now</span>
-        <div className="breaking-marquee">
-          <span>AI</span>
-          <span>Startups</span>
-          <span>Cybersecurity</span>
-          <span>Future of technology</span>
-          <span>Innovation</span>
-          <span>Gadgets</span>
-        </div>
-      </div>
-
-      <section className="hero-section editorial-hero">
-        <div className="hero-copy">
-          <span className="eyebrow">NEXZIBYTE PRESENTS</span>
-          <h1>Where Technology Meets the People Building Tomorrow.</h1>
-          <p>
-            Discover breakthrough ideas, emerging technologies, industry voices, and conversations shaping the future.
-          </p>
-          <div className="cta-row">
-            <Link className="primary-btn" to={user ? '/explore' : '/login'}>Explore TechTalk <ArrowRight size={15} /></Link>
-            <Link className="secondary-btn" to="/register">Join the Community</Link>
-          </div>
-          <div className="stats-row">
-            <div>
-              <strong>28K+</strong>
-              <span>Readers</span>
-            </div>
-            <div>
-              <strong>96%</strong>
-              <span>Signal quality</span>
-            </div>
+    <div className="career-home">
+      <section className="career-hero">
+        <div className="career-hero-copy">
+          <span className="career-kicker">NEXZIBYTE / TECHTALK</span>
+          <h1>Build &amp;<br />grow your<br /><em>career.</em></h1>
+          <p>Join a focused community for builders, founders and technology professionals who want better opportunities and stronger momentum.</p>
+          <div className="career-hero-actions">
+            <Link className="career-lilac-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Become a member'} <ArrowRight size={19} /></Link>
+            <span className="career-sticker">FOR PEOPLE IN TECH</span>
           </div>
         </div>
-
-        <div className="hero-visual">
-          <div className="hero-image-wrap">
-            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80" alt="Technology editorial cover" />
-          </div>
-          <div className="hero-mini-stack">
-            {secondaryStories.slice(0, 2).map((story) => (
-              <div key={story.id} className="hero-mini-card">
-                <span>{story.category}</span>
-                <strong>{story.title}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="hero-floating-card hero-featured-story">
-            <span className="chip">Featured story</span>
-            <strong>{leadStory?.title || 'The future of AI agents'}</strong>
-            <small>{leadStory?.category || 'AI'} <span aria-hidden="true">•</span> {leadStory?.readTime || '6 min read'}</small>
-          </div>
+        <div className="career-hero-art">
+          <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=85" alt="Technology team collaborating" />
+          <div className="career-hero-overlay">Your next<br /><strong>move starts here.</strong></div>
         </div>
       </section>
 
-      <section className="content-section trust-strip">
-        <div className="trust-strip-label">
-          <span className="eyebrow">Trusted signal</span>
-          <strong>Built for people shaping what comes next.</strong>
-        </div>
-        <div className="trust-metrics">
-          <span><strong>28K+</strong> readers</span>
-          <span><strong>140+</strong> contributors</span>
-          <span><strong>96%</strong> signal quality</span>
-          <span><strong>18</strong> technology categories</span>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Trending topics</span>
-            <h2>What leaders are watching right now</h2>
+      <section className="career-proof">
+        <div className="career-proof-copy">
+          <h2>Join a growing network <mark>accelerating</mark> their careers in tech.</h2>
+          <div className="career-company-pills">
+            {['AI builders', 'Product teams', 'Cloud leaders', 'Startup founders', 'Growth operators', 'Engineering'].map((label) => <span key={label}>{label}</span>)}
           </div>
         </div>
-        <div className="trend-grid topic-pills">
+        <div className="career-proof-metrics">
           {[
-            'Artificial Intelligence',
-            'Cybersecurity',
-            'Cloud Computing',
-            'Startups',
-            'Web Development',
-            'Data Science',
-            'Future of Work'
-          ].map((item) => (
-            <Link key={item} className="topic-pill" to={user ? '/explore' : '/login'}>{item}</Link>
-          ))}
+            ['28K+', 'readers'],
+            ['140+', 'contributors'],
+            ['30+', 'community events'],
+            ['18', 'tech categories'],
+          ].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
         </div>
       </section>
 
-      <section className="content-section editorial-grid-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Featured story</span>
-            <h2>The story setting the agenda this week</h2>
-          </div>
-          <Link className="text-link" to={user ? '/explore' : '/login'}>View all stories <ArrowRight size={16} /></Link>
+      <section className="career-service-grid">
+        <div className="career-service-art">
+          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=85" alt="Technology leaders in a working session" />
         </div>
-
-        <div className="editorial-grid">
-          <article className="feature-story card-surface">
-            <img src={leadStory?.image} alt={leadStory?.title} />
-            <div className="story-body">
-              <span className="story-tag">{leadStory?.category}</span>
-              <h3>{leadStory?.title}</h3>
-              <p>{leadStory?.excerpt}</p>
-              <div className="story-meta">
-                <span>{leadStory?.author}</span>
-                <span>{leadStory?.publishedAt}</span>
-                <span>{leadStory?.readTime}</span>
-              </div>
-            </div>
-          </article>
-
-          <div className="stacked-story-list">
-            {secondaryStories.slice(0, 2).map((post) => (
-              <article key={post.id} className="mini-story card-surface">
-                <img src={post.image} alt={post.title} />
-                <div>
-                  <span className="story-tag small-tag">{post.category}</span>
-                  <h4>{post.title}</h4>
-                  <div className="story-meta compact-meta">
-                    <span>{post.author}</span>
-                    <span>{post.readTime}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+        <article className="career-service-copy">
+          <span className="career-service-tag">Get hired</span>
+          <h2>Set the foundation<br />&amp; get noticed.</h2>
+          <p>Build a sharper professional story with practical insights, expert content, templates and community guidance for your next opportunity.</p>
+          <Link className="career-outline-btn" to={user ? '/explore' : '/login'}>Explore the knowledge feed <ArrowRight size={17} /></Link>
+        </article>
+        <article className="career-service-copy">
+          <span className="career-service-tag">Grow further</span>
+          <h2>Turn good work<br />into real momentum.</h2>
+          <p>Learn how to communicate impact, lead better conversations and grow with role-specific perspectives from people doing the work.</p>
+          <Link className="career-outline-btn" to={user ? '/summits' : '/login'}>See upcoming conversations <ArrowRight size={17} /></Link>
+        </article>
+        <div className="career-service-art">
+          <img src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=85" alt="Community networking event" />
         </div>
       </section>
 
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Latest tech stories</span>
-            <h2>Latest from TechTalk</h2>
-          </div>
-          <Link className="text-link" to={user ? '/explore' : '/login'}>Read the feed <ArrowRight size={16} /></Link>
-        </div>
-        <div className="latest-story-grid">
-          {posts.slice(1, 4).map((post) => (
-            <article key={post.id} className="latest-story-card">
-              <img src={post.image} alt={post.title} />
-              <div className="latest-story-content">
-                <div className="latest-story-kicker">
-                  <span>{post.category}</span>
-                  <span aria-hidden="true">•</span>
-                  <span>{post.readTime}</span>
-                </div>
-                <h3>{post.title}</h3>
-                <p>{post.excerpt}</p>
-                <div className="latest-story-meta">
-                  <span>{post.author}</span>
-                  <span>{post.publishedAt}</span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section muted-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Editor's picks</span>
-            <h2>Stories worth your attention</h2>
-          </div>
-          <Link className="text-link" to={user ? '/explore' : '/login'}>Explore all picks <ArrowRight size={16} /></Link>
-        </div>
-
-        <div className="editors-picks-list">
-          {[
-            'The New Era of AI Infrastructure',
-            'Why Cybersecurity Is Becoming Autonomous',
-            'Building Products in the Age of AI',
-            'What Developers Should Learn Next'
-          ].map((title, index) => (
-            <Link key={title} className="editors-pick-row" to={user ? '/explore' : '/login'}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <strong>{title}</strong>
-              <ArrowRight size={18} />
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section muted-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Startups & innovation</span>
-            <h2>Stories from founders building the future</h2>
-          </div>
-        </div>
-
-        <div className="story-columns">
-          <div className="story-column large">
-            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Startup founders" />
-            <div className="story-body">
-              <span className="story-tag">Startups</span>
-              <h3>What durable startup companies do differently in uncertain markets</h3>
-              <p>Founders who win are not chasing momentum alone. They build clarity, operating rhythm and product trust.</p>
-            </div>
-          </div>
-
-          <div className="story-column small-list">
-            {[{ title: 'The funding climate keeps rewarding efficient growth', category: 'Business' }, { title: 'Why the best product teams design for trust from day one', category: 'Innovation' }, { title: 'New infrastructure tools are helping founders move faster', category: 'Technology' }].map((entry) => (
-              <div key={entry.title} className="small-list-item">
-                <span>{entry.category}</span>
-                <strong>{entry.title}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Cybersecurity</span>
-            <h2>Security, trust and resilient digital systems</h2>
-          </div>
-        </div>
-
-        <div className="security-panel card-surface">
-          <div>
-            <span className="story-tag">Cybersecurity</span>
-            <h3>Security is no longer a backend concern — it is a product strategy issue.</h3>
-            <p>Teams are rethinking security around user trust, resilient architecture and transparent governance.</p>
-          </div>
-          <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80" alt="Cybersecurity systems" />
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">The future</span>
-            <h2>Beyond the next cycle: spaces, systems and human progress</h2>
-          </div>
-        </div>
-
-        <div className="futuristic-grid">
-          <div className="future-card feature-card card-surface">
-            <span className="story-tag">Space + AI</span>
-            <h3>New frontier technologies are changing the pace of scientific discovery</h3>
-          </div>
-          <div className="future-card card-surface">
-            <span className="story-tag">Quantum</span>
-            <h3>Why early experimentation matters in quantum infrastructure</h3>
-          </div>
-          <div className="future-card card-surface">
-            <span className="story-tag">Robotics</span>
-            <h3>Human-centered automation is becoming a design challenge</h3>
-          </div>
-        </div>
-      </section>
-
-      <section className="content-section career-momentum-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Career momentum</span>
-            <h2>Turn your next opportunity into a deliberate move.</h2>
-            <p className="section-intro">Practical guidance for building stronger career signal, sharper conversations and more confident technical leadership.</p>
-          </div>
-          <Link className="secondary-btn" to={user ? '/profile' : '/register'}>Build your member profile <ArrowRight size={15} /></Link>
-        </div>
-        <div className="career-momentum-grid">
-          {[
-            { icon: <Compass size={20} />, eyebrow: 'Direction', title: 'Clarify your next chapter', text: 'Use focused prompts and peer conversations to make your strengths, goals and next step easier to articulate.' },
-            { icon: <ShieldCheck size={20} />, eyebrow: 'Signal', title: 'Make your work easier to trust', text: 'Shape a stronger professional story with practical portfolio, profile and project positioning insights.' },
-            { icon: <MessageSquare size={20} />, eyebrow: 'Readiness', title: 'Practice the conversations that matter', text: 'Prepare for interviews, stakeholder reviews and founder conversations with frameworks built for real scenarios.' },
-          ].map((item) => (
-            <article key={item.title} className="career-momentum-card card-surface">
-              <div className="feature-icon">{item.icon}</div>
-              <span className="story-tag small-tag">{item.eyebrow}</span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">The member path</span>
-            <h2>A clearer way to keep moving forward.</h2>
-          </div>
-        </div>
-        <div className="feature-grid">
-          {howItWorks.map((item) => (
-            <article key={item.step} className="step-card card-surface">
-              <span className="step-number">{item.step}</span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section muted-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Member perspective</span>
-            <h2>Built for ambitious people, not noisy feeds.</h2>
-          </div>
-        </div>
-        <div className="testimonial-grid">
-          {testimonials.map((testimonial) => (
-            <article key={testimonial.name} className="testimonial-card">
-              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
-              <p>“{testimonial.quote}”</p>
-              <div className="testimonial-author">
-                <strong>{testimonial.name}</strong>
-                <span>{testimonial.role}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section muted-section community-section">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">Why join TechTalk</span>
-            <h2>Technology Is Better When Ideas Are Shared.</h2>
-          </div>
-          <Link className="primary-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Join the community'}</Link>
-        </div>
-        <div className="feature-grid benefit-grid">
-          {[
-            { number: '01', title: 'Discover', text: 'Explore technology shaping the future.' },
-            { number: '02', title: 'Learn', text: 'Access insights from builders and experts.' },
-            { number: '03', title: 'Share', text: 'Publish your ideas and technical knowledge.' },
-            { number: '04', title: 'Connect', text: 'Meet people building what comes next.' },
-          ].map(({ number, title, text }) => (
-            <article key={title} className="feature-card card-surface">
-              <span className="benefit-number">{number}</span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section newsletter-box premium-newsletter">
+      <section className="career-accelerator">
         <div>
-          <span className="eyebrow">Stay ahead of technology.</span>
-          <h2>The most important conversations in technology, delivered directly to you.</h2>
+          <span className="career-kicker">More than a community</span>
+          <h2>We are your<br /><mark>career accelerator.</mark></h2>
         </div>
-        <form className="newsletter-form">
-          <input type="email" placeholder="Enter your email address" />
-          <button type="button" className="primary-btn">Subscribe <ArrowRight size={15} /></button>
-        </form>
+        <p>Whether you are switching careers, navigating your first technology role or chasing your next promotion, TechTalk gives you the signal, support and people to keep moving.</p>
       </section>
-    </>
+
+      <section className="career-final-cta">
+        <span className="career-kicker">Your next chapter</span>
+        <h2>Make your next move<br /><em>count.</em></h2>
+        <Link className="career-dark-btn" to={user ? '/profile' : '/register'}>Join the community <ArrowRight size={19} /></Link>
+      </section>
+    </div>
   );
 }
 
