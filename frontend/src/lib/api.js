@@ -174,6 +174,30 @@ export const apiService = {
       status: 'registered',
     });
   },
+  async getComments(postId) {
+    return safeRequest(() => api.get(`/posts/${postId}/comments`), []);
+  },
+  async addComment(postId, content) {
+    return safeRequest(() => api.post(`/posts/${postId}/comments`, { content }), null);
+  },
+  async deleteComment(commentId) {
+    return safeRequest(() => api.delete(`/comments/${commentId}`), null);
+  },
+  async toggleReaction(postId) {
+    return safeRequest(() => api.post(`/posts/${postId}/reactions`), null);
+  },
+  async getNotifications() {
+    return safeRequest(() => api.get('/notifications'), []);
+  },
+  async getUnreadNotificationCount() {
+    return safeRequest(() => api.get('/notifications/unread-count'), { count: 0 });
+  },
+  async markNotificationRead(notificationId) {
+    return safeRequest(() => api.put(`/notifications/${notificationId}/read`), null);
+  },
+  async markAllNotificationsRead() {
+    return safeRequest(() => api.put('/notifications/read-all'), null);
+  },
   logout() {
     storeToken(null);
   },

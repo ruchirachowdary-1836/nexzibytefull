@@ -3,6 +3,7 @@ import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, use
 import {
   ArrowRight,
   Bookmark,
+  Bell,
   CalendarDays,
   Check,
   Compass,
@@ -21,7 +22,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { mockData } from './data/mockData';
-import { apiService } from './lib/api';
+import { apiService, getAuthToken } from './lib/api';
 import './App.css';
 
 const siteSections = [
@@ -163,6 +164,7 @@ function ProtectedRoute({ user, children }) {
 function Layout({ children, user, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => setHasScrolled(window.scrollY > 16);
@@ -170,6 +172,24 @@ function Layout({ children, user, onLogout }) {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    const loadUnreadCount = async () => {
+      if (!getAuthToken()) {
+        setUnreadNotifications(0);
+        return;
+      }
+      const response = await apiService.getUnreadNotificationCount();
+      if (!ignore) setUnreadNotifications(response?.count || 0);
+    };
+    loadUnreadCount();
+    const interval = window.setInterval(loadUnreadCount, 15000);
+    return () => {
+      ignore = true;
+      window.clearInterval(interval);
+    };
+  }, [user]);
 
   return (
     <div className="app-shell">
@@ -206,6 +226,11 @@ function Layout({ children, user, onLogout }) {
 
           {user ? (
             <>
+              <Link className="notification-link" to="/notifications" aria-label="Notifications">
+                <Bell size={16} />
+                <span>Notifications</span>
+                {unreadNotifications > 0 ? <span className="notification-badge">{unreadNotifications}</span> : null}
+              </Link>
               <Link className="user-badge" to="/profile">
                 <UserRound size={16} />
                 {user.name || 'Profile'}
@@ -667,9 +692,52 @@ function ExplorePage({ posts }) {
 function PostDetailPage({ posts }) {
   const { postId } = useParams();
   const post = posts.find((item) => item.id === Number(postId));
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [isReacted, setIsReacted] = useState(Boolean(post?.user_reacted));
+  const [reactionCount, setReactionCount] = useState(post?.reactions || 0);
+  const [commentError, setCommentError] = useState('');
+
+  useEffect(() => {
+    if (!post) return undefined;
+    let ignore = false;
+    apiService.getComments(post.id).then((loadedComments) => {
+      if (!ignore) setComments(Array.isArray(loadedComments) ? loadedComments : []);
+    });
+    setIsReacted(Boolean(post.user_reacted));
+    setReactionCount(post.reactions || 0);
+    return () => {
+      ignore = true;
+    };
+  }, [post?.id, post?.user_reacted, post?.reactions]);
+
   if (!post) return <EmptyState text="This post is not available." />;
 
   const relatedPosts = posts.filter((item) => item.id !== post.id).slice(0, 3);
+  const handleReaction = async () => {
+    if (!getAuthToken()) return;
+    const nextReacted = !isReacted;
+    setIsReacted(nextReacted);
+    setReactionCount((count) => Math.max(0, count + (nextReacted ? 1 : -1)));
+    const response = await apiService.toggleReaction(post.id);
+    if (!response) {
+      setIsReacted(!nextReacted);
+      setReactionCount((count) => Math.max(0, count + (nextReacted ? -1 : 1)));
+    }
+  };
+  const handleComment = async (event) => {
+    event.preventDefault();
+    const content = commentText.trim();
+    if (!content || !getAuthToken()) return;
+    setCommentError('');
+    const savedComment = await apiService.addComment(post.id, content);
+    if (!savedComment) {
+      setCommentError('Unable to add your comment. Please try again.');
+      return;
+    }
+    setComments((current) => [...current, savedComment]);
+    setCommentText('');
+  };
 
   return (
     <section className="content-section article-page">
@@ -696,8 +764,8 @@ function PostDetailPage({ posts }) {
         <p className="lead">{post.excerpt}</p>
 
         <div className="article-actions article-actions-row">
-          <button type="button" className="ghost-btn"><Heart size={16} /> {post.reactions}</button>
-          <button type="button" className="ghost-btn"><MessageSquare size={16} /> {post.comments}</button>
+          <button type="button" className={`ghost-btn${isReacted ? ' active-reaction' : ''}`} onClick={handleReaction}><Heart size={16} fill={isReacted ? 'currentColor' : 'none'} /> {reactionCount}</button>
+          <button type="button" className="ghost-btn"><MessageSquare size={16} /> {comments.length || post.comments}</button>
           <button type="button" className="ghost-btn"><Share2 size={16} /> Share</button>
         </div>
 
@@ -711,6 +779,33 @@ function PostDetailPage({ posts }) {
             {(post.tags || []).slice(0, 4).map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
         </div>
+
+        <section className="comments-section">
+          <div className="section-heading-row">
+            <div>
+              <span className="eyebrow">Conversation</span>
+              <h2>Comments</h2>
+            </div>
+          </div>
+          <div className="comment-list">
+            {comments.length ? comments.map((comment) => (
+              <article key={comment.id} className="comment-item">
+                <div className="avatar-circle small">{(comment.name || 'C').charAt(0)}</div>
+                <div>
+                  <div className="comment-meta"><strong>{comment.name || 'Community member'}</strong><span>{relativeTime(comment.created_at)}</span></div>
+                  <p>{comment.content}</p>
+                </div>
+              </article>
+            )) : <p className="muted-text">No comments yet. Start the conversation.</p>}
+          </div>
+          {getAuthToken() ? (
+            <form className="comment-form" onSubmit={handleComment}>
+              <textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Share your perspective..." rows="4" />
+              <button type="submit" className="primary-btn" disabled={!commentText.trim()}>Post comment</button>
+              {commentError ? <p className="form-error">{commentError}</p> : null}
+            </form>
+          ) : <p className="muted-text">Sign in to join the conversation.</p>}
+        </section>
       </article>
 
       <div className="related-posts">
@@ -1157,12 +1252,42 @@ function SavedPostsPage({ posts }) {
   );
 }
 
+function relativeTime(value) {
+  if (!value) return '';
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
 function NotificationsPage() {
-  const notifications = [
-    { title: 'New comment on your post', detail: 'Aisha replied to your AI governance article.', time: '2h ago' },
-    { title: 'Event reminder', detail: 'AI Product Summit opens in 24 hours.', time: 'Today' },
-    { title: 'New follower', detail: 'Rhea started following your profile.', time: '2 days ago' },
-  ];
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+    apiService.getNotifications().then((loaded) => {
+      if (!ignore) {
+        setNotifications(Array.isArray(loaded) ? loaded : []);
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const markRead = async (notification) => {
+    if (notification.is_read) return;
+    const updated = await apiService.markNotificationRead(notification.id);
+    if (updated) setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, is_read: true } : item));
+  };
+
+  const markAllRead = async () => {
+    const result = await apiService.markAllNotificationsRead();
+    if (result) setNotifications((current) => current.map((item) => ({ ...item, is_read: true })));
+  };
 
   return (
     <section className="content-section">
@@ -1171,18 +1296,19 @@ function NotificationsPage() {
           <span className="eyebrow">Notifications</span>
           <h2>Community updates</h2>
         </div>
+        <button type="button" className="secondary-btn" onClick={markAllRead} disabled={!notifications.some((note) => !note.is_read)}>Mark all as read</button>
       </div>
       <div className="notification-list">
-        {notifications.map((note) => (
-          <div key={note.title} className="notification-item">
+        {loading ? <p className="muted-text">Loading notifications...</p> : notifications.length ? notifications.map((note) => (
+          <button type="button" key={note.id} className={`notification-item${note.is_read ? ' read' : ' unread'}`} onClick={() => markRead(note)}>
             <div className="notification-dot" />
             <div>
               <strong>{note.title}</strong>
-              <p>{note.detail}</p>
+              <p>{note.message}</p>
             </div>
-            <span>{note.time}</span>
-          </div>
-        ))}
+            <span>{relativeTime(note.created_at)}</span>
+          </button>
+        )) : <p className="muted-text">You are all caught up.</p>}
       </div>
     </section>
   );

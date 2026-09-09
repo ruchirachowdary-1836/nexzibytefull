@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db
 from .models import *
-from .auth import create_access_token, get_current_user, hash_password, require_admin, verify_password
+from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -134,7 +134,7 @@ def add_notification(db: Session, user_id: int, notification_type: str, title: s
 def user_profile_payload(user: User, db: Session):
     skills = [row.skill for row in db.query(UserSkill).filter_by(user_id=user.id).all()]
     links = [item(row) for row in db.query(UserLink).filter_by(user_id=user.id).all()]
-    posts = [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+    posts = [make_post_payload(post, db, user) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
     activity = {
         'posts_count': len(posts),
         'comments_count': db.query(Comment).filter_by(user_id=user.id).count(),
@@ -244,7 +244,7 @@ def my_posts(status: str | None = None, db: Session = Depends(get_db), user: Use
         if status not in {'published', 'draft'}:
             raise HTTPException(422, detail='status must be published or draft')
         q = q.filter(Post.status == status)
-    return [make_post_payload(post) for post in q.order_by(Post.created_at.desc()).all()]
+    return [make_post_payload(post, db, user) for post in q.order_by(Post.created_at.desc()).all()]
 
 @app.get('/users/me/settings')
 def my_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -278,7 +278,7 @@ def user_posts(user_id: int, db: Session = Depends(get_db), current_user: User =
     user = one(db, User, user_id)
     if current_user.role != 'admin' and current_user.id != user.id:
         raise HTTPException(403, detail='Not permitted')
-    return [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+    return [make_post_payload(post, db, user) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
 
 @app.get('/users/{user_id}/activity')
 def user_activity(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -286,7 +286,7 @@ def user_activity(user_id: int, db: Session = Depends(get_db), current_user: Use
     if current_user.role != 'admin' and current_user.id != user.id:
         raise HTTPException(403, detail='Not permitted')
     return {
-        'recent_posts': [make_post_payload(post) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).limit(5).all()],
+        'recent_posts': [make_post_payload(post, db, user) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).limit(5).all()],
         'recent_comments': [item(comment) for comment in db.query(Comment).filter_by(user_id=user.id).order_by(Comment.created_at.desc()).limit(5).all()],
         'recent_registrations': [item(reg) for reg in db.query(Registration).filter_by(user_id=user.id).order_by(Registration.registered_at.desc()).limit(5).all()],
     }
@@ -333,7 +333,9 @@ def normalize_tags(raw):
     return [str(tag).strip() for tag in raw if str(tag).strip()]
 
 
-def serialize_post_summary(post):
+def serialize_post_summary(post, db: Session, user: User | None = None):
+    reactions = db.query(Reaction).filter_by(post_id=post.id).count()
+    comments = db.query(Comment).filter_by(post_id=post.id).count()
     return {
         'id': post.id,
         'title': post.title,
@@ -346,15 +348,16 @@ def serialize_post_summary(post):
         'authorRole': getattr(post.author, 'professional_role', None) or 'TechTalk contributor',
         'publishedAt': post.created_at.strftime('%Y-%m-%d') if post.created_at else '2026-01-01',
         'readTime': str(max(3, min(12, len((post.content or '').split()) // 150 + 3))) + ' min read',
-        'reactions': 0,
-        'comments': 0,
+        'reactions': reactions,
+        'comments': comments,
+        'user_reacted': bool(user and db.query(Reaction).filter_by(post_id=post.id, user_id=user.id).first()),
         'image': post.cover_image or 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
     }
 
 
 def get_featured_posts(db: Session, limit: int = 4):
     posts = db.query(Post).filter(Post.status == 'published').order_by(Post.created_at.desc()).limit(limit).all()
-    return [serialize_post_summary(post) for post in posts]
+    return [serialize_post_summary(post, db) for post in posts]
 
 
 def get_trending_categories(db: Session, limit: int = 6):
@@ -412,7 +415,9 @@ def update_category(category_id: int, body: CategoryIn, db: Session = Depends(ge
 def archive_category(category_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     x = one(db, Category, category_id); x.is_archived=True; db.commit(); return {'detail':'Category archived'}
 
-def make_post_payload(post):
+def make_post_payload(post, db: Session, user: User | None = None):
+    reactions = db.query(Reaction).filter_by(post_id=post.id).count()
+    comments = db.query(Comment).filter_by(post_id=post.id).count()
     return {
         'id': post.id,
         'title': post.title,
@@ -428,8 +433,9 @@ def make_post_payload(post):
         'authorRole': getattr(post.author, 'professional_role', None) or 'TechTalk contributor',
         'publishedAt': post.created_at.strftime('%Y-%m-%d') if post.created_at else '2026-01-01',
         'readTime': str(max(3, min(12, max(1, len((post.content or '').split()) // 150 + 3)))) + ' min read',
-        'reactions': db_query_count(post.id, 'reactions', db=None) if False else 0,
-        'comments': 0,
+        'reactions': reactions,
+        'comments': comments,
+        'user_reacted': bool(user and db.query(Reaction).filter_by(post_id=post.id, user_id=user.id).first()),
         'image': post.cover_image or 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80',
     }
 
@@ -440,11 +446,11 @@ def create_post(body: PostIn, db: Session = Depends(get_db), user: User = Depend
     payload = body.model_dump()
     payload['tags'] = ', '.join(normalize_tags(payload.get('tags'))) if payload.get('tags') is not None else None
     x = Post(author_id=user.id, **payload)
-    db.add(x); db.commit(); db.refresh(x); return make_post_payload(x)
+    db.add(x); db.commit(); db.refresh(x);     return make_post_payload(x, db, user)
 
 
 @app.get('/posts')
-def list_posts(category: int | None = None, status: str | None = None, author: int | None = None, search: str | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db)):
+def list_posts(category: int | None = None, status: str | None = None, author: int | None = None, search: str | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
     q = db.query(Post).filter_by(is_archived=False)
     if category: q = q.filter(Post.category_id == category)
     if status: q = q.filter(Post.status == status)
@@ -459,16 +465,16 @@ def list_posts(category: int | None = None, status: str | None = None, author: i
     else:
         q = q.order_by(Post.created_at.desc())
     items = q.offset((page - 1) * limit).limit(limit).all()
-    return [make_post_payload(x) for x in items]
+    return [make_post_payload(x, db, user) for x in items]
 
 
 @app.get('/posts/search')
-def search_posts(query: str = Query(..., min_length=1), category: int | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db)):
-    return list_posts(category=category, status=None, author=None, search=query, sort=sort, page=page, limit=limit, db=db)
+def search_posts(query: str = Query(..., min_length=1), category: int | None = None, sort: str | None = None, page: int = Query(1, ge=1), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
+    return list_posts(category=category, status=None, author=None, search=query, sort=sort, page=page, limit=limit, db=db, user=user)
 
 
 @app.get('/posts/trending')
-def trending_posts(limit: int = Query(6, ge=1, le=20), db: Session = Depends(get_db)):
+def trending_posts(limit: int = Query(6, ge=1, le=20), db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
     posts = db.query(Post).filter(Post.is_archived.is_(False), Post.status == 'published').all()
     ranked = []
     for post in posts:
@@ -477,19 +483,19 @@ def trending_posts(limit: int = Query(6, ge=1, le=20), db: Session = Depends(get
         rank = reactions * 2 + comments + (1 if post.status == 'published' else 0)
         ranked.append((rank, post))
     ranked.sort(key=lambda row: row[0], reverse=True)
-    return [make_post_payload(post) for _, post in ranked[:limit]]
+    return [make_post_payload(post, db, user) for _, post in ranked[:limit]]
 
 
 @app.get('/posts/{post_id}')
-def post_detail(post_id:int, db:Session=Depends(get_db)):
+def post_detail(post_id:int, db:Session=Depends(get_db), user: User | None = Depends(get_optional_user)):
     post = one(db, Post, post_id)
     if post.is_archived:
         raise HTTPException(404, detail='Post not found')
-    return make_post_payload(post)
+    return make_post_payload(post, db, user)
 
 
 @app.get('/posts/{post_id}/related')
-def related_posts(post_id:int, limit: int = Query(3, ge=1, le=12), db:Session=Depends(get_db)):
+def related_posts(post_id:int, limit: int = Query(3, ge=1, le=12), db:Session=Depends(get_db), user: User | None = Depends(get_optional_user)):
     post = one(db, Post, post_id)
     q = db.query(Post).filter(Post.is_archived.is_(False), Post.id != post_id, Post.status == 'published')
     if post.category_id:
@@ -505,7 +511,7 @@ def related_posts(post_id:int, limit: int = Query(3, ge=1, le=12), db:Session=De
             if len(related) + len(merged) >= limit:
                 break
         related.extend(merged)
-    return [make_post_payload(item) for item in related[:limit]]
+    return [make_post_payload(item, db, user) for item in related[:limit]]
 
 
 @app.put('/posts/{post_id}')
@@ -516,22 +522,22 @@ def update_post(post_id:int, body:PostIn, db:Session=Depends(get_db), user:User=
     for key in ('title','content','category_id','tags','cover_image'):
         if key in payload and payload[key] is not None:
             setattr(x, key, payload[key])
-    db.commit(); db.refresh(x); return make_post_payload(x)
+    db.commit(); db.refresh(x); return make_post_payload(x, db, user)
 
 
 @app.post('/posts/{post_id}/publish')
 def publish_post(post_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published'; db.commit(); return make_post_payload(x)
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published'; db.commit(); return make_post_payload(x, db, user)
 
 
 @app.post('/posts/{post_id}/draft')
 def draft_post(post_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='draft'; db.commit(); return make_post_payload(x)
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='draft'; db.commit(); return make_post_payload(x, db, user)
 
 
 @app.patch('/posts/{post_id}/{action}')
 def post_action(post_id:int, action:Literal['publish','unpublish'], db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published' if action=='publish' else 'draft'; db.commit(); return make_post_payload(x)
+    x=one(db,Post,post_id); admin_or_owner(user,x.author_id); x.status='published' if action=='publish' else 'draft'; db.commit(); return make_post_payload(x, db, user)
 
 
 @app.delete('/posts/{post_id}')
@@ -545,12 +551,15 @@ def comment(post_id:int, body:CommentIn, db:Session=Depends(get_db), user:User=D
     x=Comment(post_id=post_id,user_id=user.id,content=body.content)
     db.add(x);db.commit();db.refresh(x)
     add_notification(db, post.author_id, 'comment', 'New comment', f'{user.name} commented on your post: {post.title}')
-    return item(x)
+    return {**item(x), 'name': user.name, 'profile_image': user.profile_image}
 
 
 @app.get('/posts/{post_id}/comments')
 def comments(post_id:int,db:Session=Depends(get_db)):
-    return [item(x) for x in db.query(Comment).filter_by(post_id=post_id).order_by(Comment.created_at)]
+    return [
+        {**item(comment), 'name': comment_user.name if comment_user else 'Community member', 'profile_image': comment_user.profile_image if comment_user else None}
+        for comment, comment_user in db.query(Comment, User).join(User, User.id == Comment.user_id).filter(Comment.post_id == post_id).order_by(Comment.created_at)
+    ]
 
 
 @app.put('/comments/{comment_id}')
@@ -591,6 +600,10 @@ def saved_posts(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
 @app.get('/notifications')
 def list_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return [item(notification) for notification in db.query(Notification).filter_by(user_id=user.id).order_by(Notification.created_at.desc()).all()]
+
+@app.get('/notifications/unread-count')
+def unread_notification_count(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return {'count': db.query(Notification).filter_by(user_id=user.id, is_read=False).count()}
 
 @app.put('/notifications/{notification_id}/read')
 def read_notification(notification_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -795,14 +808,14 @@ def admin_user_status(user_id: int, active: bool = Query(...), db: Session = Dep
 
 @app.get('/admin/posts')
 def admin_posts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return [make_post_payload(post) for post in db.query(Post).filter(Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+    return [make_post_payload(post, db, _) for post in db.query(Post).filter(Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
 
 @app.put('/admin/posts/{post_id}/publish')
 def admin_publish_post(post_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     post = one(db, Post, post_id)
     post.status = 'published'
     db.commit()
-    return make_post_payload(post)
+    return make_post_payload(post, db, _)
 
 @app.get('/admin/events')
 def admin_events(db: Session = Depends(get_db), _: User = Depends(require_admin)):
@@ -814,4 +827,3 @@ def admin_events(db: Session = Depends(get_db), _: User = Depends(require_admin)
 @app.get('/admin/registrations')
 def admin_registrations(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return [item(reg) for reg in db.query(Registration).order_by(Registration.registered_at.desc()).all()]
-
