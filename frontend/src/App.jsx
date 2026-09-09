@@ -59,7 +59,7 @@ const faqs = [
   { q: 'How do refunds work?', a: 'Refunds are offered for cancellations made before the event date, with the option to transfer your seat.' },
 ];
 
-function App() {
+function App({ clerkUser = null, onClerkSignOut }) {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState(mockData.posts);
   const [speakers, setSpeakers] = useState(mockData.speakers);
@@ -68,6 +68,14 @@ function App() {
   const [checkoutEvent, setCheckoutEvent] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('Growth');
+
+  useEffect(() => {
+    if (clerkUser) {
+      setUser(clerkUser);
+    } else if (user?.isClerkUser) {
+      setUser(null);
+    }
+  }, [clerkUser]);
 
   useEffect(() => {
     let ignore = false;
@@ -101,6 +109,9 @@ function App() {
   const handleLogout = () => {
     apiService.logout();
     setUser(null);
+    if (onClerkSignOut && clerkUser) {
+      void onClerkSignOut();
+    }
   };
 
   return (
