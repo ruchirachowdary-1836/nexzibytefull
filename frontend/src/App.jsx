@@ -298,6 +298,8 @@ function Layout({ children, user, onLogout }) {
 }
 
 function HomePage({ user, posts }) {
+  const [openFaq, setOpenFaq] = useState(0);
+
   return (
     <div className="career-home">
       <section className="career-hero">
@@ -360,6 +362,80 @@ function HomePage({ user, posts }) {
           <h2>We are your<br /><mark>career accelerator.</mark></h2>
         </div>
         <p>Whether you are switching careers, navigating your first technology role or chasing your next promotion, TechTalk gives you the signal, support and people to keep moving.</p>
+      </section>
+
+      <section className="career-membership">
+        <div className="career-membership-heading">
+          <span className="career-kicker">What you get with membership</span>
+          <h2>Learn. Apply.<br /><mark>Execute.</mark></h2>
+        </div>
+        <div className="career-benefit-list">
+          {[
+            ['01', 'Learn', 'Weekly briefings, practical workshops and expert-led conversations that keep your skills current.'],
+            ['02', 'Apply', 'Role-specific playbooks, templates and frameworks you can use in your next interview or project.'],
+            ['03', 'Execute', 'A focused resource library and accountability system to turn good intentions into progress.'],
+            ['04', 'Improve', 'Feedback from experienced builders and thoughtful peers when you need a second perspective.'],
+            ['05', 'Connect', 'Founder meets, summits and small-group conversations built for meaningful relationships.'],
+          ].map(([number, title, text]) => (
+            <article key={number} className="career-benefit-row">
+              <span>{number}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <ArrowRight size={20} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="career-stories">
+        <div className="career-stories-heading">
+          <span className="career-kicker">Member perspective</span>
+          <h2>See how focused<br /><mark>community</mark> creates momentum.</h2>
+        </div>
+        <div className="career-story-grid">
+          {testimonials.map((testimonial, index) => (
+            <article key={testimonial.name} className="career-story-card">
+              <div className="career-story-number">0{index + 1}</div>
+              <p>“{testimonial.quote}”</p>
+              <div>
+                <strong>{testimonial.name}</strong>
+                <span>{testimonial.role}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="career-membership-cta">
+        <div>
+          <span className="career-kicker">Join TechTalk today</span>
+          <h2>Invest in your<br /><em>next move.</em></h2>
+          <p>Get expert-led sessions, practical resources, private events and a community that keeps you accountable.</p>
+          <Link className="career-dark-btn" to={user ? '/pricing' : '/register'}>{user ? 'View membership' : 'Become a member'} <ArrowRight size={19} /></Link>
+        </div>
+        <div className="career-membership-price">
+          <strong>$49</strong>
+          <span>monthly membership</span>
+          <small>Cancel whenever you need.</small>
+        </div>
+      </section>
+
+      <section className="career-faq">
+        <div className="career-faq-heading">
+          <span className="career-kicker">Questions, answered</span>
+          <h2>Frequently<br /><mark>asked.</mark></h2>
+        </div>
+        <div className="career-faq-list">
+          {faqs.map((faq, index) => (
+            <div key={faq.q} className={`career-faq-item${openFaq === index ? ' open' : ''}`}>
+              <button type="button" onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>
+                <span>{faq.q}</span>
+                <span className="career-faq-icon">{openFaq === index ? '−' : '+'}</span>
+              </button>
+              {openFaq === index ? <p>{faq.a}</p> : null}
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="career-final-cta">
