@@ -47,9 +47,9 @@ const testimonials = [
 ];
 
 const pricingPlans = [
-  { name: 'Starter', price: '$19', description: 'For professionals building a stronger technical and career foundation.', perks: ['Weekly strategic briefings', '10 premium resources', 'Community Q&A access', 'Member event alerts'] },
-  { name: 'Growth', price: '$49', description: 'For product builders and operators who want deeper learning and event access.', perks: ['Everything in Starter', 'Priority pricing for launches', 'Member-only workshops', '1:1 office hours access', 'Exclusive networking invites'] },
-  { name: 'Founder', price: '$99', description: 'For leaders scaling teams, companies and their professional influence.', perks: ['Everything in Growth', 'Founder meet access', 'VIP event priority', 'Career and GTM review sessions', 'Private founder circle access'] },
+  { name: 'Starter', price: '₹19', description: 'For professionals building a stronger technical and career foundation.', perks: ['Weekly strategic briefings', '10 premium resources', 'Community Q&A access', 'Member event alerts'] },
+  { name: 'Growth', price: '₹49', description: 'For product builders and operators who want deeper learning and event access.', perks: ['Everything in Starter', 'Priority pricing for launches', 'Member-only workshops', '1:1 office hours access', 'Exclusive networking invites'] },
+  { name: 'Founder', price: '₹99', description: 'For leaders scaling teams, companies and their professional influence.', perks: ['Everything in Growth', 'Founder meet access', 'VIP event priority', 'Career and GTM review sessions', 'Private founder circle access'] },
 ];
 
 const faqs = [
@@ -483,7 +483,7 @@ function HomePage({ user, posts }) {
           <Link className="career-dark-btn" to={user ? '/pricing' : '/register'}>{user ? 'View membership' : 'Become a member'} <ArrowRight size={19} /></Link>
         </div>
         <div className="career-membership-price">
-          <strong>$49</strong>
+          <strong>₹49</strong>
           <span>monthly membership</span>
           <small>Cancel whenever you need.</small>
         </div>
@@ -955,7 +955,7 @@ function IndividualCoachingPage({ user, openCheckout }) {
 
       <section className="coaching-benefits"><span className="career-kicker">Everything you need to get hired, all in one place</span><h2>Support that keeps<br /><mark>you moving.</mark></h2><div className="coaching-benefit-grid">{benefits.map(([title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-      <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '£500', 'Land interviews'], ['Ultimate', '£1,000', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><button type="button" className="career-lime-btn" onClick={() => openCheckout?.(null, name)} >Join the {name} programme <ArrowRight size={16} /></button></article>)}</div></section>
+      <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '₹500', 'Land interviews'], ['Ultimate', '₹1,000', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><button type="button" className="career-lime-btn" onClick={() => openCheckout?.(null, name)} >Join the {name} programme <ArrowRight size={16} /></button></article>)}</div></section>
 
       <section className="coaching-community"><div><span className="career-kicker">Keep growing with us</span><h2>Join the TechTalk<br /><mark>community.</mark></h2><p>Get expert-led webinars, practical workshops, templates, member discounts and accountability support alongside your coaching.</p><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the community now <ArrowRight size={16} /></Link></div><div className="coaching-community-art">YOUR<br /><em>next</em><br />chapter.</div></section>
     </div>
@@ -1231,7 +1231,7 @@ function PricingPage({ openCheckout }) {
           {pricingPlans.slice(0, 2).map((plan, index) => (
             <article key={plan.name} className={`pricing-reference-card${index === 1 ? ' light' : ''}`}>
               <span className="pricing-plan-label">{index === 0 ? 'Job seeker hub' : 'Career growth hub'}</span>
-              <div className="pricing-reference-price">{index === 0 ? '$49' : '$140'} <span>/ {index === 0 ? 'month' : 'quarter'}</span></div>
+              <div className="pricing-reference-price">{index === 0 ? '₹49' : '₹140'} <span>/ {index === 0 ? 'month' : 'quarter'}</span></div>
               <span className="pricing-highlight">{index === 0 ? 'Get hired' : 'Level up'}</span>
               <ul>
                 {plan.perks.concat(index === 0 ? ['Accountability groups to stay motivated', 'Individual support from career coaches'] : ['Career growth resources', 'Upskill Lab for new AI skills']).slice(0, 7).map((perk) => <li key={perk}><Check size={16} /> {perk}</li>)}
@@ -1930,7 +1930,7 @@ function CheckoutModal({ event, plan, onClose }) {
               <p>{event ? 'Event ticket' : 'Membership plan'}</p>
               <strong>{event ? 'Premium access pass' : `${plan} plan`}</strong>
             </div>
-            <div className="summary-price">{plan === 'Starter' ? '£500' : plan === 'Ultimate' ? '£1,000' : '$79'}</div>
+            <div className="summary-price">{plan === 'Starter' ? '₹500' : plan === 'Ultimate' ? '₹1,000' : '₹79'}</div>
             <ul className="plain-list">
               <li><Lock size={14} /> Secure checkout</li>
               <li><ShieldCheck size={14} /> Instant confirmation</li>
