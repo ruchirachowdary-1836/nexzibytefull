@@ -588,6 +588,45 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
+      <section className="content-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">The member path</span>
+            <h2>A clearer way to keep moving forward.</h2>
+          </div>
+        </div>
+        <div className="feature-grid">
+          {howItWorks.map((item) => (
+            <article key={item.step} className="step-card card-surface">
+              <span className="step-number">{item.step}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="content-section muted-section">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">Member perspective</span>
+            <h2>Built for ambitious people, not noisy feeds.</h2>
+          </div>
+        </div>
+        <div className="testimonial-grid">
+          {testimonials.map((testimonial) => (
+            <article key={testimonial.name} className="testimonial-card">
+              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
+              <p>“{testimonial.quote}”</p>
+              <div className="testimonial-author">
+                <strong>{testimonial.name}</strong>
+                <span>{testimonial.role}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="content-section muted-section community-section">
         <div className="section-heading-row">
           <div>
