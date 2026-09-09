@@ -15,7 +15,6 @@ import {
   MapPin,
   MessageSquare,
   Mic,
-  Search,
   Share2,
   ShieldCheck,
   Star,
@@ -210,11 +209,6 @@ function Layout({ children, user, onLogout }) {
         </nav>
 
         <div className="header-actions">
-          <Link className="search-link" to={user ? '/explore' : '/login'} aria-label="Search">
-            <Search size={16} />
-            <span>Search</span>
-          </Link>
-
           {user ? (
             <>
               <Link className="notification-link" to="/notifications" aria-label="Notifications">
@@ -226,7 +220,6 @@ function Layout({ children, user, onLogout }) {
                 <UserRound size={16} />
                 {user.name || 'Profile'}
               </Link>
-              <Link className="ghost-btn small" to="/scanner">Scanner</Link>
               <button type="button" className="primary-btn small" onClick={onLogout}>Sign out</button>
             </>
           ) : (
@@ -1617,7 +1610,7 @@ function EventCard({ event, type, speakers = [], onCheckout }) {
           <span><CalendarDays size={14} /> {event.time}</span>
         </div>
         <div className="speaker-stack">
-          {eventSpeakers.slice(0, 2).map((speaker) => <img key={speaker.id} src={speaker.photo} alt={speaker.name} title={speaker.name} />)}
+          {eventSpeakers.slice(0, 2).map((speaker) => <span key={speaker.id} className="mini-speaker-placeholder" aria-label={speaker.name} title={speaker.name} />)}
         </div>
         <div className="event-action-row">
           <Link className="secondary-btn small" to={route}>View details</Link>

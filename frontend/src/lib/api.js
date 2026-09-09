@@ -42,7 +42,6 @@ const safeRequest = async (request, fallback) => {
 };
 
 const fallbackImage = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80';
-const fallbackPortrait = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80';
 
 const normalizePost = (post, categoryMap = {}) => ({
   id: post.id,
@@ -76,7 +75,7 @@ const normalizeSpeaker = (speaker) => ({
       ? speaker.expertise.split(',').map((value) => value.trim()).filter(Boolean)
       : ['Technology'],
   bio: speaker.biography || speaker.bio || 'Technology leader shaping thoughtful conversations.',
-  photo: speaker.photo || fallbackPortrait,
+  photo: '',
 });
 
 const normalizeEvent = (event, itemType) => ({

@@ -80,7 +80,7 @@ export const mockData = {
       company: 'pyenk.com',
       expertise: ['AI', 'Cloud', 'Product'],
       bio: 'Karthik builds practical technology products and founder communities around emerging platforms.',
-      photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
     {
       id: 2,
@@ -89,7 +89,7 @@ export const mockData = {
       company: 'stafi.com',
       expertise: ['Startups', 'Cloud', 'Growth'],
       bio: 'Sunil works with technology teams to turn ambitious product ideas into durable businesses.',
-      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
     {
       id: 3,
@@ -98,7 +98,7 @@ export const mockData = {
       company: 'Referral Community',
       expertise: ['Community', 'Product', 'Networking'],
       bio: 'Venkata Sunil Kumar connects builders and founders through high-trust referral networks.',
-      photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
     {
       id: 4,
@@ -107,7 +107,7 @@ export const mockData = {
       company: 'NexziByte Solutions',
       expertise: ['Engineering', 'AI', 'Delivery'],
       bio: 'Tejaswini leads technical delivery and helps teams build reliable, human-centered products.',
-      photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
     {
       id: 5,
@@ -116,7 +116,7 @@ export const mockData = {
       company: 'NexziByte Solutions',
       expertise: ['Leadership', 'Strategy', 'Technology'],
       bio: 'Narasaiah guides technology strategy and partnerships for the next generation of digital businesses.',
-      photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
     {
       id: 6,
@@ -125,7 +125,7 @@ export const mockData = {
       company: 'NexziByte Solutions',
       expertise: ['Marketing', 'Growth', 'Brand'],
       bio: 'Durgesh builds digital growth systems that help technology products reach the right communities.',
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=80',
+      photo: '',
     },
   ],
   summits: [
