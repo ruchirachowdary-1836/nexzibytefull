@@ -901,7 +901,7 @@ function SummitDetailPage({ summits, speakers, openCheckout }) {
           <div className="mini-speaker-list">
             {relatedSpeakers.map((speaker) => (
               <div key={speaker.id} className="mini-speaker">
-                <img src={speaker.photo} alt={speaker.name} />
+                <div className="mini-speaker-placeholder" aria-hidden="true" />
                 <div>
                   <strong>{speaker.name}</strong>
                   <small>{speaker.designation}</small>
@@ -1620,7 +1620,7 @@ function EventCard({ event, type, speakers = [], onCheckout }) {
 function SpeakerCard({ speaker }) {
   return (
     <article className="speaker-card professional-speaker-card">
-      <img src={speaker.photo} alt={speaker.name} />
+      <div className="speaker-image-placeholder" aria-hidden="true" />
       <div className="speaker-body">
         <h3>{speaker.name}</h3>
         <p className="speaker-role">{speaker.designation}</p>
