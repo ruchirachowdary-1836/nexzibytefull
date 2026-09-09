@@ -62,6 +62,17 @@ class UserSettings(Base):
     user = relationship('User', back_populates='settings')
 
 
+class PartnershipInquiry(Base):
+    __tablename__ = 'partnership_inquiries'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    first_name: Mapped[str] = mapped_column(String(80))
+    last_name: Mapped[str] = mapped_column(String(80))
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    partnership_type: Mapped[str] = mapped_column(String(80))
+    details: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class Category(Base):
     __tablename__ = 'categories'
     id: Mapped[int] = mapped_column(primary_key=True)

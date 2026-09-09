@@ -1,15 +1,15 @@
 export const mockData = {
   categories: [
-    { id: 1, name: 'Artificial Intelligence', slug: 'ai', description: 'AI breakthroughs, agents and models.' },
-    { id: 2, name: 'React', slug: 'react', description: 'Modern frontend systems and architecture.' },
-    { id: 3, name: 'Cloud', slug: 'cloud', description: 'Infrastructure, DevOps and cloud-native patterns.' },
-    { id: 4, name: 'Cybersecurity', slug: 'cybersecurity', description: 'Security engineering and trust.' },
-    { id: 5, name: 'Startups', slug: 'startups', description: 'Founder stories and product thinking.' },
+    { id: 1, name: 'Python Engineering', slug: 'python-engineering', description: 'Secure Python systems, APIs and data pipelines.' },
+    { id: 2, name: 'Cloud Computing', slug: 'cloud-computing', description: 'AWS, Azure and resilient digital infrastructure.' },
+    { id: 3, name: 'AI Automation', slug: 'ai-automation', description: 'LLM workflows, predictive systems and intelligent operations.' },
+    { id: 4, name: 'Web Applications', slug: 'web-applications', description: 'Secure, distributed and multi-tenant products.' },
+    { id: 5, name: 'Career Technology', slug: 'career-technology', description: 'People, skills and opportunities shaping the future of work.' },
   ],
   posts: [
     {
       id: 1,
-      title: 'Designing AI products that humans trust',
+      title: 'Engineering AI automation beyond the chatbot',
       excerpt: 'A practical playbook for shipping AI workflows that feel clear, useful and reliable.',
       content: 'Building AI products is not only about model performance. The hardest part is producing trust through clear UX, deliberate guardrails, and human-centered workflows. Start by identifying where users need speed vs. certainty, then shape your product around explainable actions and clean feedback loops. High-quality AI experiences feel calm, transparent and accountable.\n\nThis article covers design patterns for agentic products, human approval checkpoints, and measurable trust signals that work in real businesses.',
       category: 'Artificial Intelligence',
@@ -25,7 +25,7 @@ export const mockData = {
     },
     {
       id: 2,
-      title: 'Scaling React apps without losing developer velocity',
+      title: 'Designing secure multi-tenant web applications',
       excerpt: 'A framework for building maintainable frontends that still feel fast and collaborative.',
       content: 'Modern React teams often face a tradeoff between speed and structure. A good system provides consistent conventions, typed contracts, and thoughtful component boundaries without introducing ceremony. The best frontend teams focus on reducing unnecessary complexity while shortening the feedback loop between design, code and shipping.\n\nThis guide shares tactics for building resilient component libraries, designing state boundaries, and keeping release cycles healthy as application complexity rises.',
       category: 'React',
@@ -41,7 +41,7 @@ export const mockData = {
     },
     {
       id: 3,
-      title: 'Cloud-native operations for resilient products',
+      title: 'Cloud transformation for high availability',
       excerpt: 'A pragmatic look at deployment health, observability and avoiding production drift.',
       content: 'When a product becomes critical, reliability stops being a nice-to-have. Teams need observability that surfaces real signal, authoring workflows that reduce manual rescue work and a clear understanding of failure domains. The most resilient systems combine automation with operational literacy.\n\nIn this post, we discuss incident response patterns, effective alerting thresholds, and how product teams can raise their operational maturity without slowing delivery.',
       category: 'Cloud',
@@ -57,7 +57,7 @@ export const mockData = {
     },
     {
       id: 4,
-      title: 'The startup playbook for product-market clarity',
+      title: 'Building future-ready technology careers',
       excerpt: 'What founders can learn from high-signal, low-noise customer discovery loops.',
       content: 'Product-market clarity is often not a big unveiling; it appears as a series of tiny, repeatable signals. The teams that win learn to listen to urgency, refrain from overbuilding and stay close to their actual customer constraints.\n\nThis article explains how to create a sharper discovery loop, run small prototypes and use customer language as a product strategy tool rather than just a research artifact.',
       category: 'Startups',

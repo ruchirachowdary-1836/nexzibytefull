@@ -89,6 +89,12 @@ class UserSettingsIn(BaseModel):
     account_settings: dict | None = None
     notification_preferences: dict | None = None
     privacy: dict | None = None
+class PartnershipInquiryIn(BaseModel):
+    first_name: str = Field(min_length=1, max_length=80)
+    last_name: str = Field(min_length=1, max_length=80)
+    email: EmailStr
+    partnership_type: str = Field(min_length=1, max_length=80)
+    details: str = Field(min_length=1, max_length=3000)
 
 
 def item(obj):
@@ -150,6 +156,14 @@ def user_profile_payload(user: User, db: Session):
 
 @app.get('/health')
 def health(): return {'status': 'ok'}
+
+@app.post('/partnership-inquiries', status_code=201)
+def create_partnership_inquiry(body: PartnershipInquiryIn, db: Session = Depends(get_db)):
+    inquiry = PartnershipInquiry(**body.model_dump())
+    db.add(inquiry)
+    db.commit()
+    db.refresh(inquiry)
+    return {'id': inquiry.id, 'detail': 'Partnership inquiry received'}
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):

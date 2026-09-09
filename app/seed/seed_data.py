@@ -9,12 +9,17 @@ def seed():
     if db.query(User).first(): print('Database already has data; skipping.'); return
     users=[User(name='Admin User',email='admin@techtalk.dev',password_hash=hash_password('AdminPass123'),role='admin')]
     users += [User(name=f'Community Member {i}',email=f'user{i}@techtalk.dev',password_hash=hash_password('UserPass123')) for i in range(1,10)]
-    categories=[Category(name=n,slug=n.lower().replace(' ','-')) for n in ['AI','Startups','Cloud','Web Development','Career']]
+    categories=[Category(name=n,slug=n.lower().replace(' ','-')) for n in ['Python Engineering','Cloud Computing','AI Automation','Web Applications','Career Technology']]
     db.add_all(users+categories);db.flush()
-    db.add_all([Post(author_id=users[i%10].id,category_id=categories[i%5].id,title=f'{topic}: practical lessons {i+1}',content=f'A practical TechTalk discussion about {topic}.',status='published' if i%2 else 'draft') for i,topic in enumerate(['AI','Cloud','Startups','Web Development','Career']*3)])
-    speakers=[Speaker(name=f'Speaker {i}',designation='Technology Leader',company='NexziByte',expertise='AI, cloud, startups') for i in range(1,9)];db.add_all(speakers);db.flush()
-    summits=[Summit(title=f'TechTalk Summit {i}',date=date.today()+timedelta(days=i*30),location='Hyderabad',venue='NexziByte Hub',is_published=True) for i in range(1,4)]
-    meets=[FounderMeet(title=f'Founder Meet {i}',date=date.today()+timedelta(days=i*45),location='Hyderabad',networking_info='Founder networking session',is_published=True) for i in range(1,3)]
+    topics=['Python engineering','cloud transformation','AI automation','web applications','career technology']
+    db.add_all([Post(author_id=users[i%10].id,category_id=categories[i%5].id,title=f'{topic.title()}: practical lessons {i+1}',content=f'A Nexzibyte TechTalk discussion about {topic}, secure delivery and future-ready opportunities.',status='published' if i%2 else 'draft') for i,topic in enumerate(topics*3)])
+    speakers=[Speaker(name=f'Nexzibyte Technology Leader {i}',designation='Technology Leader',company='Nexzibyte Solutions',expertise='Python, cloud, AI automation, digital transformation') for i in range(1,9)];db.add_all(speakers);db.flush()
+    summits=[Summit(title=title,date=date.today()+timedelta(days=i*30),location='Hyderabad',venue='Nexzibyte Innovation Hub',description=description,is_published=True) for i,(title,description) in enumerate([
+        ('TechTalks: GPACTS 2026 Field Notes','Mapping healthcare, pharma and industrial automation challenges at the world’s biggest Pharma AI & IT Summit.'),
+        ('Nexzibyte AI & Cloud Engineering Forum','Practical conversations on LLM workflows, predictive systems and elastic cloud infrastructure.'),
+        ('TechTalks Future-Ready Careers','An open knowledge exchange for developers, students and recruiters bridging the upskilling gap.'),
+    ],1)]
+    meets=[FounderMeet(title=title,date=date.today()+timedelta(days=i*45),location='Hyderabad',networking_info='Nexzibyte ecosystem networking session',is_published=True) for i,title in enumerate(['Client Collaboration & MoU Briefing','TechTalks Developer Exchange'],1)]
     db.add_all(summits+meets);db.flush()
     for i,e in enumerate(summits):e.speakers=speakers[i:i+3]
     for i,e in enumerate(meets):e.speakers=speakers[i+3:i+6]

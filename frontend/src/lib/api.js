@@ -174,6 +174,15 @@ export const apiService = {
       status: 'registered',
     });
   },
+  async submitPartnershipInquiry(payload) {
+    try {
+      const response = await api.post('/partnership-inquiries', payload);
+      return response.data;
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      throw new Error(detail || error?.message || 'Unable to submit partnership inquiry.');
+    }
+  },
   async getComments(postId) {
     return safeRequest(() => api.get(`/posts/${postId}/comments`), []);
   },

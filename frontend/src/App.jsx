@@ -35,9 +35,9 @@ const siteSections = [
 ];
 
 const howItWorks = [
-  { step: '01', title: 'Discover the right conversations', text: 'Explore executive briefings, founder stories and curated technical learning designed for modern teams.' },
-  { step: '02', title: 'Join premium events', text: 'Reserve seats for speaker sessions, founder meets and high-intent networking experiences.' },
-  { step: '03', title: 'Apply what you learn', text: 'Turn insight into action with peer accountability, practical frameworks and stronger professional momentum.' },
+  { step: '01', title: 'Build with better technology', text: 'Explore practical Nexzibyte thinking across Python, cloud computing, AI and emerging technologies.' },
+  { step: '02', title: 'Connect with the ecosystem', text: 'Meet developers, students, recruiters and technology leaders through TechTalks and industry events.' },
+  { step: '03', title: 'Turn ideas into outcomes', text: 'Apply secure engineering, intelligent automation and cloud transformation to create measurable business growth.' },
 ];
 
 const testimonials = [
@@ -353,7 +353,7 @@ function HomePage({ user, posts }) {
         <div className="career-hero-copy">
           <span className="career-kicker">NEXZIBYTE / TECHTALK</span>
           <h1>Build &amp;<br />grow your<br /><em>career.</em></h1>
-          <p>Join a focused community for builders, founders and technology professionals who want better opportunities and stronger momentum.</p>
+          <p>TechTalk by Nexzibyte connects skilled professionals with future-ready opportunities in Python, cloud computing, AI and emerging technologies.</p>
           <div className="career-hero-actions">
             <Link className="career-lilac-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Become a member'} <ArrowRight size={19} /></Link>
             <span className="career-sticker">FOR PEOPLE IN TECH</span>
@@ -367,7 +367,7 @@ function HomePage({ user, posts }) {
 
       <section className="career-proof">
         <div className="career-proof-copy">
-          <h2>Join a growing network <mark>accelerating</mark> their careers in tech.</h2>
+          <h2>Build the next generation of technology with <mark>Nexzibyte.</mark></h2>
           <div className="career-company-pills">
             {['AI builders', 'Product teams', 'Cloud leaders', 'Startup founders', 'Growth operators', 'Engineering'].map((label) => <span key={label}>{label}</span>)}
           </div>
@@ -1013,6 +1013,9 @@ function AboutPage() {
 }
 
 function PartnerPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', partnership_type: '', details: '' });
   const partnerStories = [
     ['Adobe', 'Brand promotion', 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=900&q=85'],
     ['Reslink', 'Audience growth', 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=85'],
@@ -1024,7 +1027,7 @@ function PartnerPage() {
       <section className="partner-trust"><h2>Our trusted <mark>partners.</mark></h2><div className="partner-logo-list"><span>Adobe</span><span>aiApply</span><span>ZTM</span><span>Reslink</span><span>Growth School</span><span>University of East London</span></div></section>
       <section className="partner-options"><span className="career-kicker">Ways to partner</span><h2><mark>Ways to partner</mark> with TechTalk.</h2><div className="partner-option-grid"><article className="partner-option-art"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85" alt="Technology community platform" /></article><article><span>Brand promotion</span><h3>Get your brand in front of our audience</h3><p>We&apos;ll work with you to craft the perfect promotional strategy through community posts, social media, events or our newsletter.</p><ul><li>6K+ community members</li><li>400K+ followers across social media</li><li>42K+ engaged newsletter subscribers</li></ul></article><article><span>Talent partnerships</span><h3>Meet your next great hire</h3><p>Connect your roles and opportunities with a focused network of ambitious technology professionals.</p><ul><li>Targeted candidate visibility</li><li>Career-focused employer storytelling</li><li>High-intent community conversations</li></ul></article><article className="partner-option-art partner-option-lime"><span>Senior<br />business<br />analyst</span></article></div></section>
       <section className="partner-stories"><span className="career-kicker">Behind the scenes</span><h2><mark>Successful</mark> partnerships.</h2><div className="partner-story-grid">{partnerStories.map(([name, label, image]) => <article key={name}><img src={image} alt={name} /><div><small>{label}</small><h3>{name}</h3><button type="button" className="career-lilac-btn">Watch video <ArrowRight size={16} /></button></div></article>)}</div></section>
-      <section className="partner-inquiry" id="partner-inquiry"><div><span className="career-kicker">Let&apos;s work together</span><h2>Get in touch<br /><mark>with our team.</mark></h2><p>Tell us a little about your partnership idea and we&apos;ll come back to you as soon as possible.</p><ul><li><Check size={16} /> Personalised support</li><li><Check size={16} /> Quick responses</li><li><Check size={16} /> Collaboration opportunities</li></ul></div><form><h3>Partnership inquiry form</h3><p>Fill out the form below and we&apos;ll get back to you.</p><div className="partner-form-row"><input placeholder="First Name" aria-label="First name" /><input placeholder="Last Name" aria-label="Last name" /></div><input type="email" placeholder="Email Address" aria-label="Email address" /><select defaultValue=""><option value="" disabled>Partnership Type</option><option>Brand promotion</option><option>Talent partnership</option><option>Speaking or events</option></select><textarea placeholder="Please provide any other information or specific requests" aria-label="Partnership details" /><button type="button" className="career-lilac-btn">Submit inquiry <ArrowRight size={16} /></button></form></section>
+      <section className="partner-inquiry" id="partner-inquiry"><div><span className="career-kicker">Let&apos;s work together</span><h2>Get in touch<br /><mark>with our team.</mark></h2><p>Tell us a little about your partnership idea and we&apos;ll come back to you as soon as possible.</p><ul><li><Check size={16} /> Personalised support</li><li><Check size={16} /> Quick responses</li><li><Check size={16} /> Collaboration opportunities</li></ul></div><form onSubmit={async (event) => { event.preventDefault(); setFormError(''); try { await apiService.submitPartnershipInquiry(form); setSubmitted(true); } catch (error) { setFormError(error.message); } }}><h3>Partnership inquiry form</h3><p>{submitted ? 'Thanks — our team will be in touch shortly.' : 'Fill out the form below and we&apos;ll get back to you.'}</p><div className="partner-form-row"><input required value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} placeholder="First Name" aria-label="First name" /><input required value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} placeholder="Last Name" aria-label="Last name" /></div><input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email Address" aria-label="Email address" /><select required value={form.partnership_type} onChange={(event) => setForm({ ...form, partnership_type: event.target.value })}><option value="" disabled>Partnership Type</option><option>Brand promotion</option><option>Talent partnership</option><option>Speaking or events</option></select><textarea required value={form.details} onChange={(event) => setForm({ ...form, details: event.target.value })} placeholder="Please provide any other information or specific requests" aria-label="Partnership details" /><button type="submit" className="career-lilac-btn">{submitted ? 'Inquiry submitted' : 'Submit inquiry'} <ArrowRight size={16} /></button>{formError ? <div className="form-error">{formError}</div> : null}</form></section>
     </div>
   );
 }
