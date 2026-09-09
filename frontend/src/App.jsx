@@ -4,7 +4,6 @@ import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, use
 import {
   ArrowRight,
   Bookmark,
-  Bell,
   CalendarDays,
   Check,
   Compass,
@@ -164,7 +163,6 @@ function ProtectedRoute({ user, children }) {
 function Layout({ children, user, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => setHasScrolled(window.scrollY > 16);
@@ -172,24 +170,6 @@ function Layout({ children, user, onLogout }) {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    let ignore = false;
-    const loadUnreadCount = async () => {
-      if (!getAuthToken()) {
-        setUnreadNotifications(0);
-        return;
-      }
-      const response = await apiService.getUnreadNotificationCount();
-      if (!ignore) setUnreadNotifications(response?.count || 0);
-    };
-    loadUnreadCount();
-    const interval = window.setInterval(loadUnreadCount, 15000);
-    return () => {
-      ignore = true;
-      window.clearInterval(interval);
-    };
-  }, [user]);
 
   return (
     <div className="app-shell">
@@ -282,11 +262,6 @@ function Layout({ children, user, onLogout }) {
         <div className="header-actions">
           {user ? (
             <>
-              <Link className="notification-link" to="/notifications" aria-label="Notifications">
-                <Bell size={16} />
-                <span>Notifications</span>
-                {unreadNotifications > 0 ? <span className="notification-badge">{unreadNotifications}</span> : null}
-              </Link>
               <Link className="user-badge" to="/profile">
                 <UserRound size={16} />
                 {user.name || 'Profile'}
@@ -371,8 +346,6 @@ function Layout({ children, user, onLogout }) {
 
 function HomePage({ user, posts }) {
   const [openFaq, setOpenFaq] = useState(0);
-  const featuredPosts = (posts || []).slice(0, 3);
-  const categories = [...new Set((posts || []).map((post) => post.category).filter(Boolean))].slice(0, 6);
 
   return (
     <div className="career-home">
@@ -409,22 +382,6 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
-      <section className="publication-preview">
-        <div className="publication-heading">
-          <div>
-            <span className="career-kicker">NEXZIBYTE / KNOWLEDGE</span>
-            <h2>Ideas for the<br /><mark>next generation.</mark></h2>
-          </div>
-          <Link className="career-outline-btn" to="/discover">Explore all stories <ArrowRight size={17} /></Link>
-        </div>
-        <div className="publication-category-row">
-          {categories.map((category) => <Link key={category} to={`/discover?category=${encodeURIComponent(category)}`}>{category}</Link>)}
-        </div>
-        <div className="publication-card-grid">
-          {featuredPosts.map((post) => <PostCard key={post.id} post={post} />)}
-        </div>
-      </section>
-
       <section className="career-service-grid">
         <div className="career-service-art">
           <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=85" alt="Technology leaders in a working session" />
@@ -433,7 +390,6 @@ function HomePage({ user, posts }) {
           <span className="career-service-tag">Get hired</span>
           <h2>Set the foundation<br />&amp; get noticed.</h2>
           <p>Build a sharper professional story with practical insights, expert content, templates and community guidance for your next opportunity.</p>
-          <Link className="career-outline-btn" to={user ? '/explore' : '/login'}>Explore the knowledge feed <ArrowRight size={17} /></Link>
         </article>
         <article className="career-service-copy">
           <span className="career-service-tag">Grow further</span>
@@ -618,7 +574,6 @@ function ExplorePage({ posts }) {
     <section className="content-section">
       <div className="section-heading-row stacked-row">
         <div>
-          <span className="eyebrow">TechTalk feed</span>
           <h2>Explore the knowledge ecosystem</h2>
         </div>
         <div className="toolbar">
@@ -1530,7 +1485,6 @@ function ProfilePage({ user, posts }) {
       <div className="profile-actions">
         <Link className="secondary-btn" to="/my-posts">My Posts</Link>
         <Link className="secondary-btn" to="/saved-posts">Saved Posts</Link>
-        <Link className="secondary-btn" to="/notifications">Notifications</Link>
         <Link className="secondary-btn" to="/settings">Settings</Link>
       </div>
     </section>
