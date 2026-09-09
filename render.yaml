@@ -27,3 +27,5 @@ services:
         value: https://techtalk-backend-shob.onrender.com
       - key: VITE_GOOGLE_CLIENT_ID
         value: 557263605670-cpb89s4jiuuloocnbbi6nk9ontk3csa7.apps.googleusercontent.com
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        value: pk_test_YW1hemVkLXdpbGRjYXQtMzg1Ny5jbGVyay5hY2NvdW50cy5kZXYk

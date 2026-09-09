@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -242,6 +243,7 @@ function Layout({ children, user, onLogout }) {
             <>
               <Link className="sign-in-link" to="/login">Sign In</Link>
               <Link className="primary-btn small join-community-btn" to="/register">Join Community <ArrowRight size={14} /></Link>
+              {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? <ClerkAuthControls /> : null}
             </>
           )}
           <button type="button" className="mobile-menu-toggle" aria-label="Toggle menu" onClick={() => setMobileMenuOpen((cur) => !cur)}>
@@ -298,6 +300,25 @@ function Layout({ children, user, onLogout }) {
       </footer>
       <div className="footer-bottom">© 2026 NexziByte</div>
     </div>
+  );
+}
+
+function ClerkAuthControls() {
+  const { isSignedIn } = useAuth();
+
+  return (
+    <span className="clerk-auth-controls" aria-label="Clerk authentication">
+      {isSignedIn ? <UserButton /> : (
+        <>
+          <SignInButton mode="modal">
+            <button type="button" className="clerk-sign-in">Clerk Sign In</button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <button type="button" className="clerk-sign-up">Clerk Sign Up</button>
+          </SignUpButton>
+        </>
+      )}
+    </span>
   );
 }
 
@@ -1579,13 +1600,14 @@ function RegisterPage({ setUser }) {
     }
 
     try {
-      await apiService.register({ ...form, role: form.role });
+      await apiService.register({ name: form.name, email: form.email, password: form.password, role: form.role });
+      await apiService.login({ email: form.email, password: form.password });
       const profile = await apiService.getCurrentUser();
-      setUser(profile || { name: form.name, email: form.email, role: form.role });
+      if (!profile) throw new Error('Account was created, but the new session could not be started. Please log in.');
+      setUser(profile);
       navigate('/profile');
-    } catch {
-      setUser({ name: form.name, email: form.email, role: form.role });
-      navigate('/profile');
+    } catch (registrationError) {
+      setError(registrationError.message || 'Registration failed. Please try again.');
     }
   };
 
