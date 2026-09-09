@@ -4819,7 +4819,27 @@ h1, h2, h3, h4 {
   object-fit: cover;
 }
 
-.about-team-card div {
+.about-team-initials {
+  display: flex;
+  min-height: 270px;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #dda1ff, #d1ff3f);
+}
+
+.team-initials {
+  display: grid;
+  width: 130px;
+  height: 130px;
+  place-items: center;
+  border: 2px solid #171717;
+  border-radius: 50%;
+  color: #171717;
+  font-size: 2.5rem;
+  font-weight: 900;
+}
+
+.about-team-card .team-meta {
   position: absolute;
   right: 10px;
   bottom: 10px;

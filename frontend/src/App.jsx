@@ -124,7 +124,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/services" element={<ServicesPage user={user} />} />
           <Route path="/services/cv-linkedin-review" element={<CvLinkedinReviewPage user={user} />} />
-          <Route path="/services/individual-coaching" element={<IndividualCoachingPage user={user} />} />
+          <Route path="/services/individual-coaching" element={<IndividualCoachingPage user={user} openCheckout={openCheckout} />} />
           <Route path="/resources/resource-center" element={<ResourceCenterPage />} />
           <Route path="/resources/success-stories" element={<SuccessStoriesPage />} />
           <Route path="/about" element={<AboutPage />} />
@@ -921,7 +921,7 @@ function CvLinkedinReviewPage({ user }) {
   );
 }
 
-function IndividualCoachingPage({ user }) {
+function IndividualCoachingPage({ user, openCheckout }) {
   const pillars = [
     ['Pillar 1', 'Finding the perfect role', 'Clarify your direction and build a search strategy around the opportunities that fit you.'],
     ['Pillar 2', 'Building an amazing CV', 'Position your experience with an achievement-led CV that gets read.'],
@@ -955,7 +955,7 @@ function IndividualCoachingPage({ user }) {
 
       <section className="coaching-benefits"><span className="career-kicker">Everything you need to get hired, all in one place</span><h2>Support that keeps<br /><mark>you moving.</mark></h2><div className="coaching-benefit-grid">{benefits.map(([title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-      <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '£599', 'Land interviews'], ['Ultimate', '£1,199', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the {name} programme <ArrowRight size={16} /></Link></article>)}</div></section>
+      <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '£500', 'Land interviews'], ['Ultimate', '£1,000', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><button type="button" className="career-lime-btn" onClick={() => openCheckout?.(null, name)} >Join the {name} programme <ArrowRight size={16} /></button></article>)}</div></section>
 
       <section className="coaching-community"><div><span className="career-kicker">Keep growing with us</span><h2>Join the TechTalk<br /><mark>community.</mark></h2><p>Get expert-led webinars, practical workshops, templates, member discounts and accountability support alongside your coaching.</p><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the community now <ArrowRight size={16} /></Link></div><div className="coaching-community-art">YOUR<br /><em>next</em><br />chapter.</div></section>
     </div>
@@ -1009,10 +1009,10 @@ function SuccessStoriesPage() {
 
 function AboutPage() {
   const team = [
-    ['Joana Rocha', 'Co-founder', 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=900&q=85'],
-    ['Roxanne Taku', 'Co-founder', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=900&q=85'],
-    ['Helena Nattaya', 'Career Coach', 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=700&q=85'],
-    ['Eavan Fitzpatrick', 'Career Coach', 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=700&q=85'],
+    ['Nagunoori Durga Prasad', 'Founder & Managing Director', 'ND'],
+    ['Tejaswini Gangula', 'Technical Manager', 'TG'],
+    ['Narasaiah Nagunoori', 'Director, Strategy', 'NN'],
+    ['Durgesh Siva Naga', 'Digital Marketing Manager', 'DS'],
   ];
   const gallery = [
     'https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=1200&q=85',
@@ -1026,7 +1026,7 @@ function AboutPage() {
       <section className="about-hero"><div className="about-hero-image"><img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=85" alt="Tech community event" /><div><span className="career-kicker">NEXZIBYTE / ABOUT</span><h1>We&apos;re<br /><mark>TechTalk.</mark></h1><p>The platform built by tech professionals, for tech professionals.</p><Link className="career-lilac-btn" to="/register">Become a member <ArrowRight size={17} /></Link></div></div></section>
       <section className="about-mission"><h2><mark>Transforming</mark> careers,<br />one tech role at a time.</h2><p>We are on a mission to make career growth in tech more accessible, less overwhelming and a lot more human. TechTalk is a community for job seekers and professionals across tech, offering coaching, expert advice and support to help you land roles and grow with confidence.</p></section>
       <section className="about-story"><div className="about-story-images"><img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=85" alt="TechTalk community members" /><img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=85" alt="Team collaborating" /></div><div><span className="career-kicker">Our story</span><h2>Built from a real<br /><mark>career struggle.</mark></h2><p>TechTalk was born out of frustration: watching talented people get overlooked because they did not fit the typical tech profile.</p><p>We realised that breaking into and staying in tech was not just about skills. It was about how you positioned yourself, found the right people and told your story.</p><p>Today, we are building a more confident, connected way to grow careers in technology.</p></div></section>
-      <section className="about-team"><span className="career-kicker">Meet the team</span><h2>The people behind<br /><mark>the platform.</mark></h2><div className="about-team-grid"><article className="about-team-statement">Your <mark>powerhouse</mark> of recruiters, career coaches and mentors.</article>{team.map(([name, role, image]) => <article key={name} className="about-team-card"><img src={image} alt={name} /><div><strong>{name}</strong><span>{role}</span></div></article>)}</div></section>
+      <section className="about-team"><span className="career-kicker">Meet the team</span><h2>The people behind<br /><mark>Nexzibyte.</mark></h2><div className="about-team-grid"><article className="about-team-statement">The <mark>technology team</mark> behind future-ready products, platforms and careers.</article>{team.map(([name, role, initials]) => <article key={name} className="about-team-card about-team-initials"><div className="team-initials">{initials}</div><div className="team-meta"><strong>{name}</strong><span>{role}</span></div></article>)}</div></section>
       <section className="about-news"><span className="career-kicker">TechTalk in the news</span><h2>Ideas that travel<br /><mark>further.</mark></h2><div className="about-news-grid">{[['How to sell yourself to employers', 'Watch video'], ['TechTalk reaches 200,000 job seekers', 'Read article'], ['Career experts explain the hidden job market', 'Watch video']].map(([title, action], index) => <article key={title}><div className="about-news-image"><img src={gallery[index]} alt="" /></div><h3>{title}</h3><button type="button" className="career-lilac-btn">{action} <ArrowRight size={16} /></button></article>)}</div></section>
       <section className="about-gallery"><span className="career-kicker">The community</span><h2>More than a network.<br /><mark>A movement.</mark></h2><div className="about-gallery-grid">{gallery.map((image, index) => <img key={image} className={`gallery-image-${index}`} src={image} alt="TechTalk community gathering" />)}</div></section>
       <section className="about-contact"><h2>Let&apos;s build your<br /><mark>next chapter.</mark></h2><p>Ready to take the next step? Join the community or reach out to our team.</p><Link className="career-dark-btn" to="/services">Explore our services <ArrowRight size={17} /></Link></section>
@@ -1930,7 +1930,7 @@ function CheckoutModal({ event, plan, onClose }) {
               <p>{event ? 'Event ticket' : 'Membership plan'}</p>
               <strong>{event ? 'Premium access pass' : `${plan} plan`}</strong>
             </div>
-            <div className="summary-price">$79</div>
+            <div className="summary-price">{plan === 'Starter' ? '£500' : plan === 'Ultimate' ? '£1,000' : '$79'}</div>
             <ul className="plain-list">
               <li><Lock size={14} /> Secure checkout</li>
               <li><ShieldCheck size={14} /> Instant confirmation</li>
