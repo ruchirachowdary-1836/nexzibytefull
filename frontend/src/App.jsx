@@ -352,7 +352,7 @@ function HomePage({ user, posts }) {
       <section className="career-hero">
         <div className="career-hero-copy">
           <span className="career-kicker">NEXZIBYTE / TECHTALK</span>
-          <h1>Build &amp;<br />grow your<br /><em>career.</em></h1>
+          <h1>Shape what&apos;s<br />next in<br /><em>technology.</em></h1>
           <p>TechTalk by Nexzibyte connects skilled professionals with future-ready opportunities in Python, cloud computing, AI and emerging technologies.</p>
           <div className="career-hero-actions">
             <Link className="career-lilac-btn" to={user ? '/profile' : '/register'}>{user ? 'Open your profile' : 'Become a member'} <ArrowRight size={19} /></Link>
@@ -367,7 +367,7 @@ function HomePage({ user, posts }) {
 
       <section className="career-proof">
         <div className="career-proof-copy">
-          <h2>Build the next generation of technology with <mark>Nexzibyte.</mark></h2>
+          <h2>Where bold ideas become <mark>useful technology.</mark></h2>
           <div className="career-company-pills">
             {['AI builders', 'Product teams', 'Cloud leaders', 'Startup founders', 'Growth operators', 'Engineering'].map((label) => <span key={label}>{label}</span>)}
           </div>
@@ -388,12 +388,12 @@ function HomePage({ user, posts }) {
         </div>
         <article className="career-service-copy">
           <span className="career-service-tag">Get hired</span>
-          <h2>Set the foundation<br />&amp; get noticed.</h2>
+          <h2>Make your work<br />impossible to overlook.</h2>
           <p>Build a sharper professional story with practical insights, expert content, templates and community guidance for your next opportunity.</p>
         </article>
         <article className="career-service-copy">
           <span className="career-service-tag">Grow further</span>
-          <h2>Turn good work<br />into real momentum.</h2>
+          <h2>Move from potential<br />to meaningful progress.</h2>
           <p>Learn how to communicate impact, lead better conversations and grow with role-specific perspectives from people doing the work.</p>
           <Link className="career-outline-btn" to={user ? '/summits' : '/login'}>See upcoming conversations <ArrowRight size={17} /></Link>
         </article>
@@ -405,7 +405,7 @@ function HomePage({ user, posts }) {
       <section className="career-accelerator">
         <div>
           <span className="career-kicker">More than a community</span>
-          <h2>We are your<br /><mark>career accelerator.</mark></h2>
+          <h2>Your signal in a<br /><mark>fast-moving world.</mark></h2>
         </div>
         <p>Whether you are switching careers, navigating your first technology role or chasing your next promotion, TechTalk gives you the signal, support and people to keep moving.</p>
       </section>
@@ -413,7 +413,7 @@ function HomePage({ user, posts }) {
       <section className="career-membership">
         <div className="career-membership-heading">
           <span className="career-kicker">What you get with membership</span>
-          <h2>Learn. Apply.<br /><mark>Execute.</mark></h2>
+          <h2>Discover. Build.<br /><mark>Move forward.</mark></h2>
         </div>
         <div className="career-benefit-list">
           {[
@@ -436,7 +436,7 @@ function HomePage({ user, posts }) {
       <section className="career-stories">
         <div className="career-stories-heading">
           <span className="career-kicker">Member perspective</span>
-          <h2>See how focused<br /><mark>community</mark> creates momentum.</h2>
+          <h2>Real people.<br /><mark>Real progress.</mark></h2>
         </div>
         <div className="career-story-grid">
           {testimonials.map((testimonial, index) => (
@@ -455,7 +455,7 @@ function HomePage({ user, posts }) {
       <section className="career-membership-cta">
         <div>
           <span className="career-kicker">Join TechTalk today</span>
-          <h2>Invest in your<br /><em>next move.</em></h2>
+          <h2>Give your ambition<br /><em>a place to grow.</em></h2>
           <p>Get expert-led sessions, practical resources, private events and a community that keeps you accountable.</p>
           <Link className="career-dark-btn" to={user ? '/pricing' : '/register'}>{user ? 'View membership' : 'Become a member'} <ArrowRight size={19} /></Link>
         </div>
@@ -469,7 +469,7 @@ function HomePage({ user, posts }) {
       <section className="career-faq">
         <div className="career-faq-heading">
           <span className="career-kicker">Questions, answered</span>
-          <h2>Frequently<br /><mark>asked.</mark></h2>
+          <h2>Good questions.<br /><mark>Clear answers.</mark></h2>
         </div>
         <div className="career-faq-list">
           {faqs.map((faq, index) => (
@@ -488,7 +488,7 @@ function HomePage({ user, posts }) {
 
       <section className="career-final-cta">
         <span className="career-kicker">Your next chapter</span>
-        <h2>Make your next move<br /><em>count.</em></h2>
+        <h2>Build something<br /><em>worth moving toward.</em></h2>
         <Link className="career-dark-btn" to={user ? '/profile' : '/register'}>Join the community <ArrowRight size={19} /></Link>
       </section>
     </div>
