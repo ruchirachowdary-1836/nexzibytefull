@@ -365,7 +365,7 @@
 }
 
 .nav-dropdown-menu a:hover {
-  background: #FFC857;
+  background: #FB7185;
 }
 
 .nav-dropdown-menu strong {
@@ -3092,7 +3092,7 @@ h1, h2, h3, h4 {
 .career-home {
   --career-black: #151515;
   --career-lime: #55E6C1;
-  --career-lilac: #FFC857;
+  --career-lilac: #FB7185;
   margin: -28px -28px 0;
   color: #f6f3ed;
   background: var(--career-black);
@@ -5048,7 +5048,7 @@ h1, h2, h3, h4 {
   min-height: 270px;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #FFC857, #55E6C1);
+  background: linear-gradient(145deg, #FB7185, #55E6C1);
 }
 
 .team-initials {
