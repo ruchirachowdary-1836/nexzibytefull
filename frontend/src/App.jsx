@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SignInButton, SignUpButton } from '@clerk/react';
-import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   Bookmark,
@@ -17,6 +17,7 @@ import {
   Mic,
   Share2,
   ShieldCheck,
+  Search,
   Star,
   UserRound,
   Zap,
@@ -118,6 +119,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<HomePage user={user} posts={posts} />} />
+          <Route path="/discover" element={<ExplorePage posts={posts} />} />
           <Route path="/explore" element={<ProtectedRoute user={user}><ExplorePage posts={posts} /></ProtectedRoute>} />
           <Route path="/posts/:postId" element={<PostDetailPage posts={posts} />} />
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
@@ -139,6 +141,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/saved-posts" element={<SavedPostsPage posts={posts} />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/scan" element={<ScanSpherePage user={user} />} />
           <Route path="/scanner" element={<ProtectedRoute user={user}><ScannerPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/register" element={<RegisterPage setUser={setUser} />} />
@@ -368,6 +371,8 @@ function Layout({ children, user, onLogout }) {
 
 function HomePage({ user, posts }) {
   const [openFaq, setOpenFaq] = useState(0);
+  const featuredPosts = (posts || []).slice(0, 3);
+  const categories = [...new Set((posts || []).map((post) => post.category).filter(Boolean))].slice(0, 6);
 
   return (
     <div className="career-home">
@@ -401,6 +406,22 @@ function HomePage({ user, posts }) {
             ['30+', 'community events'],
             ['18', 'tech categories'],
           ].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
+        </div>
+      </section>
+
+      <section className="publication-preview">
+        <div className="publication-heading">
+          <div>
+            <span className="career-kicker">NEXZIBYTE / KNOWLEDGE</span>
+            <h2>Ideas for the<br /><mark>next generation.</mark></h2>
+          </div>
+          <Link className="career-outline-btn" to="/discover">Explore all stories <ArrowRight size={17} /></Link>
+        </div>
+        <div className="publication-category-row">
+          {categories.map((category) => <Link key={category} to={`/discover?category=${encodeURIComponent(category)}`}>{category}</Link>)}
+        </div>
+        <div className="publication-card-grid">
+          {featuredPosts.map((post) => <PostCard key={post.id} post={post} />)}
         </div>
       </section>
 
@@ -507,6 +528,8 @@ function HomePage({ user, posts }) {
         </div>
       </section>
 
+      <NewsletterSignup />
+
       <section className="career-final-cta">
         <span className="career-kicker">Your next chapter</span>
         <h2>Make your next move<br /><em>count.</em></h2>
@@ -516,9 +539,48 @@ function HomePage({ user, posts }) {
   );
 }
 
+function NewsletterSignup() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus('');
+    setError('');
+    try {
+      await apiService.subscribeToNewsletter(email.trim());
+      setStatus('You are on the list. Watch your inbox for the next Nexzibyte briefing.');
+      setEmail('');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
+
+  return (
+    <section className="newsletter-signup" aria-labelledby="newsletter-title">
+      <div>
+        <span className="career-kicker">The Nexzibyte briefing</span>
+        <h2 id="newsletter-title">Signal for your<br /><mark>next move.</mark></h2>
+        <p>One concise email with practical technology stories, events and career opportunities.</p>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="newsletter-email">Email address</label>
+        <div className="newsletter-input-row">
+          <input id="newsletter-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" />
+          <button type="submit" className="career-dark-btn">Subscribe <ArrowRight size={17} /></button>
+        </div>
+        {status ? <p className="form-success">{status}</p> : null}
+        {error ? <p className="form-error">{error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
 function ExplorePage({ posts }) {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
   const [sortBy, setSortBy] = useState('Latest');
   const [savedPosts, setSavedPosts] = useState([]);
 
@@ -626,6 +688,17 @@ function PostDetailPage({ posts }) {
   if (!post) return <EmptyState text="This post is not available." />;
 
   const relatedPosts = posts.filter((item) => item.id !== post.id).slice(0, 3);
+  const postIndex = posts.findIndex((item) => item.id === post.id);
+  const previousPost = postIndex > 0 ? posts[postIndex - 1] : null;
+  const nextPost = postIndex >= 0 && postIndex < posts.length - 1 ? posts[postIndex + 1] : null;
+  const handleShare = async () => {
+    const shareData = { title: post.title, text: post.excerpt, url: window.location.href };
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+  };
   const handleReaction = async () => {
     if (!getAuthToken()) return;
     const nextReacted = !isReacted;
@@ -678,7 +751,7 @@ function PostDetailPage({ posts }) {
         <div className="article-actions article-actions-row">
           <button type="button" className={`ghost-btn${isReacted ? ' active-reaction' : ''}`} onClick={handleReaction}><Heart size={16} fill={isReacted ? 'currentColor' : 'none'} /> {reactionCount}</button>
           <button type="button" className="ghost-btn"><MessageSquare size={16} /> {comments.length || post.comments}</button>
-          <button type="button" className="ghost-btn"><Share2 size={16} /> Share</button>
+          <button type="button" className="ghost-btn" onClick={handleShare}><Share2 size={16} /> Share</button>
         </div>
 
         <div className="article-content">
@@ -719,6 +792,11 @@ function PostDetailPage({ posts }) {
           ) : <p className="muted-text">Sign in to join the conversation.</p>}
         </section>
       </article>
+
+      <div className="article-navigation">
+        {previousPost ? <Link to={`/posts/${previousPost.id}`}><span>Previous article</span><strong>{previousPost.title}</strong></Link> : <span />}
+        {nextPost ? <Link to={`/posts/${nextPost.id}`}><span>Next article</span><strong>{nextPost.title}</strong></Link> : <span />}
+      </div>
 
       <div className="related-posts">
         <div className="section-heading-row">
@@ -2002,6 +2080,67 @@ function ScannerPage() {
     if (!normalized) {
       setResult({ valid: false, message: 'Enter a pass code to verify.' });
       return;
+    }
+
+    function ScanSpherePage({ user }) {
+      const [searchParams] = useSearchParams();
+      const [copied, setCopied] = useState(false);
+      const context = searchParams.get('context') || 'event';
+      const stage = searchParams.get('stage') || 'before';
+      const contextCopy = {
+        event: ['TechTalk event journey', 'Register, check in and unlock the live event experience.'],
+        article: ['Article unlock', 'Continue the story and join the discussion around this Nexzibyte insight.'],
+        speaker: ['Speaker session', 'Open the speaker conversation and collect the session resources.'],
+        networking: ['Scan-to-connect', 'Meet the builders and operators attending this Nexzibyte experience.'],
+      }[context] || ['Nexzibyte TechTalk experience', 'One scan connects you to the right Nexzibyte destination.'];
+      const stageCopy = {
+        before: ['Registration open', 'Save your place and get ready for the experience.'],
+        live: ['Live now', 'The experience is live. Join the conversation and participate.'],
+        after: ['Resources unlocked', 'Explore the follow-up resources, recordings and discussion.'],
+        feedback: ['Keep the conversation going', 'Share feedback and stay connected with the community.'],
+      }[stage] || ['ScanSphere', 'Your Nexzibyte experience is ready.'];
+      const scanUrl = window.location.href;
+
+      const copyLink = async () => {
+        await navigator.clipboard.writeText(scanUrl);
+        setCopied(true);
+      };
+
+      return (
+        <section className="content-section scansphere-page">
+          <div className="scansphere-hero">
+            <span className="career-kicker">NEXZIBYTE / SCANSPHERE</span>
+            <h1>One scan.<br /><mark>A complete tech experience.</mark></h1>
+            <p>Dynamic QR journeys for events, articles, speaker sessions and high-trust networking.</p>
+          </div>
+          <div className="scansphere-grid">
+            <article className="scansphere-context-card">
+              <span className="eyebrow">{contextCopy[0]}</span>
+              <h2>{stageCopy[0]}</h2>
+              <p>{contextCopy[1]} {stageCopy[1]}</p>
+              <div className="scansphere-actions">
+                <Link className="primary-btn" to={context === 'article' ? '/discover' : user ? '/summits' : '/login'}>
+                  {context === 'article' ? 'Explore stories' : user ? 'Continue to events' : 'Join to continue'} <ArrowRight size={16} />
+                </Link>
+                <button type="button" className="ghost-btn" onClick={copyLink}>{copied ? 'Link copied' : 'Copy journey link'}</button>
+              </div>
+            </article>
+            <div className="scansphere-timeline">
+              {[
+                ['before', 'Before', 'Registration and event details'],
+                ['live', 'During', 'Live questions and community'],
+                ['after', 'After', 'Resources and recordings'],
+                ['feedback', 'Later', 'Feedback and follow-up'],
+              ].map(([key, label, description]) => <div key={key} className={stage === key ? 'active' : ''}><strong>{label}</strong><span>{description}</span></div>)}
+            </div>
+          </div>
+          <div className="scansphere-footer-card">
+            <span className="career-kicker">Try a journey</span>
+            <p>Scan links can use <code>/scan?context=event&amp;stage=live</code> to open a time-aware Nexzibyte experience.</p>
+            <Link className="career-lilac-btn" to="/scan?context=article&stage=after">Open an article journey <ArrowRight size={16} /></Link>
+          </div>
+        </section>
+      );
     }
     setResult({
       valid: normalized.toUpperCase().startsWith('TT-'),

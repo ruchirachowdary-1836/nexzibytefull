@@ -95,6 +95,8 @@ class PartnershipInquiryIn(BaseModel):
     email: EmailStr
     partnership_type: str = Field(min_length=1, max_length=80)
     details: str = Field(min_length=1, max_length=3000)
+class NewsletterSubscribeIn(BaseModel):
+    email: EmailStr
 
 
 def item(obj):
@@ -164,6 +166,21 @@ def create_partnership_inquiry(body: PartnershipInquiryIn, db: Session = Depends
     db.commit()
     db.refresh(inquiry)
     return {'id': inquiry.id, 'detail': 'Partnership inquiry received'}
+
+@app.post('/newsletter/subscribe', status_code=201)
+def subscribe_to_newsletter(body: NewsletterSubscribeIn, db: Session = Depends(get_db)):
+    normalized_email = str(body.email).lower().strip()
+    subscriber = db.query(NewsletterSubscriber).filter_by(email=normalized_email).first()
+    if subscriber:
+        if subscriber.is_active:
+            raise HTTPException(409, detail='This email is already subscribed.')
+        subscriber.is_active = True
+    else:
+        subscriber = NewsletterSubscriber(email=normalized_email)
+        db.add(subscriber)
+    db.commit()
+    db.refresh(subscriber)
+    return {'id': subscriber.id, 'detail': 'You are subscribed to Nexzibyte TechTalk.'}
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
@@ -752,7 +769,7 @@ def overview(from_date:date|None=Query(None,alias='from'),to_date:date|None=Quer
     rquery=db.query(Registration)
     if from_date:rquery=rquery.filter(Registration.registered_at>=datetime.combine(from_date,time.min))
     if to_date:rquery=rquery.filter(Registration.registered_at<=datetime.combine(to_date,time.max))
-    return {'total_users':db.query(func.count(User.id)).scalar(),'total_posts':db.query(func.count(Post.id)).scalar(),'published_posts':db.query(func.count(Post.id)).filter(Post.status=='published').scalar(),'total_categories':db.query(func.count(Category.id)).scalar(),'upcoming_summits':db.query(func.count(Summit.id)).filter(Summit.date>=date.today()).scalar(),'upcoming_founder_meets':db.query(func.count(FounderMeet.id)).filter(FounderMeet.date>=date.today()).scalar(),'total_speakers':db.query(func.count(Speaker.id)).scalar(),'total_registrations':rquery.count()}
+    return {'total_users':db.query(func.count(User.id)).scalar(),'total_posts':db.query(func.count(Post.id)).scalar(),'published_posts':db.query(func.count(Post.id)).filter(Post.status=='published').scalar(),'total_categories':db.query(func.count(Category.id)).scalar(),'upcoming_summits':db.query(func.count(Summit.id)).filter(Summit.date>=date.today()).scalar(),'upcoming_founder_meets':db.query(func.count(FounderMeet.id)).filter(FounderMeet.date>=date.today()).scalar(),'total_speakers':db.query(func.count(Speaker.id)).scalar(),'total_registrations':rquery.count(),'newsletter_subscribers':db.query(func.count(NewsletterSubscriber.id)).filter(NewsletterSubscriber.is_active.is_(True)).scalar()}
 @app.get('/dashboard/recent-activity')
 def activity(db:Session=Depends(get_db),_:User=Depends(require_admin)):
     events=sorted([*db.query(Summit).filter(Summit.date>=date.today()),*db.query(FounderMeet).filter(FounderMeet.date>=date.today())],key=lambda e:e.date)[:5]
@@ -775,6 +792,7 @@ def admin_dashboard(db: Session = Depends(get_db), _: User = Depends(require_adm
         'Upcoming Founder Meets': db.query(func.count(FounderMeet.id)).filter(FounderMeet.date >= date.today()).scalar(),
         'Total Speakers': db.query(func.count(Speaker.id)).scalar(),
         'Total Registrations': db.query(func.count(Registration.id)).scalar(),
+        'Newsletter Subscribers': db.query(func.count(NewsletterSubscriber.id)).filter(NewsletterSubscriber.is_active.is_(True)).scalar(),
     }
 
 @app.get('/admin/users')
@@ -791,6 +809,11 @@ def admin_user_status(user_id: int, active: bool = Query(...), db: Session = Dep
 @app.get('/admin/posts')
 def admin_posts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return [make_post_payload(post, db, _) for post in db.query(Post).filter(Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+
+@app.get('/admin/newsletter-subscribers')
+def admin_newsletter_subscribers(limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    query = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.is_active.is_(True)).order_by(NewsletterSubscriber.created_at.desc())
+    return {'total': query.count(), 'items': [item(subscriber) for subscriber in query.offset(offset).limit(limit)]}
 
 @app.put('/admin/posts/{post_id}/publish')
 def admin_publish_post(post_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):

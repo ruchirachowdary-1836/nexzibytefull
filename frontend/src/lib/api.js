@@ -183,6 +183,15 @@ export const apiService = {
       throw new Error(detail || error?.message || 'Unable to submit partnership inquiry.');
     }
   },
+  async subscribeToNewsletter(email) {
+    try {
+      const response = await api.post('/newsletter/subscribe', { email });
+      return response.data;
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      throw new Error(detail || error?.message || 'Unable to subscribe right now.');
+    }
+  },
   async getComments(postId) {
     return safeRequest(() => api.get(`/posts/${postId}/comments`), []);
   },

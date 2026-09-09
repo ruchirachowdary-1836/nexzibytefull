@@ -4,6 +4,215 @@
   padding: 0 24px 48px;
 }
 
+.publication-preview,
+.newsletter-signup {
+  margin-top: 72px;
+  padding: 44px;
+  background: #202020;
+  border: 1px solid rgba(246, 243, 237, 0.14);
+}
+
+.publication-heading,
+.newsletter-signup {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.publication-heading h2,
+.newsletter-signup h2 {
+  margin: 10px 0 0;
+  font-size: clamp(2rem, 5vw, 4.3rem);
+  line-height: 0.95;
+}
+
+.publication-category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0;
+}
+
+.publication-category-row a {
+  padding: 8px 12px;
+  border: 1px solid rgba(246, 243, 237, 0.3);
+  border-radius: 999px;
+  color: #f6f3ed;
+  font-size: 0.78rem;
+}
+
+.publication-category-row a:hover {
+  background: var(--career-lime);
+  color: #171717;
+}
+
+.publication-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.newsletter-signup {
+  background: var(--career-lime);
+  color: #171717;
+}
+
+.newsletter-signup p {
+  max-width: 520px;
+}
+
+.newsletter-signup form {
+  min-width: min(100%, 430px);
+}
+
+.newsletter-signup label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.newsletter-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.newsletter-input-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 14px;
+  border: 1px solid #171717;
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.newsletter-signup .career-dark-btn {
+  white-space: nowrap;
+}
+
+.article-navigation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 880px;
+  margin: 28px auto;
+}
+
+.article-navigation a {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid rgba(246, 243, 237, 0.18);
+  color: #f6f3ed;
+}
+
+.article-navigation a:last-child {
+  text-align: right;
+}
+
+.article-navigation span {
+  color: var(--career-lime);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.scansphere-page {
+  display: grid;
+  gap: 28px;
+}
+
+.scansphere-hero,
+.scansphere-context-card,
+.scansphere-footer-card {
+  padding: 42px;
+  background: #202020;
+  border: 1px solid rgba(246, 243, 237, 0.14);
+}
+
+.scansphere-hero h1 {
+  max-width: 850px;
+  margin: 12px 0;
+  font-size: clamp(3.2rem, 8vw, 7.2rem);
+  line-height: 0.88;
+}
+
+.scansphere-hero p {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 1.08rem;
+}
+
+.scansphere-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 28px;
+}
+
+.scansphere-context-card h2 {
+  margin: 14px 0 8px;
+  font-size: clamp(2rem, 4vw, 4rem);
+}
+
+.scansphere-context-card p {
+  max-width: 560px;
+  color: var(--muted);
+}
+
+.scansphere-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.scansphere-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.scansphere-timeline div {
+  display: grid;
+  gap: 5px;
+  padding: 18px;
+  border-left: 3px solid rgba(246, 243, 237, 0.18);
+  background: #202020;
+}
+
+.scansphere-timeline div.active {
+  border-color: var(--career-lime);
+  background: rgba(209, 255, 63, 0.12);
+}
+
+.scansphere-timeline strong {
+  color: #f6f3ed;
+  text-transform: uppercase;
+}
+
+.scansphere-timeline span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.scansphere-footer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.scansphere-footer-card p {
+  flex: 1;
+  margin: 0;
+  color: var(--muted);
+}
+
+.scansphere-footer-card code {
+  color: var(--career-lime);
+}
+
 .topbar {
   position: sticky;
   top: 0;
@@ -3078,6 +3287,21 @@ h1, h2, h3, h4 {
   border-radius: 6px;
 }
 
+.scansphere-hero,
+.scansphere-context-card,
+.scansphere-footer-card {
+  padding: 28px 20px;
+}
+
+.scansphere-grid {
+  grid-template-columns: 1fr;
+}
+
+.scansphere-footer-card {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
 .career-proof-metrics strong {
   font-size: clamp(2.4rem, 4vw, 4.5rem);
   letter-spacing: -0.08em;
@@ -5664,6 +5888,37 @@ h1, h2, h3, h4 {
   .career-proof-metrics div {
     min-height: 120px;
     padding: 16px;
+  }
+
+  .publication-preview,
+  .newsletter-signup {
+    margin-top: 44px;
+    padding: 28px 20px;
+  }
+
+  .publication-heading,
+  .newsletter-signup {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .publication-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .newsletter-signup form {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .newsletter-input-row,
+  .article-navigation {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .article-navigation a:last-child {
+    text-align: left;
   }
 
   .career-service-art,
