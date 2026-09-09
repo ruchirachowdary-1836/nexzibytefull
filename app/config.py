@@ -16,4 +16,11 @@ settings = Settings()
 
 
 def allowed_origins() -> list[str]:
-    return [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+    raw_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+    if "*" in raw_origins:
+        return ["*"]
+    configured = raw_origins
+    production_origin = "https://techtalk-frontend-acvb.onrender.com"
+    if production_origin not in configured:
+        configured.append(production_origin)
+    return configured or ["*"]

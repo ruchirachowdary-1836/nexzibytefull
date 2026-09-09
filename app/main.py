@@ -183,7 +183,11 @@ def google_login(body: GoogleAuthIn, db: Session = Depends(get_db)):
     try:
         payload = id_token.verify_oauth2_token(body.credential, google_requests.Request(), settings.google_client_id)
     except ValueError as exc:
-        raise HTTPException(401, detail='Google credential was rejected. Verify the OAuth client ID, authorized origin, and that the account is allowed as a test user.') from exc
+        reason = str(exc).strip()
+        detail = 'Google credential was rejected. Verify the OAuth client ID, authorized origin, and that the account is allowed as a test user.'
+        if reason:
+            detail = f'{detail} Provider detail: {reason}'
+        raise HTTPException(401, detail=detail) from exc
 
     email = payload.get('email')
     if not email:
