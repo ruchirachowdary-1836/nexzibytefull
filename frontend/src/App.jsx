@@ -123,6 +123,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/summits" element={<ProtectedRoute user={user}><SummitsPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/services" element={<ServicesPage user={user} />} />
+          <Route path="/services/cv-linkedin-review" element={<CvLinkedinReviewPage user={user} />} />
           <Route path="/founder-meets" element={<ProtectedRoute user={user}><FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
@@ -786,7 +787,7 @@ function ServicesPage({ user }) {
               <li><Check size={17} /> LinkedIn headline, profile and positioning review</li>
               <li><Check size={17} /> Practical edits you can apply immediately</li>
             </ul>
-            <Link className="career-dark-btn service-action" to={user ? '/pricing' : '/login'}>Book your review <ArrowRight size={17} /></Link>
+            <Link className="career-dark-btn service-action" to="/services/cv-linkedin-review">Book your review <ArrowRight size={17} /></Link>
           </div>
           <div className="service-feature-art service-review-art" aria-hidden="true">
             <span>YOUR<br /><em>story</em><br />deserves<br />to be seen.</span>
@@ -817,6 +818,64 @@ function ServicesPage({ user }) {
         <h2>Start with the move<br /><mark>that feels right.</mark></h2>
         <Link className="career-dark-btn" to={user ? '/pricing' : '/login'}>Talk to the community <ArrowRight size={17} /></Link>
       </section>
+    </div>
+  );
+}
+
+function CvLinkedinReviewPage({ user }) {
+  const [openQuestion, setOpenQuestion] = useState(0);
+  const reviewFaqs = [
+    { q: 'How long does it take to get my review?', a: 'Your review is delivered within 5 to 7 working days. We will keep you updated as soon as your feedback is ready.' },
+    { q: 'Do we need to have a call before the review?', a: 'No call is required. You share your CV and LinkedIn profile through the booking flow, and our reviewers work from your goals and experience.' },
+    { q: 'Who will be reviewing my CV and LinkedIn?', a: 'Your materials are reviewed by experienced career professionals who understand hiring, positioning and what makes profiles stand out.' },
+    { q: 'Can I get support after the review is complete?', a: 'Yes. Your review includes clear next steps, and you can continue with individual coaching if you want deeper support.' },
+    { q: 'Do I need previous experience to book a review?', a: 'Not at all. The review is useful whether you are starting out, changing direction or preparing for your next senior opportunity.' },
+  ];
+
+  return (
+    <div className="cv-review-page">
+      <section className="cv-review-hero">
+        <div className="cv-review-hero-copy">
+          <span className="career-kicker">NEXZIBYTE / PROFILE REVIEW</span>
+          <h1><mark>Elevate</mark> your<br />professional<br />profile.</h1>
+          <p>From crafting a standout CV to building an optimised LinkedIn profile, we help you set the right foundations to get noticed and land more interviews.</p>
+        </div>
+        <div className="review-profile-card review-card-one"><strong>PRIYA PATEL</strong><span>Business Analyst</span><em>LinkedIn Optimised</em></div>
+        <div className="review-profile-card review-card-two"><strong>LAURA GARCIA</strong><span>Marketing Executive</span><em>CV Reviewed</em></div>
+        <div className="review-profile-card review-card-three"><strong>JULIE TESSE</strong><span>Software Engineer</span><em>CV Reviewed</em></div>
+        <div className="review-profile-card review-card-four"><strong>JANE LEE</strong><span>Head of Sales</span><em>LinkedIn Optimised</em></div>
+      </section>
+
+      <section className="cv-review-trust">
+        <h2>Trusted by <mark>400+ job seekers</mark><br />who have landed interviews at</h2>
+        <div className="review-company-list"><span>HubSpot</span><span>Salesforce</span><span>Google</span><span>Amazon</span><span>TikTok</span><span>Atlassian</span></div>
+      </section>
+
+      <section className="cv-review-work">
+        <div className="cv-review-work-heading">
+          <span className="career-kicker">Make your profile work for you</span>
+          <h2>A clearer story.<br /><mark>More opportunity.</mark></h2>
+        </div>
+        <div className="cv-review-feature-grid">
+          <div className="cv-review-image review-image-profile"><img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=1000&q=85" alt="CV and profile review workspace" /></div>
+          <article><span>Visibility</span><h3>Optimise your LinkedIn for search</h3><p>Make your profile easier for the right recruiters and hiring managers to find.</p><ul><li>Relevant profile positioning</li><li>Stronger sections that show value</li><li>Clear formatting that boosts engagement</li></ul></article>
+          <article><span>Story</span><h3>Tell the right story in your CV</h3><p>Turn your experience into a focused, compelling narrative that helps you stand out.</p><ul><li>Achievement-led content</li><li>Role-specific language</li><li>Impact that hiring teams can see</li></ul></article>
+          <div className="cv-review-image review-image-writing"><img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1000&q=85" alt="Professional preparing a CV" /></div>
+        </div>
+        <Link className="career-lilac-btn" to={user ? '/pricing' : '/login'}>Get your review <ArrowRight size={17} /></Link>
+      </section>
+
+      <section className="cv-review-process">
+        <div><span className="career-kicker">Simple, focused support</span><h2>This is how<br /><mark>it works.</mark></h2></div>
+        <div className="cv-review-steps"><article><strong>01</strong><h3>Share your goals</h3><p>Tell us what you are aiming for and send your current CV and LinkedIn profile.</p></article><article><strong>02</strong><h3>Receive expert feedback</h3><p>We review your materials and highlight exactly what to improve and why.</p></article><article><strong>03</strong><h3>Make your next move</h3><p>Apply the changes with confidence and start showing up for the right opportunities.</p></article></div>
+      </section>
+
+      <section className="cv-review-faq">
+        <div><span className="career-kicker">Frequently asked</span><h2>Your questions,<br /><mark>answered.</mark></h2></div>
+        <div className="career-faq-list">{reviewFaqs.map((faq, index) => <div key={faq.q} className={`career-faq-item${openQuestion === index ? ' open' : ''}`}><button type="button" onClick={() => setOpenQuestion(openQuestion === index ? -1 : index)}><span>{faq.q}</span><span className="career-faq-icon">{openQuestion === index ? '−' : '+'}</span></button>{openQuestion === index ? <p>{faq.a}</p> : null}</div>)}</div>
+      </section>
+
+      <section className="cv-review-newsletter"><div><h2>Sign up to our<br />newsletter.</h2><span>Join 35,000 subscribers</span></div><div><p>Get weekly career advice, practical strategies and behind-the-scenes updates to help you keep moving forward.</p><form><input type="email" placeholder="Enter email address" aria-label="Email address" /><button type="button">Subscribe <ArrowRight size={15} /></button></form></div></section>
     </div>
   );
 }

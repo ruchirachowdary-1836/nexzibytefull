@@ -3813,6 +3813,294 @@ h1, h2, h3, h4 {
   text-decoration: none;
 }
 
+.cv-review-page {
+  margin: -28px -28px 0;
+  background: #f6f3ed;
+  color: #171717;
+}
+
+.cv-review-hero {
+  position: relative;
+  min-height: 620px;
+  display: grid;
+  place-items: center;
+  padding: 100px 24px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.cv-review-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+}
+
+.cv-review-hero h1 {
+  margin: 24px 0;
+  font-size: clamp(3.5rem, 8vw, 8rem);
+  line-height: 0.84;
+  letter-spacing: -0.09em;
+  text-transform: uppercase;
+}
+
+.cv-review-hero h1 mark,
+.cv-review-trust mark,
+.cv-review-work h2 mark,
+.cv-review-process h2 mark,
+.cv-review-faq h2 mark {
+  padding: 0 0.1em;
+  color: #241d28;
+  background: var(--career-lime);
+}
+
+.cv-review-hero p {
+  max-width: 560px;
+  margin: 0 auto;
+  color: #5e5954;
+  line-height: 1.5;
+}
+
+.review-profile-card {
+  position: absolute;
+  display: flex;
+  width: 130px;
+  min-height: 105px;
+  flex-direction: column;
+  justify-content: end;
+  padding: 14px;
+  border: 1px solid #171717;
+  border-radius: 5px;
+  background: #f6f3ed;
+  box-shadow: 8px 8px 0 rgba(23, 23, 23, 0.08);
+  font-size: 0.62rem;
+  text-align: left;
+  transform: rotate(-9deg);
+}
+
+.review-profile-card span {
+  margin: 4px 0 9px;
+  color: #625d58;
+}
+
+.review-profile-card em {
+  color: #6f43a5;
+  font-style: normal;
+}
+
+.review-card-one { top: 16%; left: 22%; }
+.review-card-two { top: 17%; right: 22%; transform: rotate(10deg); }
+.review-card-three { bottom: 13%; left: 23%; transform: rotate(9deg); }
+.review-card-four { right: 23%; bottom: 14%; transform: rotate(-10deg); }
+
+.cv-review-trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+  padding: 65px clamp(24px, 8vw, 110px);
+  background: #2c2b2b;
+  color: #f6f3ed;
+}
+
+.cv-review-trust h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3.5vw, 3.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.07em;
+  text-transform: uppercase;
+}
+
+.review-company-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.review-company-list span {
+  padding: 10px 14px;
+  border: 1px solid rgba(246, 243, 237, 0.55);
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.cv-review-work {
+  padding: 90px clamp(24px, 8vw, 110px);
+  background: #171717;
+  color: #f6f3ed;
+  text-align: center;
+}
+
+.cv-review-work .career-kicker,
+.cv-review-process .career-kicker,
+.cv-review-faq .career-kicker {
+  color: var(--career-lilac);
+}
+
+.cv-review-work h2,
+.cv-review-process h2,
+.cv-review-faq h2 {
+  margin: 20px 0 48px;
+  font-size: clamp(2.8rem, 5vw, 5.5rem);
+  line-height: 0.86;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.cv-review-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 860px;
+  gap: 8px;
+  margin: 0 auto 26px;
+  text-align: left;
+}
+
+.cv-review-image,
+.cv-review-feature-grid article {
+  min-height: 240px;
+}
+
+.cv-review-image {
+  overflow: hidden;
+}
+
+.cv-review-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cv-review-feature-grid article {
+  padding: 28px;
+  background: #2c2b2b;
+}
+
+.cv-review-feature-grid article span {
+  color: var(--career-lilac);
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cv-review-feature-grid h3 {
+  margin: 28px 0 12px;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+.cv-review-feature-grid p,
+.cv-review-feature-grid li {
+  color: #c8c2bc;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cv-review-feature-grid ul {
+  padding-left: 16px;
+}
+
+.cv-review-process {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 70px;
+  padding: 90px clamp(24px, 8vw, 110px);
+}
+
+.cv-review-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.cv-review-steps article {
+  display: grid;
+  grid-template-columns: 45px 1fr;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid #aaa59f;
+}
+
+.cv-review-steps strong {
+  color: #8c5b9d;
+}
+
+.cv-review-steps h3 {
+  margin: 0 0 7px;
+  text-transform: uppercase;
+}
+
+.cv-review-steps p {
+  grid-column: 2;
+  margin: 0;
+  color: #625d58;
+  line-height: 1.45;
+}
+
+.cv-review-faq {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 70px;
+  padding: 90px clamp(24px, 8vw, 110px);
+}
+
+.cv-review-newsletter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  padding: 50px clamp(24px, 8vw, 110px);
+  background: var(--career-lime);
+}
+
+.cv-review-newsletter h2 {
+  margin: 0 0 16px;
+  font-size: clamp(2.3rem, 4vw, 4rem);
+  line-height: 0.87;
+  text-transform: uppercase;
+}
+
+.cv-review-newsletter > div > span {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #f6f3ed;
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cv-review-newsletter p {
+  max-width: 450px;
+  line-height: 1.45;
+}
+
+.cv-review-newsletter form {
+  display: flex;
+  gap: 8px;
+}
+
+.cv-review-newsletter input {
+  min-width: 0;
+  flex: 1;
+  padding: 14px;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.cv-review-newsletter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 15px;
+  background: var(--career-lilac);
+  color: #171717;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .pricing-reference-page {
   margin: -28px -28px 0;
   background: #f6f3ed;
@@ -4125,7 +4413,11 @@ h1, h2, h3, h4 {
   }
 
   .pricing-testimonials,
-  .pricing-faq {
+  .pricing-faq,
+  .cv-review-trust,
+  .cv-review-process,
+  .cv-review-faq,
+  .cv-review-newsletter {
     grid-template-columns: 1fr;
   }
 
@@ -4233,6 +4525,10 @@ h1, h2, h3, h4 {
     margin: -20px -16px 0;
   }
 
+  .cv-review-page {
+    margin: -20px -16px 0;
+  }
+
   .events-section-title {
     align-items: flex-start;
     flex-direction: column;
@@ -4254,6 +4550,35 @@ h1, h2, h3, h4 {
   .pricing-benefit-grid,
   .pricing-review-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cv-review-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-review-hero {
+    min-height: 600px;
+  }
+
+  .review-profile-card {
+    width: 112px;
+    min-height: 92px;
+    padding: 10px;
+    font-size: 0.55rem;
+  }
+
+  .review-card-one { left: 5%; }
+  .review-card-two { right: 5%; }
+  .review-card-three { left: 7%; bottom: 8%; }
+  .review-card-four { right: 7%; bottom: 8%; }
+
+  .cv-review-newsletter form {
+    flex-direction: column;
+  }
+
+  .cv-review-newsletter button {
+    min-height: 44px;
+    justify-content: center;
   }
 
   .events-newsletter-form {
