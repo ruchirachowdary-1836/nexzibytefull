@@ -964,18 +964,21 @@ function ResourceCenterPage() {
 }
 
 function SuccessStoriesPage() {
+  const [activeFilter, setActiveFilter] = useState('All');
   const stories = [
-    ['From application to offer in under 2 weeks', 'Tatiana L', 'Customer'],
-    ['From Argentina to London with visa sponsorship', 'Florencia M', 'Finance'],
-    ['From career pivot to job offer in 1 month', 'Charmaine W', 'Operations'],
-    ['One job offer from messaging the right person', 'Daniel R', 'Tech sales'],
-    ['One job offer from the hidden job market', 'Aisha K', 'Product'],
-    ['From KFC to tech sales in 2 weeks', 'Tadiwa M', 'Tech sales'],
+    ['From application to offer in under 2 weeks', 'Tatiana L', 'Customer', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=85'],
+    ['From Argentina to London with visa sponsorship', 'Florencia M', 'Finance', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=300&q=85'],
+    ['From career pivot to job offer in 1 month', 'Charmaine W', 'Operations', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=85'],
+    ['One job offer from messaging the right person', 'Daniel R', 'Tech sales', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=85'],
+    ['One job offer from the hidden job market', 'Aisha K', 'Product', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=85'],
+    ['From a career change to tech sales in 2 weeks', 'Tadiwa M', 'Tech sales', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=85'],
   ];
+  const filters = ['All', 'Marketing', 'Customer', 'Finance', 'Tech', 'Product', 'Operations'];
+  const visibleStories = activeFilter === 'All' ? stories : stories.filter((story) => story[2] === activeFilter);
   return (
     <div className="success-stories-page">
-      <section className="success-stories-hero"><span className="career-kicker">NEXZIBYTE / COMMUNITY</span><h1>Meet our<br /><mark>success stories.</mark></h1><p>See how TechTalk has shaped real careers.</p><div className="resource-filters"><button type="button" className="active">All</button><button type="button">Marketing</button><button type="button">Customer</button><button type="button">Finance</button><button type="button">Tech</button></div></section>
-      <section className="success-story-grid">{stories.map(([headline, name, role], index) => <article key={name}><div className={`success-story-art story-tone-${index % 3}`}><h2>{headline}</h2><span>{role}</span></div><div className="success-story-copy"><small>{role}</small><h3>{name}</h3><button type="button" className="career-lilac-btn">Read story <ArrowRight size={16} /></button></div></article>)}</section>
+      <section className="success-stories-hero"><span className="career-kicker">NEXZIBYTE / COMMUNITY</span><h1>Meet our<br /><mark>success stories.</mark></h1><p>See how TechTalk has shaped real careers.</p><div className="resource-filters">{filters.map((filter) => <button key={filter} type="button" className={activeFilter === filter ? 'active' : ''} onClick={() => setActiveFilter(filter)}>{filter}</button>)}</div></section>
+      <section className="success-story-grid">{visibleStories.map(([headline, name, role, image], index) => <article key={name}><div className={`success-story-art story-tone-${index % 3}`}><h2>{headline}</h2><img src={image} alt="" /><span>{role}</span></div><div className="success-story-copy"><small>{role}</small><h3>{name}</h3><button type="button" className="career-lilac-btn">Read story <ArrowRight size={16} /></button></div></article>)}</section>
     </div>
   );
 }

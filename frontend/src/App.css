@@ -4572,19 +4572,49 @@ h1, h2, h3, h4 {
 }
 
 .success-story-art {
+  position: relative;
   min-height: 165px;
   place-items: start;
+  overflow: hidden;
   text-align: left;
 }
 
 .success-story-art h2 {
+  position: relative;
+  z-index: 1;
+  max-width: 70%;
   margin: 0;
   font-size: 1.15rem;
   line-height: 0.95;
   text-transform: uppercase;
 }
 
+.success-story-art::after {
+  position: absolute;
+  right: -18px;
+  bottom: -35px;
+  width: 135px;
+  height: 135px;
+  border: 10px solid #f6f3ed;
+  border-radius: 50%;
+  content: '';
+}
+
+.success-story-art img {
+  position: absolute;
+  right: 10px;
+  bottom: -3px;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  border: 6px solid #f6f3ed;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .success-story-art span {
+  position: relative;
+  z-index: 2;
   align-self: end;
   padding: 5px 8px;
   background: #f6f3ed;
