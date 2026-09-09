@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react';
+import { SignInButton, SignUpButton } from '@clerk/react';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -220,9 +220,21 @@ function Layout({ children, user, onLogout }) {
             </>
           ) : (
             <>
-              <Link className="sign-in-link" to="/login">Sign In</Link>
-              <Link className="primary-btn small join-community-btn" to="/register">Join Community <ArrowRight size={14} /></Link>
-              {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? <ClerkAuthControls /> : null}
+              {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? (
+                <>
+                  <SignInButton mode="modal">
+                    <button type="button" className="sign-in-link">Sign In</button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button type="button" className="primary-btn small join-community-btn">Join Community <ArrowRight size={14} /></button>
+                  </SignUpButton>
+                </>
+              ) : (
+                <>
+                  <Link className="sign-in-link" to="/login">Sign In</Link>
+                  <Link className="primary-btn small join-community-btn" to="/register">Join Community <ArrowRight size={14} /></Link>
+                </>
+              )}
             </>
           )}
           <button type="button" className="mobile-menu-toggle" aria-label="Toggle menu" onClick={() => setMobileMenuOpen((cur) => !cur)}>
@@ -279,25 +291,6 @@ function Layout({ children, user, onLogout }) {
       </footer>
       <div className="footer-bottom">© 2026 NexziByte</div>
     </div>
-  );
-}
-
-function ClerkAuthControls() {
-  const { isSignedIn } = useAuth();
-
-  return (
-    <span className="clerk-auth-controls" aria-label="Clerk authentication">
-      {isSignedIn ? <UserButton /> : (
-        <>
-          <SignInButton mode="modal">
-            <button type="button" className="clerk-sign-in">Clerk Sign In</button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button type="button" className="clerk-sign-up">Clerk Sign Up</button>
-          </SignUpButton>
-        </>
-      )}
-    </span>
   );
 }
 
