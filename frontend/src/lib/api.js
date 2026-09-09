@@ -137,10 +137,16 @@ export const apiService = {
     return response;
   },
   async loginWithGoogle(credential) {
-    const response = await safeRequest(() => api.post('/auth/google', { credential }), { access_token: '' });
-    const token = response?.access_token;
-    if (token) storeToken(token);
-    return response;
+    try {
+      const response = await api.post('/auth/google', { credential });
+      const token = response?.data?.access_token;
+      if (!token) throw new Error('Google authentication did not return an access token.');
+      storeToken(token);
+      return response.data;
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      throw new Error(detail || error?.message || 'Google authentication failed.');
+    }
   },
   async register({ name, email, password }) {
     return safeRequest(() => api.post('/auth/register', { name, email, password }), {

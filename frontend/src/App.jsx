@@ -1409,8 +1409,8 @@ function LoginPage({ setUser }) {
       const profile = await apiService.getCurrentUser();
       setUser(profile || { name: 'Google member', email: 'google-member@techtalk.dev' });
       navigate('/profile');
-    } catch {
-      setGoogleError('Unable to verify your Google account. Please try again.');
+    } catch (error) {
+      setGoogleError(error.message || 'Unable to verify your Google account. Please try again.');
     }
   }, [navigate, setUser]);
 
@@ -1521,8 +1521,8 @@ function RegisterPage({ setUser }) {
       const profile = await apiService.getCurrentUser();
       setUser(profile || { name: 'Google member', email: 'google-member@techtalk.dev' });
       navigate('/profile');
-    } catch {
-      setGoogleError('Google registration failed. Please try again.');
+    } catch (error) {
+      setGoogleError(error.message || 'Google registration failed. Please try again.');
     }
   }, [navigate, setUser]);
 
