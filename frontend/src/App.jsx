@@ -241,6 +241,28 @@ function Layout({ children, user, onLogout }) {
               );
             }
 
+            if (section.label === 'Services') {
+              return (
+                <div key={section.label} className="nav-dropdown">
+                  <NavLink to={target} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} onClick={() => setMobileMenuOpen(false)}>
+                    Services <span className="nav-caret">⌄</span>
+                  </NavLink>
+                  <div className="nav-dropdown-menu">
+                    <Link to="/services/cv-linkedin-review" onClick={() => setMobileMenuOpen(false)}>
+                      <strong>CV &amp; LinkedIn Review</strong>
+                      <span>Strengthen your professional profile</span>
+                      <ArrowRight size={18} />
+                    </Link>
+                    <Link to="/services/individual-coaching" onClick={() => setMobileMenuOpen(false)}>
+                      <strong>Individual Coaching</strong>
+                      <span>Build a focused career plan</span>
+                      <ArrowRight size={18} />
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <NavLink
                 key={`${section.to}-${section.label}`}
