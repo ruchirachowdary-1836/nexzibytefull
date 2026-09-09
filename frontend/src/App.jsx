@@ -31,7 +31,7 @@ const siteSections = [
   { to: '/services', label: 'Services', requiresAuth: false },
   { to: '/resources/resource-center', label: 'Resources', requiresAuth: false },
   { to: '/about', label: 'About', requiresAuth: false },
-  { to: '/pricing', label: 'Partner', requiresAuth: false },
+  { to: '/partner', label: 'Partner', requiresAuth: false },
 ];
 
 const howItWorks = [
@@ -132,6 +132,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
           <Route path="/pricing" element={<PricingPage openCheckout={openCheckout} />} />
+          <Route path="/partner" element={<PartnerPage />} />
           <Route path="/create-post" element={<CreatePostPage />} />
           <Route path="/profile" element={<ProfilePage user={user} posts={posts} />} />
           <Route path="/my-posts" element={<MyPostsPage posts={posts} />} />
@@ -1007,6 +1008,23 @@ function AboutPage() {
       <section className="about-news"><span className="career-kicker">TechTalk in the news</span><h2>Ideas that travel<br /><mark>further.</mark></h2><div className="about-news-grid">{[['How to sell yourself to employers', 'Watch video'], ['TechTalk reaches 200,000 job seekers', 'Read article'], ['Career experts explain the hidden job market', 'Watch video']].map(([title, action], index) => <article key={title}><div className="about-news-image"><img src={gallery[index]} alt="" /></div><h3>{title}</h3><button type="button" className="career-lilac-btn">{action} <ArrowRight size={16} /></button></article>)}</div></section>
       <section className="about-gallery"><span className="career-kicker">The community</span><h2>More than a network.<br /><mark>A movement.</mark></h2><div className="about-gallery-grid">{gallery.map((image, index) => <img key={image} className={`gallery-image-${index}`} src={image} alt="TechTalk community gathering" />)}</div></section>
       <section className="about-contact"><h2>Let&apos;s build your<br /><mark>next chapter.</mark></h2><p>Ready to take the next step? Join the community or reach out to our team.</p><Link className="career-dark-btn" to="/services">Explore our services <ArrowRight size={17} /></Link></section>
+    </div>
+  );
+}
+
+function PartnerPage() {
+  const partnerStories = [
+    ['Adobe', 'Brand promotion', 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=900&q=85'],
+    ['Reslink', 'Audience growth', 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=85'],
+    ['Zero to Mastery', 'Hiring partnership', 'https://images.unsplash.com/photo-1553484771-047a44eee27b?auto=format&fit=crop&w=900&q=85'],
+  ];
+  return (
+    <div className="partner-page">
+      <section className="partner-hero"><div className="partner-hero-image"><img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1600&q=85" alt="People collaborating at a technology event" /><div><span className="career-kicker">NEXZIBYTE / PARTNERS</span><h1><mark>Partner</mark> with<br />TechTalk.</h1><p>Whether you want to expand your brand&apos;s reach, fill job openings or share your expertise, we have a partnership opportunity for you.</p><a className="career-lilac-btn" href="#partner-inquiry">Speak to our team <ArrowRight size={17} /></a></div></div></section>
+      <section className="partner-trust"><h2>Our trusted <mark>partners.</mark></h2><div className="partner-logo-list"><span>Adobe</span><span>aiApply</span><span>ZTM</span><span>Reslink</span><span>Growth School</span><span>University of East London</span></div></section>
+      <section className="partner-options"><span className="career-kicker">Ways to partner</span><h2><mark>Ways to partner</mark> with TechTalk.</h2><div className="partner-option-grid"><article className="partner-option-art"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85" alt="Technology community platform" /></article><article><span>Brand promotion</span><h3>Get your brand in front of our audience</h3><p>We&apos;ll work with you to craft the perfect promotional strategy through community posts, social media, events or our newsletter.</p><ul><li>6K+ community members</li><li>400K+ followers across social media</li><li>42K+ engaged newsletter subscribers</li></ul></article><article><span>Talent partnerships</span><h3>Meet your next great hire</h3><p>Connect your roles and opportunities with a focused network of ambitious technology professionals.</p><ul><li>Targeted candidate visibility</li><li>Career-focused employer storytelling</li><li>High-intent community conversations</li></ul></article><article className="partner-option-art partner-option-lime"><span>Senior<br />business<br />analyst</span></article></div></section>
+      <section className="partner-stories"><span className="career-kicker">Behind the scenes</span><h2><mark>Successful</mark> partnerships.</h2><div className="partner-story-grid">{partnerStories.map(([name, label, image]) => <article key={name}><img src={image} alt={name} /><div><small>{label}</small><h3>{name}</h3><button type="button" className="career-lilac-btn">Watch video <ArrowRight size={16} /></button></div></article>)}</div></section>
+      <section className="partner-inquiry" id="partner-inquiry"><div><span className="career-kicker">Let&apos;s work together</span><h2>Get in touch<br /><mark>with our team.</mark></h2><p>Tell us a little about your partnership idea and we&apos;ll come back to you as soon as possible.</p><ul><li><Check size={16} /> Personalised support</li><li><Check size={16} /> Quick responses</li><li><Check size={16} /> Collaboration opportunities</li></ul></div><form><h3>Partnership inquiry form</h3><p>Fill out the form below and we&apos;ll get back to you.</p><div className="partner-form-row"><input placeholder="First Name" aria-label="First name" /><input placeholder="Last Name" aria-label="Last name" /></div><input type="email" placeholder="Email Address" aria-label="Email address" /><select defaultValue=""><option value="" disabled>Partnership Type</option><option>Brand promotion</option><option>Talent partnership</option><option>Speaking or events</option></select><textarea placeholder="Please provide any other information or specific requests" aria-label="Partnership details" /><button type="button" className="career-lilac-btn">Submit inquiry <ArrowRight size={16} /></button></form></section>
     </div>
   );
 }
