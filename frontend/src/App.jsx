@@ -124,6 +124,7 @@ function App({ clerkUser = null, onClerkSignOut }) {
           <Route path="/summits/:eventId" element={<ProtectedRoute user={user}><SummitDetailPage summits={summits} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/services" element={<ServicesPage user={user} />} />
           <Route path="/services/cv-linkedin-review" element={<CvLinkedinReviewPage user={user} />} />
+          <Route path="/services/individual-coaching" element={<IndividualCoachingPage user={user} />} />
           <Route path="/founder-meets" element={<ProtectedRoute user={user}><FounderMeetsPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/founder-meets/:eventId" element={<ProtectedRoute user={user}><FounderMeetDetailPage founderMeets={founderMeets} speakers={speakers} openCheckout={openCheckout} /></ProtectedRoute>} />
           <Route path="/speakers" element={<ProtectedRoute user={user}><SpeakersPage speakers={speakers} /></ProtectedRoute>} />
@@ -805,7 +806,7 @@ function ServicesPage({ user }) {
               <li><Check size={17} /> Interview, promotion and career-change preparation</li>
               <li><Check size={17} /> Clear next steps and accountability</li>
             </ul>
-            <Link className="career-lilac-btn service-action" to={user ? '/pricing' : '/login'}>Explore coaching <ArrowRight size={17} /></Link>
+            <Link className="career-lilac-btn service-action" to="/services/individual-coaching">Explore coaching <ArrowRight size={17} /></Link>
           </div>
           <div className="service-feature-art service-coaching-art" aria-hidden="true">
             <span>BUILD<br /><em>your</em><br />next<br />chapter.</span>
@@ -876,6 +877,47 @@ function CvLinkedinReviewPage({ user }) {
       </section>
 
       <section className="cv-review-newsletter"><div><h2>Sign up to our<br />newsletter.</h2><span>Join 35,000 subscribers</span></div><div><p>Get weekly career advice, practical strategies and behind-the-scenes updates to help you keep moving forward.</p><form><input type="email" placeholder="Enter email address" aria-label="Email address" /><button type="button">Subscribe <ArrowRight size={15} /></button></form></div></section>
+    </div>
+  );
+}
+
+function IndividualCoachingPage({ user }) {
+  const pillars = [
+    ['Pillar 1', 'Finding the perfect role', 'Clarify your direction and build a search strategy around the opportunities that fit you.'],
+    ['Pillar 2', 'Building an amazing CV', 'Position your experience with an achievement-led CV that gets read.'],
+    ['Pillar 3', 'Optimising your LinkedIn profile', 'Become easier to find and easier to trust with a clear professional presence.'],
+    ['Pillar 4', 'Mastering networking', 'Build relationships that create momentum and lead to better conversations.'],
+    ['Pillar 5', 'Preparing for interviews', 'Practice your story, sharpen your answers and show up with confidence.'],
+  ];
+  const benefits = [
+    ['Individual strategy session', 'Start with a personalised one-to-one session to define your goals and create a tailored action plan.'],
+    ['CV & LinkedIn review', 'Get expert feedback to make your profile and experience clear to the right people.'],
+    ['Unlimited support', 'Keep momentum with ongoing support, check-ins and advice whenever you need it.'],
+    ['Interview preparation', 'Prepare for success with practice, feedback and practical interview techniques.'],
+    ['Career accelerator programme', 'Access focused learning on networking, applications, negotiation and career growth.'],
+    ['Community access', 'Join a supportive network of professionals who share insight, encouragement and opportunities.'],
+  ];
+
+  return (
+    <div className="coaching-page">
+      <section className="coaching-hero">
+        <span className="career-kicker">NEXZIBYTE / INDIVIDUAL COACHING</span>
+        <h1>Everything you<br />need <mark>to get hired.</mark></h1>
+        <p>Whether you are struggling to stand out or do not know where to start, our coaching programme is designed to accelerate your job search and get you hired.</p>
+        <div className="coaching-proof-cards">{['Tomi Adeleke', 'Malatika K', 'Mia I', 'Yasmin M', 'Tadiwa M', 'Alex P', 'Anna G', 'Liam Carter'].map((name, index) => <div key={name} style={{ transform: `rotate(${index % 2 ? 5 : -5}deg)` }}><strong>{name}</strong><span>{['Software Engineer', 'Account Manager', 'Product Designer', 'Programme Manager'][index % 4]}</span><em>{['Hired in under 2 weeks', '3 job offers secured', '2 offers in 2 months', 'Offer accepted'][index % 4]}</em></div>)}</div>
+      </section>
+
+      <section className="coaching-trust"><h2>Join <mark>220+ applicants</mark> we have helped get hired at</h2><div className="review-company-list"><span>HubSpot</span><span>Salesforce</span><span>Google</span><span>Amazon</span><span>Leapwork</span><span>TikTok</span></div></section>
+
+      <section className="coaching-pillars"><div><span className="career-kicker">A strategy built around you</span><h2>Our coaching<br /><mark>programmes.</mark></h2><p>Landing your dream job is not just about submitting countless applications. It is about standing out at every stage of the process. Our structured framework helps you build confidence and land your ideal role.</p></div><div className="coaching-pillar-grid">{pillars.map(([label, title, text]) => <article key={label}><span>{label}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+
+      <section className="coaching-accelerator"><div><h2>Accelerating careers,<br /><mark>one job at a time.</mark></h2><p>We have helped job seekers secure positions at ambitious startups and technology companies across the world.</p></div><div className="coaching-metrics"><strong>8X<span>increase in interviews</span></strong><strong>&lt;1 WEEK<span>to land first interview</span></strong><strong>85%<span>get a job offer in 3 months</span></strong></div></section>
+
+      <section className="coaching-benefits"><span className="career-kicker">Everything you need to get hired, all in one place</span><h2>Support that keeps<br /><mark>you moving.</mark></h2><div className="coaching-benefit-grid">{benefits.map(([title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+
+      <section className="coaching-packages"><span className="career-kicker">Choose your programme</span><h2>Invest in your<br /><mark>next chapter.</mark></h2><div className="coaching-package-grid">{[['Starter', '£599', 'Land interviews'], ['Ultimate', '£1,199', 'Land a job offer']].map(([name, price, outcome]) => <article key={name}><span>{name}</span><mark>{outcome}</mark><strong>{price}</strong><ul>{['1:1 strategy session', 'CV & LinkedIn review', 'Progress check-in sessions', 'Unlimited support', 'Community access'].map((item) => <li key={item}><Check size={15} /> {item}</li>)}</ul><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the {name} programme <ArrowRight size={16} /></Link></article>)}</div></section>
+
+      <section className="coaching-community"><div><span className="career-kicker">Keep growing with us</span><h2>Join the TechTalk<br /><mark>community.</mark></h2><p>Get expert-led webinars, practical workshops, templates, member discounts and accountability support alongside your coaching.</p><Link className="career-lime-btn" to={user ? '/pricing' : '/login'}>Join the community now <ArrowRight size={16} /></Link></div><div className="coaching-community-art">YOUR<br /><em>next</em><br />chapter.</div></section>
     </div>
   );
 }
