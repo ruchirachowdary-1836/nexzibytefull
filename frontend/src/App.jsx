@@ -2070,6 +2070,45 @@ function EmptyState({ text }) {
   return <div className="empty-state">{text}</div>;
 }
 
+function ScanSpherePage({ user }) {
+  const [searchParams] = useSearchParams();
+  const context = searchParams.get('context') || 'event';
+  const stage = searchParams.get('stage') || 'before';
+  const contextLabels = {
+    event: 'TechTalk event journey',
+    article: 'Article unlock',
+    speaker: 'Speaker session',
+    networking: 'Scan-to-connect',
+  };
+  const stageLabels = {
+    before: 'Registration open',
+    live: 'Live now',
+    after: 'Resources unlocked',
+    feedback: 'Keep the conversation going',
+  };
+  const destination = context === 'article' ? '/discover' : user ? '/summits' : '/login';
+  return (
+    <section className="content-section scansphere-page">
+      <div className="scansphere-hero">
+        <span className="career-kicker">NEXZIBYTE / SCANSPHERE</span>
+        <h1>One scan.<br /><mark>A complete tech experience.</mark></h1>
+        <p>Dynamic QR journeys for events, articles, speaker sessions and high-trust networking.</p>
+      </div>
+      <div className="scansphere-grid">
+        <article className="scansphere-context-card">
+          <span className="eyebrow">{contextLabels[context] || 'Nexzibyte TechTalk experience'}</span>
+          <h2>{stageLabels[stage] || 'ScanSphere'}</h2>
+          <p>One scan connects you to the right Nexzibyte destination for this moment.</p>
+          <Link className="primary-btn" to={destination}>{context === 'article' ? 'Explore stories' : user ? 'Continue to events' : 'Join to continue'} <ArrowRight size={16} /></Link>
+        </article>
+        <div className="scansphere-timeline">
+          {['before', 'live', 'after', 'feedback'].map((item) => <div key={item} className={stage === item ? 'active' : ''}><strong>{item}</strong><span>ScanSphere journey stage</span></div>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ScannerPage() {
   const [code, setCode] = useState('');
   const [result, setResult] = useState(null);
