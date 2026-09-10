@@ -1,16 +1,15 @@
-# React + Vite
+# TechTalk — NexziByte
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite frontend prototype built from the provided internship assignment.
 
-Currently, two official plugins are available:
+## Run
+1. Install Node.js LTS.
+2. Open this folder in VS Code.
+3. Run `npm install`
+4. Run `npm run dev`
+5. Open the localhost URL shown by Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Included
+Home, Explore/feed with search and filters, post details, Create Post, Profile, TechTalk Summits, Summit Details, Founder Meets, Founder Meet Details, Speakers, Login, Register, responsive navigation, realistic mock data, and API-ready separation.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Backend integration is intentionally not included because the assignment specifies frontend-first development with mock/local data.
