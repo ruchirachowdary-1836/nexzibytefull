@@ -1,20 +1,20 @@
 /* ══════════════════════════════════════════════════════════════════
-   USER PROFILE DATA — M. L. S. V. AISWARYA
+   USER PROFILE DATA — NEXZIBYTE TECHTALK
    Senior Full Stack Developer & Systems Architect
    Location: Bhimavaram, Andhra Pradesh, India
    ══════════════════════════════════════════════════════════════════ */
 
 export const DEFAULT_PROFILE = {
-  name: "M. L. S. V. Aiswarya",
-  fullName: "M. L. S. V. Aiswarya",
-  handle: "@aiswarya_mlsv",
+  name: "Nexzibyte TechTalk",
+  fullName: "Nexzibyte TechTalk",
+  handle: "@nexzibyte_techtalk",
   title: "Senior Full Stack Developer & Distributed Systems Architect",
   bio: "Full Stack Developer specializing in high-throughput web architectures, modern React 19 / Next.js ecosystems, resilient Node.js microservices, and cloud-native distributed platforms. Passionate about system scalability, developer tooling, and open-source software.",
   location: "Bhimavaram, Andhra Pradesh, India",
   timezone: "IST (UTC+5:30)",
   company: "NexziByte Engineering Ecosystem",
   role: "Lead Full Stack Engineer",
-  email: "aiswarya.mlsv@nexzibyte.com",
+  email: "community@nexzibyte.com",
   avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80",
   avatarInitials: "MA",
   status: "Available for Tech Talks & Architecture Consulting",
@@ -22,11 +22,11 @@ export const DEFAULT_PROFILE = {
   verified: true,
   passId: "TT26-884920",
   socials: {
-    github: "https://github.com/aiswarya-mlsv",
-    linkedin: "https://linkedin.com/in/mlsv-aiswarya",
-    twitter: "https://x.com/aiswarya_dev",
-    portfolio: "https://aiswarya.tech",
-    devto: "https://dev.to/aiswarya_mlsv"
+    github: "https://github.com/nexzibyte",
+    linkedin: "https://linkedin.com/company/nexzibyte-solutions",
+    twitter: "https://x.com/techtalk_dev",
+    portfolio: "https://techtalk.tech",
+    devto: "https://dev.to"
   }
 };
 
@@ -95,7 +95,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-1",
     title: "Building High-Throughput Microservices with Node.js, Redis & Docker",
     category: "BACKEND & CLOUD",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Sep 05, 2026",
     readingTime: "7 min read",
@@ -109,7 +109,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-2",
     title: "Mastering React 19 Server Actions & Optimistic UI in Production",
     category: "FRONTEND ENGINEERING",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Aug 26, 2026",
     readingTime: "6 min read",
@@ -123,7 +123,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-3",
     title: "Distributed System Design: Designing Idempotent Payment & Webhook Pipelines",
     category: "SYSTEM ARCHITECTURE",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Aug 14, 2026",
     readingTime: "9 min read",
@@ -137,7 +137,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-4",
     title: "Zero-Downtime Database Schema Migrations on PostgreSQL with Prisma",
     category: "DATABASE ARCHITECTURE",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Jul 29, 2026",
     readingTime: "5 min read",
@@ -151,7 +151,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-5",
     title: "Modern Full-Stack Performance: Core Web Vitals, SSR Caching & Edge Middleware",
     category: "FULL-STACK WEB",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Jul 11, 2026",
     readingTime: "8 min read",
@@ -165,7 +165,7 @@ export const PUBLISHED_POSTS = [
     id: "pub-6",
     title: "Demystifying GraphQL Subscriptions for Real-Time Conference Telemetry",
     category: "BACKEND & APIS",
-    author: "M. L. S. V. Aiswarya",
+    author: "Nexzibyte TechTalk",
     role: "Senior Full Stack Developer",
     date: "Jun 19, 2026",
     readingTime: "6 min read",

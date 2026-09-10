@@ -7245,7 +7245,7 @@ body:has(.app-shell-home-luxury) {
 
 /* ══════════════════════════════════════════════════════════════════
    PROFESSIONAL TECHNOLOGY PROFILE — STYLESHEET
-   M. L. S. V. Aiswarya • Senior Full Stack Developer
+   Nexzibyte TechTalk • Senior Full Stack Developer
    ══════════════════════════════════════════════════════════════════ */
 
 /* NAVBAR PROFILE PILL LINK */
@@ -11876,3 +11876,25 @@ body:has(.app-shell-home-luxury) {
   object-fit: contain;
   display: block;
 }
+/* Backend connection indicator */
+.backend-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.backend-status::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.backend-status-online { color: #34d399; }
+.backend-status-offline { color: #fb7185; }

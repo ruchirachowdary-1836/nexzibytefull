@@ -3,6 +3,7 @@ import { SAMPLE_PASS, TECHNICAL_ARTICLES, PASSES, UPCOMING_EVENTS } from "../dat
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
 import { DEFAULT_PROFILE, SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
+import { checkBackendHealth } from "../lib/backend.js";
 
 const AppContext = createContext(null);
 
@@ -11,8 +12,9 @@ export function AppProvider({ children }) {
   const [activePass, setActivePass] = useState(SAMPLE_PASS);
   const [passesList, setPassesList] = useState([SAMPLE_PASS]);
   
-  // User Profile (Default: M. L. S. V. Aiswarya)
+  // User Profile (Default: Nexzibyte TechTalk)
   const [user, setUser] = useState(DEFAULT_PROFILE);
+  const [backendOnline, setBackendOnline] = useState(null);
 
   // Saved Posts / Bookmarks (In-Session)
   const [savedPosts, setSavedPosts] = useState(SAVED_POSTS_INITIAL);
@@ -35,6 +37,16 @@ export function AppProvider({ children }) {
   const [toastMessage, setToastMessage] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    checkBackendHealth().then((online) => {
+      if (active) setBackendOnline(online);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -166,10 +178,10 @@ export function AppProvider({ children }) {
     showToast(`✓ Profile updated for this session. (Temporary / In-memory)`);
   };
 
-  // Reset to default profile (M. L. S. V. Aiswarya)
+  // Reset to default profile (Nexzibyte TechTalk)
   const resetUserProfile = () => {
     setUser(DEFAULT_PROFILE);
-    showToast(`✓ Profile reset to default (M. L. S. V. Aiswarya).`);
+    showToast(`✓ Profile reset to default (Nexzibyte TechTalk).`);
   };
 
   // Toggle Save / Bookmark Post
@@ -190,6 +202,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         user,
+        backendOnline,
         setUser,
         updateUserProfile,
         resetUserProfile,

@@ -107,7 +107,7 @@ export default function UserProfilePage() {
     setEditModalOpen(false);
   };
 
-  // Quick reset back to Aiswarya defaults
+  // Quick reset back to TechTalk defaults
   const handleResetToDefault = () => {
     resetUserProfile();
     setFormData({
@@ -171,7 +171,7 @@ export default function UserProfilePage() {
               <div className="profile-avatar-wrapper">
                 <img 
                   src={user?.avatar || DEFAULT_PROFILE.avatar} 
-                  alt={user?.name || "M. L. S. V. Aiswarya"} 
+                  alt={user?.name || "Nexzibyte TechTalk"}
                   className="profile-avatar-img"
                   onError={(e) => {
                     // Fallback to stylized initials if image link breaks
@@ -233,7 +233,7 @@ export default function UserProfilePage() {
                   title="Restore original profile details"
                 >
                   <RefreshCw size={12} />
-                  <span>Reset to M. L. S. V. Aiswarya</span>
+                  <span>Reset to Nexzibyte TechTalk</span>
                 </button>
               </div>
             )}
@@ -253,7 +253,7 @@ export default function UserProfilePage() {
                 >
                   <Edit3 size={16} />
                 </button>
-                <span className="profile-handle">{user?.handle || "@aiswarya_mlsv"}</span>
+                <span className="profile-handle">{user?.handle || "@nexzibyte_techtalk"}</span>
                 <span className="profile-verified-badge" title="Verified Engineering Fellow">
                   <CheckCircle2 size={16} />
                 </span>
@@ -597,7 +597,7 @@ export default function UserProfilePage() {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              TAB 2: PUBLISHED POSTS (Authored by Aiswarya)
+              TAB 2: PUBLISHED POSTS (Authored by TechTalk)
               ══════════════════════════════════════════════════════════════════ */}
           {activeTab === "posts" && (
             <div className="tab-content-fade">
@@ -959,7 +959,7 @@ export default function UserProfilePage() {
                   className="form-input"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. M. L. S. V. Aiswarya"
+                  placeholder="e.g. Nexzibyte TechTalk"
                   id="input-profile-name"
                 />
               </div>

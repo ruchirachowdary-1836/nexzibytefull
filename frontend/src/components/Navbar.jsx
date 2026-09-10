@@ -49,7 +49,7 @@ function DropdownArrowIcon() {
 }
 
 export default function Navbar() {
-  const { setLoginModalOpen, openPassModal, user } = useApp();
+  const { setLoginModalOpen, openPassModal, user, backendOnline } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -395,6 +395,9 @@ export default function Navbar() {
 
           {/* RIGHT: Profile + Login + Join Community CTA */}
           <div className="nav-right-actions-dark">
+            <span className={`backend-status backend-status-${backendOnline === null ? "checking" : backendOnline ? "online" : "offline"}`} title={backendOnline ? "Backend connected" : backendOnline === false ? "Backend unavailable" : "Checking backend connection"}>
+              {backendOnline === null ? "Checking" : backendOnline ? "Connected" : "Offline"}
+            </span>
             <Link 
               to="/profile" 
               className={`nav-profile-pill-link ${location.pathname === "/profile" ? "is-active" : ""}`}
@@ -408,7 +411,7 @@ export default function Navbar() {
                 />
               </div>
               <span className="nav-profile-name-tiny">
-                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "Aiswarya"}
+                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "TechTalk"}
               </span>
             </Link>
 
@@ -454,7 +457,7 @@ export default function Navbar() {
               style={{ display: "flex", alignItems: "center", gap: "10px", color: "#38BDF8", fontWeight: 700 }}
             >
               <User size={18} />
-              <span>{user?.name || "M. L. S. V. Aiswarya"} (View Profile)</span>
+              <span>{user?.name || "Nexzibyte TechTalk"} (View Profile)</span>
             </Link>
           </div>
 
