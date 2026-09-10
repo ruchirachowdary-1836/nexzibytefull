@@ -1,0 +1,42 @@
+const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
+const TOKEN_KEY = "techtalk-token";
+
+export async function apiRequest(path, options = {}) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || "Unable to complete this request.");
+  }
+  return data;
+}
+
+export const api = {
+  subscribeNewsletter: (email) =>
+    apiRequest("/newsletter/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  submitPartnershipInquiry: (payload) =>
+    apiRequest("/partnership-inquiries", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  submitApplication: (payload) =>
+    apiRequest("/partnership-inquiries", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  registerForEvent: (eventType, eventId) =>
+    apiRequest("/registrations", {
+      method: "POST",
+      body: JSON.stringify({ event_type: eventType, event_id: eventId }),
+    }),
+};

@@ -46,14 +46,22 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 After Render deploys the service, API documentation is available at
 `https://techtalk-backend-shob.onrender.com/docs`.
 
-### Clerk authentication setup
+### Google OAuth setup
 
-Clerk provides the frontend sign-in, sign-up, and user controls. Configure the
-publishable key as `VITE_CLERK_PUBLISHABLE_KEY` in `frontend/.env` locally and
-as a Render frontend environment variable. The key must begin with `pk_test_`
-for development or `pk_live_` for production. Never expose a Clerk secret key
-(`sk_test_` or `sk_live_`) in frontend code.
+Google sign-in is handled directly by FastAPI. Configure these backend
+environment variables:
 
-The existing email/password API session remains available for the FastAPI
-protected routes. Clerk UI controls are provided by `@clerk/react` and the
-Clerk CLI initialization is linked to the configured Clerk application.
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+- `FRONTEND_URL`
+
+For production, the Google authorized redirect URI is:
+
+`https://techtalk-backend-shob.onrender.com/auth/google/callback`
+
+The frontend Google sign-in button starts the flow at
+`/auth/google/login`. FastAPI creates or loads the matching local user,
+issues the normal Nexzibyte JWT, and redirects back to the frontend profile.
+Never expose `GOOGLE_CLIENT_SECRET` in frontend code or commit it to the
+repository.

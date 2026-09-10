@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
     cors_origins: str = "*"
+    frontend_url: str = "http://localhost:5173"
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

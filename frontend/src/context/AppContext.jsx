@@ -5,6 +5,7 @@ import { INTERNSHIPS } from "../data/internshipsData.js";
 import { SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
 import { checkBackendHealth } from "../lib/backend.js";
 import { authService } from "../lib/auth.js";
+import { api } from "../lib/api.js";
 
 const AppContext = createContext(null);
 
@@ -79,7 +80,15 @@ export function AppProvider({ children }) {
   };
 
   // Register or Purchase a new Pass
-  const registerPass = ({ attendeeName, email, passType, amount, notes }) => {
+  const registerPass = async ({ attendeeName, email, passType, amount, notes }) => {
+    const [firstName, ...lastNameParts] = attendeeName.trim().split(/\s+/);
+    await api.submitApplication({
+      first_name: firstName,
+      last_name: lastNameParts.join(" ") || firstName,
+      email,
+      partnership_type: "event-pass-request",
+      details: `Pass type: ${passType}\nCompany/college and role were submitted through the pass form.\nAmount: ${amount}\nNotes: ${notes || "Not provided"}`,
+    });
     const isVisitor = passType === "visitor-pass" || passType === "VISITOR PASS";
     const newPassId = `TT26-${String(Math.floor(100000 + Math.random() * 900000)).slice(-6)}`;
     

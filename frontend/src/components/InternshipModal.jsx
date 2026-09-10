@@ -5,6 +5,7 @@ import {
   Building2, Calendar, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function InternshipModal() {
   const { 
@@ -55,14 +56,26 @@ export default function InternshipModal() {
 
   if (!internshipModalOpen || !selectedInternship) return null;
 
-  const handleSubmitApplication = (e) => {
+  const handleSubmitApplication = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
       return;
     }
-    setSubmitted(true);
-    showToast(`🎉 Application for ${selectedInternship.title} submitted! Ref ID: ${appId}`);
+    try {
+      const [firstName, ...lastNameParts] = formData.name.trim().split(/\s+/);
+      await api.submitApplication({
+        first_name: firstName,
+        last_name: lastNameParts.join(" ") || firstName,
+        email: formData.email,
+        partnership_type: "internship-application",
+        details: `Internship: ${selectedInternship.title}\nPhone: ${formData.phone}\nCollege: ${formData.college}\nGraduation year: ${formData.gradYear}\nLinkedIn: ${formData.linkedin || "Not provided"}\nNotes: ${formData.notes || "Not provided"}`,
+      });
+      setSubmitted(true);
+      showToast(`Application for ${selectedInternship.title} submitted. Reference: ${appId}`);
+    } catch (error) {
+      showToast(error.message);
+    }
   };
 
   return (

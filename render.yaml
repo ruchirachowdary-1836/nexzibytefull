@@ -14,6 +14,14 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: https://techtalk-frontend-acvb.onrender.com
+      - key: FRONTEND_URL
+        value: https://techtalk-frontend-acvb.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        value: 871004671345-2belb4f6tdfn88t6d3q16ne1atjr02tn.apps.googleusercontent.com
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://techtalk-backend-shob.onrender.com/auth/google/callback
   - type: web
     name: techtalk-frontend
     runtime: static
@@ -27,5 +35,3 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://techtalk-backend-shob.onrender.com
-      - key: VITE_CLERK_PUBLISHABLE_KEY
-        value: pk_test_YW1hemVkLXdpbGRjYXQtMzg1Ny5jbGVyay5hY2NvdW50cy5kZXYk

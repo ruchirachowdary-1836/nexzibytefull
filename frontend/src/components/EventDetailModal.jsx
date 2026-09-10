@@ -4,9 +4,10 @@ import {
   ArrowRight, Users, BookOpen, Award, Building, User, Mail, Phone, MapPinCheck 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegister = false }) {
-  const { showToast } = useApp();
+  const { showToast, user, setLoginModalOpen } = useApp();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -26,21 +27,37 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!formData.fullName || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
       return;
     }
 
+    if (!user) {
+      setLoginModalOpen(true);
+      showToast("Please sign in before registering for an event.");
+      return;
+    }
+    if (!Number.isInteger(Number(event.id))) {
+      showToast("This event is not connected to a published backend event yet.");
+      return;
+    }
     setSubmitting(true);
-    setTimeout(() => {
-      const generatedPassId = `NEX-EVT-${Math.floor(100000 + Math.random() * 900000)}`;
+    try {
+      const registration = await api.registerForEvent(
+        event.type === "founder_meet" ? "founder_meet" : "summit",
+        Number(event.id)
+      );
+      const generatedPassId = registration.id ? `NEX-EVT-${registration.id}` : "NEX-EVT-CONFIRMED";
       setRegPassId(generatedPassId);
-      setSubmitting(false);
       setRegistered(true);
       showToast(`Registration confirmed! Pass ID: ${generatedPassId}`);
-    }, 800);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleResetRegistration = () => {

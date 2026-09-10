@@ -333,6 +333,47 @@ function App() {
   );
 }
 
+function GoogleCallbackPage() {
+  const { setUser, showToast } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    const error = searchParams.get("google_error");
+    if (error) {
+      showToast(`Google sign-in failed: ${error}`);
+      navigate("/", { replace: true });
+      return;
+    }
+    if (!token) {
+      showToast("Google sign-in did not return an account token.");
+      navigate("/", { replace: true });
+      return;
+    }
+    localStorage.setItem("techtalk-token", token);
+    fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load your Google account.");
+        return response.json();
+      })
+      .then((account) => {
+        setUser(account);
+        showToast("Welcome to Nexzibyte TechTalk.");
+        navigate("/profile", { replace: true });
+      })
+      .catch((error) => {
+        localStorage.removeItem("techtalk-token");
+        showToast(error.message);
+        navigate("/", { replace: true });
+      });
+  }, [navigate, searchParams, setUser, showToast]);
+
+  return <div className="section-padding"><div className="container" style={{ textAlign: "center" }}><h1 className="section-heading">Signing you in with Google...</h1></div></div>;
+}
+
 function LoginRequired({ onLogin }) {
   return (
     <div className="section-padding">
@@ -409,7 +450,10 @@ if (rootElement) {
     <ErrorBoundary>
       <BrowserRouter>
         <AppProvider>
-          <App />
+          <Routes>
+            <Route path="/auth/callback" element={<GoogleCallbackPage />} />
+            <Route path="*" element={<App />} />
+          </Routes>
         </AppProvider>
       </BrowserRouter>
     </ErrorBoundary>

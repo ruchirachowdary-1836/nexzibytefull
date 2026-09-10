@@ -9,6 +9,7 @@ export default function LoginModal() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const apiUrl = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
 
   if (!loginModalOpen) return null;
 
@@ -41,6 +42,14 @@ export default function LoginModal() {
           <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "10px" }}><User size={16} /><span>{mode === "login" ? "Sign In to NexziByte" : "Create NexziByte Account"}</span></button>
           {error ? <p className="form-error">{error}</p> : null}
         </form>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ width: "100%", marginTop: "10px" }}
+          onClick={() => { window.location.href = `${apiUrl}/auth/google/login`; }}
+        >
+          Continue with Google
+        </button>
         <button type="button" className="btn btn-secondary" style={{ width: "100%", marginTop: "10px" }} onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>{mode === "login" ? "Create an account" : "Already have an account? Sign in"}</button>
       </div>
     </div>

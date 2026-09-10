@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Sparkles, Send, CheckCircle2, Mic, Calendar, User, Mail, Building, FileText } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function HostEventModal({ isOpen, onClose, defaultType = "host" }) {
   const { showToast } = useApp();
@@ -23,7 +24,7 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.topic) {
       showToast("Please fill out your name, email, and topic.");
@@ -31,11 +32,27 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
     }
 
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      const [firstName, ...lastNameParts] = formData.name.trim().split(/\s+/);
+      await api.submitPartnershipInquiry({
+        first_name: firstName,
+        last_name: lastNameParts.join(" ") || firstName,
+        email: formData.email,
+        partnership_type: modalType === "host" ? "event-hosting" : "speaker",
+        details: [
+          `Organisation: ${formData.org || "Not provided"}`,
+          `Format: ${formData.format}`,
+          `Topic: ${formData.topic}`,
+          formData.message ? `Details: ${formData.message}` : "",
+        ].filter(Boolean).join("\n"),
+      });
       setSubmitting(false);
       setSubmitted(true);
       showToast(modalType === "host" ? "Event proposal submitted!" : "Speaker application received!");
-    }, 750);
+    } catch (error) {
+      setSubmitting(false);
+      showToast(error.message);
+    }
   };
 
   const handleReset = () => {

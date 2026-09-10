@@ -9,13 +9,14 @@ export default function PassRegistrationModal() {
     setPassModalOpen, 
     selectedPassType, 
     setSelectedPassType, 
-    registerPass 
+    registerPass,
+    showToast
   } = useApp();
 
-  const [name, setName] = useState("Lalitha");
-  const [email, setEmail] = useState("lalitha@nexzibyte.com");
-  const [company, setCompany] = useState("NexziByte Ecosystem");
-  const [role, setRole] = useState("Senior Systems Architect");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -23,18 +24,18 @@ export default function PassRegistrationModal() {
 
   if (!passModalOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !email) return;
 
     setIsProcessing(true);
-    setTimeout(() => {
-      registerPass({
+    try {
+      await registerPass({
         attendeeName: name,
         email,
         passType: selectedPassType,
         amount: isVisitor ? "FREE" : "₹250",
-        notes
+        notes: `${company ? `Company/college: ${company}\n` : ""}${role ? `Role: ${role}\n` : ""}${notes}`,
       });
       setIsProcessing(false);
       // Smoothly jump down to the generated ticket
@@ -42,7 +43,10 @@ export default function PassRegistrationModal() {
       if (ticketEl) {
         ticketEl.scrollIntoView({ behavior: "smooth" });
       }
-    }, 700);
+    } catch (error) {
+      setIsProcessing(false);
+      showToast(error.message);
+    }
   };
 
   return (
