@@ -101,6 +101,15 @@ class PartnershipInquiryIn(BaseModel):
     details: str = Field(min_length=1, max_length=3000)
 class NewsletterSubscribeIn(BaseModel):
     email: EmailStr
+class CourseApplicationIn(BaseModel):
+    course_id: str = Field(min_length=1, max_length=120)
+    course_title: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    phone: str = Field(min_length=1, max_length=40)
+    interest_role: str | None = Field(default=None, max_length=150)
+    experience_level: str | None = Field(default=None, max_length=120)
+    notes: str | None = Field(default=None, max_length=3000)
 
 
 def item(obj):
@@ -267,6 +276,14 @@ def subscribe_to_newsletter(body: NewsletterSubscribeIn, db: Session = Depends(g
     db.commit()
     db.refresh(subscriber)
     return {'id': subscriber.id, 'detail': 'You are subscribed to Nexzibyte TechTalk.'}
+
+@app.post('/course-applications', status_code=201)
+def create_course_application(body: CourseApplicationIn, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
+    application = CourseApplication(**body.model_dump(), user_id=user.id if user else None)
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+    return {'id': application.id, 'status': application.status, 'detail': 'Course application received'}
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
@@ -900,6 +917,10 @@ def admin_posts(db: Session = Depends(get_db), _: User = Depends(require_admin))
 def admin_newsletter_subscribers(limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
     query = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.is_active.is_(True)).order_by(NewsletterSubscriber.created_at.desc())
     return {'total': query.count(), 'items': [item(subscriber) for subscriber in query.offset(offset).limit(limit)]}
+
+@app.get('/admin/course-applications')
+def admin_course_applications(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return [item(application) for application in db.query(CourseApplication).order_by(CourseApplication.created_at.desc()).all()]
 
 @app.put('/admin/posts/{post_id}/publish')
 def admin_publish_post(post_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):

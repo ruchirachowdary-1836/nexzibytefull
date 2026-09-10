@@ -60,13 +60,15 @@ export default function CourseModal() {
     }
     setSubmitting(true);
     try {
-      const [firstName, ...lastNameParts] = formData.name.trim().split(/\s+/);
-      await api.submitApplication({
-        first_name: firstName,
-        last_name: lastNameParts.join(" ") || firstName,
+      await api.submitCourseApplication({
+        course_id: selectedCourse.id,
+        course_title: selectedCourse.title,
+        name: formData.name.trim(),
         email: formData.email,
-        partnership_type: "course-application",
-        details: `Course: ${selectedCourse.title}\nPhone: ${formData.phone}\nRole: ${formData.interestRole}\nExperience: ${formData.experienceLevel}\nNotes: ${formData.notes || "Not provided"}`,
+        phone: formData.phone,
+        interest_role: formData.interestRole,
+        experience_level: formData.experienceLevel,
+        notes: formData.notes || null,
       });
       setSubmitted(true);
       showToast(`Application for ${selectedCourse.title} submitted successfully.`);

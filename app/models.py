@@ -73,6 +73,22 @@ class PartnershipInquiry(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class CourseApplication(Base):
+    __tablename__ = 'course_applications'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True, index=True)
+    course_id: Mapped[str] = mapped_column(String(120), index=True)
+    course_title: Mapped[str] = mapped_column(String(200))
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    phone: Mapped[str] = mapped_column(String(40))
+    interest_role: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    experience_level: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default='submitted')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class NewsletterSubscriber(Base):
     __tablename__ = 'newsletter_subscribers'
     id: Mapped[int] = mapped_column(primary_key=True)

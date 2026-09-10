@@ -34,6 +34,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  submitCourseApplication: (payload) =>
+    apiRequest("/course-applications", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   registerForEvent: (eventType, eventId) =>
     apiRequest("/registrations", {
       method: "POST",
