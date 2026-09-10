@@ -34,7 +34,6 @@ function XTwitterIcon({ size = 15 }) {
 
 import { useApp } from "../context/AppContext.jsx";
 import {
-  DEFAULT_PROFILE,
   PROFILE_METRICS,
   SKILL_CATEGORIES,
   PUBLISHED_POSTS,
@@ -62,13 +61,13 @@ export default function UserProfilePage() {
   // In-session Profile Editor Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || DEFAULT_PROFILE.name,
-    title: user?.title || DEFAULT_PROFILE.title,
-    bio: user?.bio || DEFAULT_PROFILE.bio,
-    location: user?.location || DEFAULT_PROFILE.location,
-    role: user?.role || DEFAULT_PROFILE.role,
-    company: user?.company || DEFAULT_PROFILE.company,
-    avatar: user?.avatar || DEFAULT_PROFILE.avatar
+    name: user?.name || "",
+    title: user?.professional_role || "",
+    bio: user?.bio || "",
+    location: user?.location || "",
+    role: user?.professional_role || "",
+    company: "",
+    avatar: user?.profile_image || ""
   });
 
   // Filter & Search states
@@ -80,45 +79,34 @@ export default function UserProfilePage() {
   const [hoveredDay, setHoveredDay] = useState(null);
 
   // Check if current user details deviate from default (indicating active session edits)
-  const isModified = user?.name !== DEFAULT_PROFILE.name || 
-                     user?.bio !== DEFAULT_PROFILE.bio || 
-                     user?.location !== DEFAULT_PROFILE.location || 
-                     user?.title !== DEFAULT_PROFILE.title;
-
   // Open Edit Modal with current values
   const handleOpenEdit = () => {
     setFormData({
-      name: user?.name || DEFAULT_PROFILE.name,
-      title: user?.title || DEFAULT_PROFILE.title,
-      bio: user?.bio || DEFAULT_PROFILE.bio,
-      location: user?.location || DEFAULT_PROFILE.location,
-      role: user?.role || DEFAULT_PROFILE.role,
-      company: user?.company || DEFAULT_PROFILE.company,
-      avatar: user?.avatar || DEFAULT_PROFILE.avatar
+      name: user?.name || "",
+      title: user?.professional_role || "",
+      bio: user?.bio || "",
+      location: user?.location || "",
+      role: user?.professional_role || "",
+      company: "",
+      avatar: user?.profile_image || ""
     });
     setEditModalOpen(true);
   };
 
   // Submit in-session changes
-  const handleSaveEdit = (e) => {
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-    updateUserProfile(formData);
-    setEditModalOpen(false);
+    try {
+      await updateUserProfile(formData);
+      setEditModalOpen(false);
+    } catch (error) {
+      showToast(error.message || "Unable to save your profile.");
+    }
   };
 
-  // Quick reset back to TechTalk defaults
   const handleResetToDefault = () => {
     resetUserProfile();
-    setFormData({
-      name: DEFAULT_PROFILE.name,
-      title: DEFAULT_PROFILE.title,
-      bio: DEFAULT_PROFILE.bio,
-      location: DEFAULT_PROFILE.location,
-      role: DEFAULT_PROFILE.role,
-      company: DEFAULT_PROFILE.company,
-      avatar: DEFAULT_PROFILE.avatar
-    });
     setEditModalOpen(false);
   };
 
@@ -170,7 +158,7 @@ export default function UserProfilePage() {
               {/* Avatar with Status Ring */}
               <div className="profile-avatar-wrapper">
                 <img 
-                  src={user?.avatar || DEFAULT_PROFILE.avatar} 
+                  src={user?.profile_image || undefined}
                   alt={user?.name || "Nexzibyte TechTalk"}
                   className="profile-avatar-img"
                   onError={(e) => {
@@ -220,29 +208,11 @@ export default function UserProfilePage() {
             </div>
 
             {/* In-Session Edit Indicator Banner */}
-            {isModified && (
-              <div className="session-active-indicator-bar">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span className="session-pulse-dot" />
-                  <span><strong>Active Session Mode:</strong> Profile is currently customized for this session (not permanently saved to database).</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="session-reset-btn"
-                  onClick={handleResetToDefault}
-                  title="Restore original profile details"
-                >
-                  <RefreshCw size={12} />
-                  <span>Reset to Nexzibyte TechTalk</span>
-                </button>
-              </div>
-            )}
-
             {/* Profile Core Information */}
             <div className="profile-info-block">
               <div className="profile-name-row">
                 <h1 className="profile-display-name">
-                  {user?.name || DEFAULT_PROFILE.name}
+                  {user?.name || "Your profile"}
                 </h1>
                 <button 
                   type="button" 
@@ -260,41 +230,41 @@ export default function UserProfilePage() {
               </div>
 
               <div className="profile-headline-title">
-                {user?.title || DEFAULT_PROFILE.title}
+                {user?.professional_role || "Add your professional role"}
               </div>
 
               <p className="profile-bio-text">
-                {user?.bio || DEFAULT_PROFILE.bio}
+                {user?.bio || "Add a short bio to introduce yourself."}
               </p>
 
               {/* Meta details bar */}
               <div className="profile-meta-chips">
                 <div className="meta-chip">
                   <MapPin size={14} className="meta-icon-pin" />
-                  <span>{user?.location || DEFAULT_PROFILE.location}</span>
+                  <span>{user?.location || "Add your location"}</span>
                   <span className="meta-timezone-pill">IST (UTC+5:30)</span>
                 </div>
 
                 <div className="meta-chip">
                   <Briefcase size={14} />
-                  <span>{user?.company || DEFAULT_PROFILE.company}</span>
+                  <span>{user?.professional_role || "Add your role"}</span>
                 </div>
 
                 <div className="meta-chip">
                   <Calendar size={14} />
-                  <span>Member since {user?.memberSince || "March 2024"}</span>
+                  <span>Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "Today"}</span>
                 </div>
 
                 <div className="meta-chip status-chip">
                   <span className="status-live-dot" />
-                  <span>{user?.status || "Available for Consulting & Keynotes"}</span>
+                  <span>{user?.is_active ? "Account active" : "Account inactive"}</span>
                 </div>
               </div>
 
               {/* Social & Professional Connections */}
               <div className="profile-social-links-row">
                 <a 
-                  href={user?.socials?.github || DEFAULT_PROFILE.socials.github} 
+                  href={user?.website || "#"}
                   target="_blank" 
                   rel="noreferrer" 
                   className="profile-social-pill"
@@ -304,7 +274,7 @@ export default function UserProfilePage() {
                 </a>
 
                 <a 
-                  href={user?.socials?.linkedin || DEFAULT_PROFILE.socials.linkedin} 
+                  href={user?.linkedin_url || "#"}
                   target="_blank" 
                   rel="noreferrer" 
                   className="profile-social-pill"
@@ -314,7 +284,7 @@ export default function UserProfilePage() {
                 </a>
 
                 <a 
-                  href={user?.socials?.twitter || DEFAULT_PROFILE.socials.twitter} 
+                  href="#"
                   target="_blank" 
                   rel="noreferrer" 
                   className="profile-social-pill"
@@ -324,7 +294,7 @@ export default function UserProfilePage() {
                 </a>
 
                 <a 
-                  href={user?.socials?.portfolio || DEFAULT_PROFILE.socials.portfolio} 
+                  href={user?.website || "#"}
                   target="_blank" 
                   rel="noreferrer" 
                   className="profile-social-pill"
@@ -335,7 +305,7 @@ export default function UserProfilePage() {
                 </a>
 
                 <a 
-                  href={user?.socials?.devto || DEFAULT_PROFILE.socials.devto} 
+                  href="#"
                   target="_blank" 
                   rel="noreferrer" 
                   className="profile-social-pill"
@@ -345,7 +315,7 @@ export default function UserProfilePage() {
                 </a>
 
                 <a 
-                  href={`mailto:${user?.email || DEFAULT_PROFILE.email}`} 
+                  href={user?.email ? `mailto:${user.email}` : "#"}
                   className="profile-social-pill"
                 >
                   <Mail size={15} />
@@ -931,7 +901,7 @@ export default function UserProfilePage() {
             <div className="modal-header-block">
               <span className="section-label">
                 <Sparkles size={13} />
-                IN-MEMORY SESSION EDIT
+                ACCOUNT PROFILE
               </span>
               <h3 id="modal-title-profile-edit" style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>
                 Customize Technology Profile
@@ -940,7 +910,7 @@ export default function UserProfilePage() {
                 <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
                   <Sparkles size={16} style={{ color: "#F97316", flexShrink: 0, marginTop: "2px" }} />
                   <div>
-                    <strong>Temporary In-Session Mode:</strong> You can freely change your name, title, bio, and location for testing. Changes update everywhere across the platform immediately, and will not permanently overwrite any remote database.
+                    Changes are saved securely to your authenticated Nexzibyte account and restored whenever you sign in.
                   </div>
                 </div>
               </div>
@@ -1046,7 +1016,7 @@ export default function UserProfilePage() {
                   onClick={handleResetToDefault}
                 >
                   <RefreshCw size={13} />
-                  <span>Reset to Default</span>
+                  <span>Sign out</span>
                 </button>
 
                 <div style={{ display: "flex", gap: "10px" }}>

@@ -398,7 +398,7 @@ export default function Navbar() {
             <span className={`backend-status backend-status-${backendOnline === null ? "checking" : backendOnline ? "online" : "offline"}`} title={backendOnline ? "Backend connected" : backendOnline === false ? "Backend unavailable" : "Checking backend connection"}>
               {backendOnline === null ? "Checking" : backendOnline ? "Connected" : "Offline"}
             </span>
-            <Link 
+            {user ? <Link
               to="/profile" 
               className={`nav-profile-pill-link ${location.pathname === "/profile" ? "is-active" : ""}`}
               title="View Professional Technology Profile"
@@ -413,7 +413,7 @@ export default function Navbar() {
               <span className="nav-profile-name-tiny">
                 {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "TechTalk"}
               </span>
-            </Link>
+            </Link> : null}
 
             <button 
               type="button" 
@@ -448,7 +448,7 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="mobile-drawer-dark">
           {/* USER PROFILE Section */}
-          <div className="mobile-drawer-section" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "14px" }}>
+          {user ? <div className="mobile-drawer-section" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "14px" }}>
             <div className="mobile-drawer-category">TECHNOLOGY PROFILE</div>
             <Link 
               to="/profile"
@@ -459,7 +459,7 @@ export default function Navbar() {
               <User size={18} />
               <span>{user?.name || "Nexzibyte TechTalk"} (View Profile)</span>
             </Link>
-          </div>
+          </div> : null}
 
           {/* COMMUNITY Section */}
           <div className="mobile-drawer-section">

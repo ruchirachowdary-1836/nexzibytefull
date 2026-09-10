@@ -275,7 +275,7 @@ function ScannerPage() {
    MAIN APPLICATION ROUTER & WRAPPER
    ══════════════════════════════════════════════════════════════════ */
 function App() {
-  const { toastMessage } = useApp();
+  const { toastMessage, user, setLoginModalOpen } = useApp();
   const location = useLocation();
 
   // Scroll to top on navigation change
@@ -306,7 +306,7 @@ function App() {
         <Route path="/speakers" element={<SpeakersPage />} />
         <Route path="/passes" element={<PassesPage />} />
         <Route path="/scanner" element={<ScannerPage />} />
-        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/profile" element={user ? <UserProfilePage /> : <LoginRequired onLogin={() => setLoginModalOpen(true)} />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
 
@@ -329,6 +329,19 @@ function App() {
           <span>{toastMessage}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function LoginRequired({ onLogin }) {
+  return (
+    <div className="section-padding">
+      <div className="container" style={{ maxWidth: "620px", textAlign: "center" }}>
+        <span className="section-label">MEMBERS ONLY</span>
+        <h1 className="section-heading">Create an account to view your profile.</h1>
+        <p className="section-subtitle">Your profile will be built from the information you submit and saved to your account.</p>
+        <button type="button" className="btn btn-primary" onClick={onLogin}>Login or create account</button>
+      </div>
     </div>
   );
 }

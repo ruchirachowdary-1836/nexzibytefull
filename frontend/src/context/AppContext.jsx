@@ -2,8 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { SAMPLE_PASS, TECHNICAL_ARTICLES, PASSES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
-import { DEFAULT_PROFILE, SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
+import { SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
 import { checkBackendHealth } from "../lib/backend.js";
+import { authService } from "../lib/auth.js";
 
 const AppContext = createContext(null);
 
@@ -12,8 +13,8 @@ export function AppProvider({ children }) {
   const [activePass, setActivePass] = useState(SAMPLE_PASS);
   const [passesList, setPassesList] = useState([SAMPLE_PASS]);
   
-  // User Profile (Default: Nexzibyte TechTalk)
-  const [user, setUser] = useState(DEFAULT_PROFILE);
+  // Profile data is loaded only from the authenticated backend user.
+  const [user, setUser] = useState(null);
   const [backendOnline, setBackendOnline] = useState(null);
 
   // Saved Posts / Bookmarks (In-Session)
@@ -48,11 +49,33 @@ export function AppProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!authService.hasToken()) return;
+    authService.me().then(setUser).catch(() => authService.logout());
+  }, []);
+
   const showToast = (message) => {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
     }, 4500);
+  };
+
+  const login = async (credentials) => {
+    const authenticatedUser = await authService.login(credentials);
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  };
+
+  const register = async (credentials) => {
+    const authenticatedUser = await authService.register(credentials);
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  };
+
+  const logout = () => {
+    authService.logout();
+    setUser(null);
   };
 
   // Register or Purchase a new Pass
@@ -162,26 +185,24 @@ export function AppProvider({ children }) {
     setInternshipModalOpen(true);
   };
 
-  // In-Session Profile Update (Temporary / In-Memory only)
+  // Persist profile changes through the authenticated backend account.
   const updateUserProfile = (newFields) => {
-    setUser((prev) => {
-      const updated = {
-        ...prev,
-        ...newFields,
-        // Auto update initials if name changed
-        avatarInitials: newFields.name 
-          ? newFields.name.split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase()
-          : prev.avatarInitials
-      };
-      return updated;
+    return authService.updateProfile({
+      name: newFields.name,
+      bio: newFields.bio,
+      location: newFields.location,
+      professional_role: newFields.title || newFields.role,
+      profile_image: newFields.avatar,
+    }).then((updatedUser) => {
+      setUser(updatedUser);
+      showToast("Profile saved to your Nexzibyte account.");
+      return updatedUser;
     });
-    showToast(`✓ Profile updated for this session. (Temporary / In-memory)`);
   };
 
-  // Reset to default profile (Nexzibyte TechTalk)
   const resetUserProfile = () => {
-    setUser(DEFAULT_PROFILE);
-    showToast(`✓ Profile reset to default (Nexzibyte TechTalk).`);
+    logout();
+    showToast("Signed out of Nexzibyte TechTalk.");
   };
 
   // Toggle Save / Bookmark Post
@@ -202,9 +223,23 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         user,
+        login,
+        register,
+        logout,
         backendOnline,
         setUser,
-        updateUserProfile,
+        updateUserProfile: async (newFields) => {
+          const updated = await authService.updateProfile({
+            name: newFields.name,
+            bio: newFields.bio,
+            location: newFields.location,
+            professional_role: newFields.role || newFields.title,
+            profile_image: newFields.avatar
+          });
+          setUser(updated);
+          showToast("Profile saved to your account.");
+          return updated;
+        },
         resetUserProfile,
         savedPosts,
         setSavedPosts,
