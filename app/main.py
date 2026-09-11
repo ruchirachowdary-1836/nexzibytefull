@@ -1,22 +1,18 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time
 import datetime as datetime_module
-import secrets
-from urllib.parse import urlencode
 from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
-import requests
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -171,93 +167,6 @@ def user_profile_payload(user: User, db: Session):
 
 @app.get('/health')
 def health(): return {'status': 'ok'}
-
-@app.get('/auth/google/login')
-def google_login():
-    if not settings.google_client_id:
-        raise HTTPException(503, detail='Google authentication is not configured')
-    state = jwt.encode({
-        'purpose': 'google_oauth',
-        'nonce': secrets.token_urlsafe(24),
-        'exp': datetime.now(timezone.utc) + timedelta(minutes=10),
-    }, settings.jwt_secret, algorithm='HS256')
-    query = urlencode({
-        'client_id': settings.google_client_id,
-        'redirect_uri': settings.google_redirect_uri,
-        'response_type': 'code',
-        'scope': 'openid email profile',
-        'access_type': 'offline',
-        'prompt': 'select_account',
-        'state': state,
-    })
-    return RedirectResponse(f'https://accounts.google.com/o/oauth2/v2/auth?{query}')
-
-@app.get('/auth/google/callback')
-def google_callback(code: str | None = None, state: str | None = None, error: str | None = None, db: Session = Depends(get_db)):
-    if error:
-        return RedirectResponse(f'{settings.frontend_url}/?google_error={error}')
-    if not code:
-        raise HTTPException(400, detail='Google authorization code is missing')
-    if not state:
-        raise HTTPException(400, detail='Google OAuth state is missing')
-    try:
-        state_payload = jwt.decode(state, settings.jwt_secret, algorithms=['HS256'])
-        if state_payload.get('purpose') != 'google_oauth':
-            raise JWTError
-    except JWTError:
-        raise HTTPException(400, detail='Invalid or expired Google OAuth state')
-    if not settings.google_client_id or not settings.google_client_secret:
-        raise HTTPException(503, detail='Google authentication is not configured')
-    token_response = requests.post(
-        'https://oauth2.googleapis.com/token',
-        data={
-            'code': code,
-            'client_id': settings.google_client_id,
-            'client_secret': settings.google_client_secret,
-            'redirect_uri': settings.google_redirect_uri,
-            'grant_type': 'authorization_code',
-        },
-        timeout=10,
-    )
-    if not token_response.ok:
-        raise HTTPException(502, detail='Google token exchange failed')
-    access_token = token_response.json().get('access_token')
-    if not access_token:
-        raise HTTPException(502, detail='Google did not return an access token')
-    profile_response = requests.get(
-        'https://www.googleapis.com/oauth2/v3/userinfo',
-        headers={'Authorization': f'Bearer {access_token}'},
-        timeout=10,
-    )
-    if not profile_response.ok:
-        raise HTTPException(502, detail='Google profile lookup failed')
-    profile = profile_response.json()
-    email = str(profile.get('email', '')).lower().strip()
-    google_id = str(profile.get('sub', '')).strip()
-    if not email or not google_id or not profile.get('email_verified'):
-        raise HTTPException(400, detail='Google account email is not verified')
-    user = db.query(User).filter((User.google_id == google_id) | (User.email == email)).first()
-    if not user:
-        user = User(
-            name=(profile.get('name') or email.split('@')[0]).strip()[:120],
-            email=email,
-            password_hash=None,
-            google_id=google_id,
-            profile_image=profile.get('picture'),
-        )
-        db.add(user)
-    else:
-        if user.google_id and user.google_id != google_id:
-            raise HTTPException(409, detail='This email is linked to a different Google account')
-        user.google_id = google_id
-        if profile.get('name') and not user.name:
-            user.name = profile['name'].strip()[:120]
-        if profile.get('picture') and not user.profile_image:
-            user.profile_image = profile['picture']
-    db.commit()
-    db.refresh(user)
-    token = create_access_token(user.email)
-    return RedirectResponse(f'{settings.frontend_url}/auth/callback?{urlencode({"token": token})}')
 
 @app.post('/partnership-inquiries', status_code=201)
 def create_partnership_inquiry(body: PartnershipInquiryIn, db: Session = Depends(get_db)):

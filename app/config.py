@@ -8,10 +8,6 @@ class Settings(BaseSettings):
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
     cors_origins: str = "*"
-    frontend_url: str = "https://techtalk-frontend-acvb.onrender.com"
-    google_client_id: str | None = "871004671345-2belb4f6tdfn88t6d3q16ne1atjr02tn.apps.googleusercontent.com"
-    google_client_secret: str | None = None
-    google_redirect_uri: str = "https://techtalk-backend-shob.onrender.com/auth/google/callback"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

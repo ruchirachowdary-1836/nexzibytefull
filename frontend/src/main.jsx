@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
 import { 
   Sparkles, Search, Filter, ArrowLeft, ArrowRight, Calendar, MapPin, 
@@ -333,47 +334,6 @@ function App() {
   );
 }
 
-function GoogleCallbackPage() {
-  const { setUser, showToast } = useApp();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-    const error = searchParams.get("google_error");
-    if (error) {
-      showToast(`Google sign-in failed: ${error}`);
-      navigate("/", { replace: true });
-      return;
-    }
-    if (!token) {
-      showToast("Google sign-in did not return an account token.");
-      navigate("/", { replace: true });
-      return;
-    }
-    localStorage.setItem("techtalk-token", token);
-    fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Unable to load your Google account.");
-        return response.json();
-      })
-      .then((account) => {
-        setUser(account);
-        showToast("Welcome to Nexzibyte TechTalk.");
-        navigate("/profile", { replace: true });
-      })
-      .catch((error) => {
-        localStorage.removeItem("techtalk-token");
-        showToast(error.message);
-        navigate("/", { replace: true });
-      });
-  }, [navigate, searchParams, setUser, showToast]);
-
-  return <div className="section-padding"><div className="container" style={{ textAlign: "center" }}><h1 className="section-heading">Signing you in with Google...</h1></div></div>;
-}
-
 function LoginRequired({ onLogin }) {
   return (
     <div className="section-padding">
@@ -442,20 +402,24 @@ class ErrorBoundary extends React.Component {
 
 // Root Render
 const rootElement = document.getElementById("root");
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+function RootProviders({ children }) {
+  if (!clerkPublishableKey) return children;
+  return <ClerkProvider publishableKey={clerkPublishableKey}>{children}</ClerkProvider>;
+}
 if (rootElement) {
   if (!window.__techtalk_root) {
     window.__techtalk_root = createRoot(rootElement);
   }
   window.__techtalk_root.render(
     <ErrorBoundary>
-      <BrowserRouter>
-        <AppProvider>
-          <Routes>
-            <Route path="/auth/callback" element={<GoogleCallbackPage />} />
-            <Route path="*" element={<App />} />
-          </Routes>
-        </AppProvider>
-      </BrowserRouter>
+      <RootProviders>
+        <BrowserRouter>
+          <AppProvider>
+            <App />
+          </AppProvider>
+        </BrowserRouter>
+      </RootProviders>
     </ErrorBoundary>
   );
 }
