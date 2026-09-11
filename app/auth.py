@@ -12,7 +12,8 @@ pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login', auto_error=False)
 def hash_password(password: str): return pwd_context.hash(password)
-def verify_password(password: str, hashed: str): return pwd_context.verify(password, hashed)
+def verify_password(password: str, hashed: str | None):
+    return bool(hashed) and pwd_context.verify(password, hashed)
 def create_access_token(subject: str):
     return jwt.encode({'sub': subject, 'exp': datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)}, settings.jwt_secret, algorithm='HS256')
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

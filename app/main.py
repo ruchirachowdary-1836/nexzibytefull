@@ -233,18 +233,23 @@ def google_callback(code: str | None = None, state: str | None = None, error: st
         raise HTTPException(502, detail='Google profile lookup failed')
     profile = profile_response.json()
     email = str(profile.get('email', '')).lower().strip()
-    if not email or not profile.get('email_verified'):
+    google_id = str(profile.get('sub', '')).strip()
+    if not email or not google_id or not profile.get('email_verified'):
         raise HTTPException(400, detail='Google account email is not verified')
-    user = db.query(User).filter_by(email=email).first()
+    user = db.query(User).filter((User.google_id == google_id) | (User.email == email)).first()
     if not user:
         user = User(
             name=(profile.get('name') or email.split('@')[0]).strip()[:120],
             email=email,
-            password_hash=hash_password(secrets.token_urlsafe(32)),
+            password_hash=None,
+            google_id=google_id,
             profile_image=profile.get('picture'),
         )
         db.add(user)
     else:
+        if user.google_id and user.google_id != google_id:
+            raise HTTPException(409, detail='This email is linked to a different Google account')
+        user.google_id = google_id
         if profile.get('name') and not user.name:
             user.name = profile['name'].strip()[:120]
         if profile.get('picture') and not user.profile_image:
@@ -304,7 +309,7 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
-    if not user or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
+    if not user or not user.password_hash or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
 @app.get('/auth/me')
