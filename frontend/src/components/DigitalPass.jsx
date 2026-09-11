@@ -70,6 +70,7 @@ export function PassQRCodeSVG({ value, size = 130 }) {
 
 export default function DigitalPass() {
   const { activePass, showToast } = useApp();
+  if (!activePass) return null;
 
   const handleCopyId = () => {
     navigator.clipboard?.writeText(activePass.passId);

@@ -130,6 +130,14 @@ class CourseApplicationIn(BaseModel):
     interest_role: str | None = Field(default=None, max_length=150)
     experience_level: str | None = Field(default=None, max_length=120)
     notes: str | None = Field(default=None, max_length=3000)
+class PassRequestIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    pass_type: str = Field(min_length=1, max_length=40)
+    amount: str = Field(min_length=1, max_length=40)
+    company: str | None = Field(default=None, max_length=160)
+    role: str | None = Field(default=None, max_length=160)
+    notes: str | None = Field(default=None, max_length=3000)
 
 
 def item(obj):
@@ -222,6 +230,33 @@ def create_course_application(body: CourseApplicationIn, db: Session = Depends(g
     db.commit()
     db.refresh(application)
     return {'id': application.id, 'status': application.status, 'detail': 'Course application received'}
+
+@app.post('/pass-requests', status_code=201)
+def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
+    first_name, *last_name = body.name.strip().split()
+    request = PassRequest(
+        user_id=user.id if user else None,
+        first_name=first_name,
+        last_name=' '.join(last_name) or first_name,
+        email=body.email.lower().strip(),
+        pass_type=body.pass_type,
+        amount=body.amount,
+        company=body.company,
+        role=body.role,
+        notes=body.notes,
+    )
+    db.add(request)
+    db.commit()
+    db.refresh(request)
+    return {'id': request.id, 'status': request.status, 'detail': 'Pass request received'}
+
+@app.get('/users/me/pass-requests')
+def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [item(request) for request in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
+
+@app.get('/admin/pass-requests')
+def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return [item(request) for request in db.query(PassRequest).order_by(PassRequest.created_at.desc()).all()]
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):

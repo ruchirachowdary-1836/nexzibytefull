@@ -92,6 +92,22 @@ class CourseApplication(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class PassRequest(Base):
+    __tablename__ = 'pass_requests'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True, index=True)
+    first_name: Mapped[str] = mapped_column(String(80))
+    last_name: Mapped[str] = mapped_column(String(80))
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    pass_type: Mapped[str] = mapped_column(String(40))
+    amount: Mapped[str] = mapped_column(String(40))
+    company: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    role: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default='submitted')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class NewsletterSubscriber(Base):
     __tablename__ = 'newsletter_subscribers'
     id: Mapped[int] = mapped_column(primary_key=True)

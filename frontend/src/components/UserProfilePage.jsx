@@ -152,7 +152,7 @@ export default function UserProfilePage() {
             </span>
             <span className="profile-badge-pill id-code">
               <Terminal size={12} />
-              <span>ID: {user?.passId || "TT26-884920"}</span>
+              {user?.passId && <span>ID: {user.passId}</span>}
             </span>
           </div>
         </div>

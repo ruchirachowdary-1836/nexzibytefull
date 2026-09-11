@@ -35,7 +35,9 @@ export default function PassRegistrationModal() {
         email,
         passType: selectedPassType,
         amount: isVisitor ? "FREE" : "₹250",
-        notes: `${company ? `Company/college: ${company}\n` : ""}${role ? `Role: ${role}\n` : ""}${notes}`,
+        company,
+        role,
+        notes,
       });
       setIsProcessing(false);
       // Smoothly jump down to the generated ticket

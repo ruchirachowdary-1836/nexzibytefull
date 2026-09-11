@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { SAMPLE_PASS, TECHNICAL_ARTICLES, PASSES, UPCOMING_EVENTS } from "../data/mockData.js";
+import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
 import { SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
@@ -11,8 +11,8 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   // Pass Management
-  const [activePass, setActivePass] = useState(SAMPLE_PASS);
-  const [passesList, setPassesList] = useState([SAMPLE_PASS]);
+  const [activePass, setActivePass] = useState(null);
+  const [passesList, setPassesList] = useState([]);
   
   // Profile data is loaded only from the authenticated backend user.
   const [user, setUser] = useState(null);
@@ -80,50 +80,35 @@ export function AppProvider({ children }) {
   };
 
   // Register or Purchase a new Pass
-  const registerPass = async ({ attendeeName, email, passType, amount, notes }) => {
-    const [firstName, ...lastNameParts] = attendeeName.trim().split(/\s+/);
-    await api.submitApplication({
-      first_name: firstName,
-      last_name: lastNameParts.join(" ") || firstName,
+  const registerPass = async ({ attendeeName, email, passType, amount, company, role, notes }) => {
+    const response = await api.submitPassRequest({
+      name: attendeeName,
       email,
-      partnership_type: "event-pass-request",
-      details: `Pass type: ${passType}\nCompany/college and role were submitted through the pass form.\nAmount: ${amount}\nNotes: ${notes || "Not provided"}`,
+      pass_type: passType,
+      amount,
+      company,
+      role,
+      notes,
     });
     const isVisitor = passType === "visitor-pass" || passType === "VISITOR PASS";
-    const newPassId = `TT26-${String(Math.floor(100000 + Math.random() * 900000)).slice(-6)}`;
-    
-    const newPass = {
-      org: "NEXZIBYTE",
-      event: "TECHTALK 2026",
-      passType: isVisitor ? "VISITOR PASS" : "DELEGATE PASS",
-      price: isVisitor ? "FREE" : "₹250",
-      holder: attendeeName.toUpperCase(),
-      email: email,
-      passId: newPassId,
-      validation: "VALID FOR EVENT ENTRY",
-      status: "Verified",
-      checkedIn: false,
-      checkInTime: null,
-      notes: notes || "",
-      tags: ["Secure", "Unique", "Contactless"],
-      qrData: `TECHTALK:${newPassId}:${attendeeName.toUpperCase()}:${isVisitor ? "VISITOR" : "DELEGATE"}:${isVisitor ? "FREE" : "250"}:VERIFIED`
-    };
-
-    setActivePass(newPass);
-    setPassesList((prev) => [newPass, ...prev]);
+    setActivePass(null);
     setPassModalOpen(false);
 
     showToast(
       isVisitor
-        ? `🎟️ Success! Free Visitor Pass ${newPassId} generated for ${attendeeName}.`
-        : `🎟️ Success! Delegate Pass ${newPassId} generated for ${attendeeName} (₹250).`
+        ? `Visitor pass request submitted for ${attendeeName}.`
+        : `Delegate pass request submitted for ${attendeeName}.`
     );
 
-    return newPass;
+    return response;
   };
 
   // Check In an Attendee via QR scanner or button
   const checkInPass = (passId) => {
+    if (!passId || !activePass?.passId) {
+      showToast("No issued pass is available for check-in.");
+      return null;
+    }
     let updated = null;
     setPassesList((prev) =>
       prev.map((p) => {
@@ -153,6 +138,7 @@ export function AppProvider({ children }) {
 
   // Quick reset check-in status (for testing scanner toggle)
   const resetCheckIn = (passId) => {
+    if (!passId || !activePass?.passId) return;
     setPassesList((prev) =>
       prev.map((p) => (p.passId.toLowerCase() === passId.toLowerCase() ? { ...p, checkedIn: false, checkInTime: null } : p))
     );
