@@ -10,6 +10,7 @@ export default function LoginModal() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const clerkEnabled = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
   if (!loginModalOpen) return null;
 
@@ -42,7 +43,7 @@ export default function LoginModal() {
           <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "10px" }}><User size={16} /><span>{mode === "login" ? "Sign In to NexziByte" : "Create NexziByte Account"}</span></button>
           {error ? <p className="form-error">{error}</p> : null}
         </form>
-        <ClerkGoogleButton onSuccess={() => { setLoginModalOpen(false); showToast("Welcome to Nexzibyte TechTalk."); }} />
+        {clerkEnabled ? <ClerkGoogleButton onSuccess={() => { setLoginModalOpen(false); showToast("Welcome to Nexzibyte TechTalk."); }} /> : null}
         <button type="button" className="btn btn-secondary" style={{ width: "100%", marginTop: "10px" }} onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>{mode === "login" ? "Create an account" : "Already have an account? Sign in"}</button>
       </div>
     </div>
@@ -56,7 +57,7 @@ function ClerkGoogleButton({ onSuccess }) {
       type="button"
       className="btn btn-secondary"
       style={{ width: "100%", marginTop: "10px" }}
-      onClick={() => openSignIn({ oauthProvider: "oauth_google", afterSignInUrl: window.location.pathname }).then(onSuccess)}
+      onClick={() => openSignIn({ afterSignInUrl: window.location.pathname }).then(onSuccess)}
     >
       Continue with Google
     </button>
