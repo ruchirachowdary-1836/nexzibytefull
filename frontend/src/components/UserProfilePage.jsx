@@ -78,8 +78,20 @@ export default function UserProfilePage() {
   const activityFeed = [];
   const careerTimeline = [];
   const speakingEngagements = [];
-  const profileSkillCategories = user?.skills
-    ? [{ category: "Skills", color: "#2563EB", skills: user.skills.split(",").map((name) => ({ name: name.trim(), level: "Added by user", years: "" })).filter((skill) => skill.name) }]
+  const normalizedSkills = Array.isArray(user?.skills)
+    ? user.skills
+    : typeof user?.skills === "string"
+      ? user.skills.split(",")
+      : [];
+  const profileSkillCategories = normalizedSkills.length
+    ? [{
+        category: "Skills",
+        color: "#2563EB",
+        skills: normalizedSkills
+          .map((skill) => typeof skill === "string" ? skill.trim() : skill?.name)
+          .filter(Boolean)
+          .map((name) => ({ name, level: "Added by user", years: "" }))
+      }]
     : [];
   const profileMetrics = [
     { label: "Published Dispatches", value: user?.activity?.posts_count || 0, suffix: "", desc: "Posts published from this account" },
