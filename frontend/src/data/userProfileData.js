@@ -33,7 +33,7 @@ export const DEFAULT_PROFILE = {
 export const PROFILE_METRICS = [
   { label: "Published Dispatches", value: "6", suffix: "", desc: "Technical whitepapers & guides" },
   { label: "Saved Architectures", value: "5", suffix: "", desc: "Bookmarked blueprints & notes" },
-  { label: "Annual Contributions", value: "1,284", suffix: "+", desc: "Commits, PRs & code reviews" },
+  { label: "Annual Contributions", value: "—", suffix: "", desc: "Connect GitHub to show verified activity" },
   { label: "TechTalk Sessions", value: "4", suffix: "", desc: "Keynotes & deep-dive masterclasses" }
 ];
 

@@ -39,8 +39,7 @@ import {
   PUBLISHED_POSTS,
   ACTIVITY_FEED,
   CAREER_TIMELINE,
-  SPEAKING_ENGAGEMENTS,
-  generateContributionGrid
+  SPEAKING_ENGAGEMENTS
 } from "../data/userProfileData.js";
 
 export default function UserProfilePage() {
@@ -62,12 +61,18 @@ export default function UserProfilePage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
+    email: user?.email || "",
     title: user?.professional_role || "",
     bio: user?.bio || "",
     location: user?.location || "",
     role: user?.professional_role || "",
     company: "",
-    avatar: user?.profile_image || ""
+    avatar: user?.profile_image || "",
+    website: user?.website || "",
+    linkedin_url: user?.linkedin_url || "",
+    github_url: user?.github_url || "",
+    twitter_url: user?.twitter_url || "",
+    devto_url: user?.devto_url || ""
   });
 
   // Filter & Search states
@@ -75,7 +80,7 @@ export default function UserProfilePage() {
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("All");
 
   // Contribution Heatmap Data (Memoized 52 weeks)
-  const heatmapData = useMemo(() => generateContributionGrid(), []);
+  const heatmapData = useMemo(() => ({ weeks: [], monthLabels: [] }), []);
   const [hoveredDay, setHoveredDay] = useState(null);
 
   // Check if current user details deviate from default (indicating active session edits)
@@ -263,64 +268,20 @@ export default function UserProfilePage() {
 
               {/* Social & Professional Connections */}
               <div className="profile-social-links-row">
-                <a 
-                  href={user?.website || "#"}
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="profile-social-pill"
-                >
-                  <GitHubIcon size={15} />
-                  <span>GitHub</span>
-                </a>
-
-                <a 
-                  href={user?.linkedin_url || "#"}
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="profile-social-pill"
-                >
-                  <LinkedInIcon size={15} />
-                  <span>LinkedIn</span>
-                </a>
-
-                <a 
-                  href="#"
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="profile-social-pill"
-                >
-                  <XTwitterIcon size={15} />
-                  <span>X / Twitter</span>
-                </a>
-
-                <a 
-                  href={user?.website || "#"}
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="profile-social-pill"
-                >
-                  <Globe size={15} />
-                  <span>Portfolio</span>
-                  <ExternalLink size={12} />
-                </a>
-
-                <a 
-                  href="#"
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="profile-social-pill"
-                >
-                  <BookOpen size={15} />
-                  <span>Dev.to</span>
-                </a>
-
-                <a 
-                  href={user?.email ? `mailto:${user.email}` : "#"}
-                  className="profile-social-pill"
-                >
-                  <Mail size={15} />
-                  <span>Email</span>
-                </a>
+                {[
+                  [user?.github_url, "GitHub", GitHubIcon],
+                  [user?.linkedin_url, "LinkedIn", LinkedInIcon],
+                  [user?.twitter_url, "X / Twitter", XTwitterIcon],
+                  [user?.website, "Portfolio", Globe],
+                  [user?.devto_url, "Dev.to", BookOpen],
+                  [user?.email && `mailto:${user.email}`, "Email", Mail]
+                ].filter(([href]) => href).map(([href, label, Icon]) => (
+                  <a key={label} href={href} target={label === "Email" ? undefined : "_blank"} rel={label === "Email" ? undefined : "noreferrer"} className="profile-social-pill">
+                    <Icon size={15} />
+                    <span>{label}</span>
+                    {label !== "Email" && <ExternalLink size={12} />}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -417,9 +378,13 @@ export default function UserProfilePage() {
                       <Terminal size={12} />
                       ANNUAL REPOSITORY CONTRIBUTIONS
                     </span>
-                    <h3 className="card-subheading">1,284 Contributions in 2026</h3>
+                    <h3 className="card-subheading">
+                      {user?.github_url ? "GitHub contribution history" : "Connect GitHub to show contributions"}
+                    </h3>
                     <p className="card-desc">
-                      Continuous delivery across distributed microservices, pull request reviews, and open-source contributions.
+                      {user?.github_url
+                        ? "Your verified repository activity will appear here once GitHub sync is enabled."
+                        : "Add your GitHub profile in Edit Profile. No contribution numbers are shown until they can be verified."}
                     </p>
                   </div>
 
@@ -459,7 +424,7 @@ export default function UserProfilePage() {
                     </div>
 
                     <div className="heatmap-grid" role="grid" aria-label="Contribution activity">
-                      {heatmapData.weeks.map((week, wIdx) => (
+                      {heatmapData.weeks.length ? heatmapData.weeks.map((week, wIdx) => (
                         <div key={wIdx} className="heatmap-week-col">
                           {week.map((day, dIdx) => (
                             <div
@@ -471,7 +436,9 @@ export default function UserProfilePage() {
                             />
                           ))}
                         </div>
-                      ))}
+                      )) : (
+                        <span className="card-desc">No verified GitHub contribution data connected.</span>
+                      )}
                     </div>
                   </div>
 
@@ -484,7 +451,7 @@ export default function UserProfilePage() {
                         </span>
                       ) : (
                         <span style={{ color: "var(--text-muted)" }}>
-                          Hover over any cell to view daily production commits
+                          Connect GitHub to view verified daily contributions
                         </span>
                       )}
                     </div>
@@ -948,6 +915,19 @@ export default function UserProfilePage() {
                 />
               </div>
 
+              <div className="form-field-group">
+                <label className="form-label">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  className="form-input"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="you@example.com"
+                />
+                <span className="field-hint">Changing this also changes the email used to sign in.</span>
+              </div>
+
               {/* Bio */}
               <div className="form-field-group">
                 <label className="form-label">Professional Bio</label>
@@ -1006,6 +986,30 @@ export default function UserProfilePage() {
                   onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
                   placeholder="https://..."
                 />
+              </div>
+
+              <div className="form-field-group">
+                <label className="form-label">Professional Links</label>
+                <div style={{ display: "grid", gap: "10px" }}>
+                  {[
+                    ["github_url", "GitHub URL", "https://github.com/username"],
+                    ["linkedin_url", "LinkedIn URL", "https://linkedin.com/in/username"],
+                    ["twitter_url", "X / Twitter URL", "https://x.com/username"],
+                    ["website", "Portfolio URL", "https://yourportfolio.com"],
+                    ["devto_url", "Dev.to URL", "https://dev.to/username"]
+                  ].map(([field, label, placeholder]) => (
+                    <input
+                      key={field}
+                      type="url"
+                      className="form-input"
+                      value={formData[field]}
+                      onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
+                      placeholder={placeholder}
+                      aria-label={label}
+                    />
+                  ))}
+                </div>
+                <span className="field-hint">Only links you add will appear on your public profile.</span>
               </div>
 
               {/* Action Buttons */}

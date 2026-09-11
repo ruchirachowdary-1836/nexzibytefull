@@ -38,11 +38,18 @@ export const authService = {
     return request("/users/me", { headers: { Authorization: `Bearer ${getToken()}` } });
   },
   async updateProfile(payload) {
+    const updatedUser = await (async () => {
     return request("/users/me", {
       method: "PUT",
       headers: { Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify(payload)
     });
+    })();
+    if (updatedUser.access_token) {
+      localStorage.setItem(TOKEN_KEY, updatedUser.access_token);
+      delete updatedUser.access_token;
+    }
+    return updatedUser;
   },
   logout() {
     localStorage.removeItem(TOKEN_KEY);

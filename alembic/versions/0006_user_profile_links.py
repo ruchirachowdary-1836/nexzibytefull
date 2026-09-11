@@ -22,6 +22,9 @@ def upgrade():
         ('professional_role', sa.String(length=120)),
         ('website', sa.String(length=500)),
         ('linkedin_url', sa.String(length=500)),
+        ('github_url', sa.String(length=500)),
+        ('twitter_url', sa.String(length=500)),
+        ('devto_url', sa.String(length=500)),
     )
     for name, column_type in additions:
         if name not in columns:
@@ -32,6 +35,6 @@ def downgrade():
     inspector = sa.inspect(op.get_bind())
     columns = {column['name'] for column in inspector.get_columns('users')}
 
-    for name in ('linkedin_url', 'website', 'professional_role', 'profile_image'):
+    for name in ('devto_url', 'twitter_url', 'github_url', 'linkedin_url', 'website', 'professional_role', 'profile_image'):
         if name in columns:
             op.drop_column('users', name)

@@ -198,10 +198,16 @@ export function AppProvider({ children }) {
   const updateUserProfile = (newFields) => {
     return authService.updateProfile({
       name: newFields.name,
+      email: newFields.email,
       bio: newFields.bio,
       location: newFields.location,
       professional_role: newFields.title || newFields.role,
       profile_image: newFields.avatar,
+      website: newFields.website,
+      linkedin_url: newFields.linkedin_url,
+      github_url: newFields.github_url,
+      twitter_url: newFields.twitter_url,
+      devto_url: newFields.devto_url,
     }).then((updatedUser) => {
       setUser(updatedUser);
       showToast("Profile saved to your Nexzibyte account.");
@@ -240,10 +246,16 @@ export function AppProvider({ children }) {
         updateUserProfile: async (newFields) => {
           const updated = await authService.updateProfile({
             name: newFields.name,
+            email: newFields.email,
             bio: newFields.bio,
             location: newFields.location,
             professional_role: newFields.role || newFields.title,
-            profile_image: newFields.avatar
+            profile_image: newFields.avatar,
+            website: newFields.website,
+            linkedin_url: newFields.linkedin_url,
+            github_url: newFields.github_url,
+            twitter_url: newFields.twitter_url,
+            devto_url: newFields.devto_url
           });
           setUser(updated);
           showToast("Profile saved to your account.");

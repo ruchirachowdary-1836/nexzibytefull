@@ -39,6 +39,9 @@ def ensure_user_profile_columns():
         'professional_role': 'VARCHAR(120)',
         'website': 'VARCHAR(500)',
         'linkedin_url': 'VARCHAR(500)',
+        'github_url': 'VARCHAR(500)',
+        'twitter_url': 'VARCHAR(500)',
+        'devto_url': 'VARCHAR(500)',
     }
     missing = [(name, column_type) for name, column_type in additions.items() if name not in columns]
     if not missing:
@@ -86,6 +89,7 @@ class EventIn(BaseModel):
 class RegistrationIn(BaseModel): event_type: Literal['summit', 'founder_meet']; event_id: int
 class ProfileUpdateIn(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    email: EmailStr | None = None
     bio: str | None = None
     location: str | None = None
     profile_image: str | None = None
@@ -93,6 +97,9 @@ class ProfileUpdateIn(BaseModel):
     skills: str | None = None
     website: str | None = None
     linkedin_url: str | None = None
+    github_url: str | None = None
+    twitter_url: str | None = None
+    devto_url: str | None = None
 
 class ChangePasswordIn(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
@@ -246,6 +253,11 @@ def me(user: User = Depends(get_current_user)): return user_item(user)
 
 @app.put('/auth/profile')
 def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    normalized_email = body.email.lower().strip() if body.email else None
+    if normalized_email and normalized_email != user.email:
+        if db.query(User).filter(User.email == normalized_email, User.id != user.id).first():
+            raise HTTPException(409, detail='Email already registered')
+        user.email = normalized_email
     fields = {
         'name': body.name,
         'bio': body.bio,
@@ -255,11 +267,16 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         'skills': body.skills,
         'website': body.website,
         'linkedin_url': body.linkedin_url,
+        'github_url': body.github_url,
+        'twitter_url': body.twitter_url,
+        'devto_url': body.devto_url,
     }
     for key, value in fields.items():
         if value is not None:
             setattr(user, key, value.strip() if isinstance(value, str) else value)
-    db.add(user); db.commit(); db.refresh(user); return user_item(user)
+    db.add(user); db.commit(); db.refresh(user);     response = user_item(user)
+    response['access_token'] = create_access_token(user.email)
+    return response
 
 @app.put('/auth/change-password')
 def change_password(body: ChangePasswordIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
