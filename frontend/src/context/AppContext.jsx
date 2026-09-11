@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
-import { SAVED_POSTS_INITIAL } from "../data/userProfileData.js";
 import { checkBackendHealth } from "../lib/backend.js";
 import { authService } from "../lib/auth.js";
 import { api } from "../lib/api.js";
@@ -19,7 +18,7 @@ export function AppProvider({ children }) {
   const [backendOnline, setBackendOnline] = useState(null);
 
   // Saved Posts / Bookmarks (In-Session)
-  const [savedPosts, setSavedPosts] = useState(SAVED_POSTS_INITIAL);
+  const [savedPosts, setSavedPosts] = useState([]);
 
   // UI Modals & State
   const [passModalOpen, setPassModalOpen] = useState(false);

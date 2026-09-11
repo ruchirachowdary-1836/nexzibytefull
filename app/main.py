@@ -188,12 +188,16 @@ def user_profile_payload(user: User, db: Session):
         'saved_posts_count': db.query(SavedPost).filter_by(user_id=user.id).count(),
         'registrations_count': db.query(Registration).filter_by(user_id=user.id).count(),
     }
+    pass_requests = [item(row) for row in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
+    course_applications = [item(row) for row in db.query(CourseApplication).filter_by(user_id=user.id).order_by(CourseApplication.created_at.desc()).all()]
     return {
         **user_item(user),
         'skills': skills or (user.skills.split(',') if user.skills else []),
         'links': links,
         'posts': posts,
         'activity': activity,
+        'pass_requests': pass_requests,
+        'course_applications': course_applications,
         'settings': item(ensure_user_settings(db, user)),
     }
 
@@ -281,10 +285,10 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
 @app.get('/auth/me')
-def auth_me(user: User = Depends(get_current_user)): return user_item(user)
+def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
 @app.get('/users/me')
-def me(user: User = Depends(get_current_user)): return user_item(user)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
 @app.put('/auth/profile')
 def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

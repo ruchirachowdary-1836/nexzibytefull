@@ -33,14 +33,6 @@ function XTwitterIcon({ size = 15 }) {
 }
 
 import { useApp } from "../context/AppContext.jsx";
-import {
-  PROFILE_METRICS,
-  SKILL_CATEGORIES,
-  PUBLISHED_POSTS,
-  ACTIVITY_FEED,
-  CAREER_TIMELINE,
-  SPEAKING_ENGAGEMENTS
-} from "../data/userProfileData.js";
 
 export default function UserProfilePage() {
   const { 
@@ -82,18 +74,37 @@ export default function UserProfilePage() {
   // Contribution Heatmap Data (Memoized 52 weeks)
   const heatmapData = useMemo(() => ({ weeks: [], monthLabels: [] }), []);
   const [hoveredDay, setHoveredDay] = useState(null);
+  const profilePosts = user?.posts || [];
+  const activityFeed = [];
+  const careerTimeline = [];
+  const speakingEngagements = [];
+  const profileSkillCategories = user?.skills
+    ? [{ category: "Skills", color: "#2563EB", skills: user.skills.split(",").map((name) => ({ name: name.trim(), level: "Added by user", years: "" })).filter((skill) => skill.name) }]
+    : [];
+  const profileMetrics = [
+    { label: "Published Dispatches", value: user?.activity?.posts_count || 0, suffix: "", desc: "Posts published from this account" },
+    { label: "Saved Architectures", value: savedPosts.length, suffix: "", desc: "Saved items in this session" },
+    { label: "Annual Contributions", value: "—", suffix: "", desc: "Verified repository activity only" },
+    { label: "Event Registrations", value: user?.activity?.registrations_count || 0, suffix: "", desc: "Registrations stored for this account" }
+  ];
 
   // Check if current user details deviate from default (indicating active session edits)
   // Open Edit Modal with current values
   const handleOpenEdit = () => {
     setFormData({
       name: user?.name || "",
+      email: user?.email || "",
       title: user?.professional_role || "",
       bio: user?.bio || "",
       location: user?.location || "",
       role: user?.professional_role || "",
       company: "",
       avatar: user?.profile_image || ""
+      ,website: user?.website || "",
+      linkedin_url: user?.linkedin_url || "",
+      github_url: user?.github_url || "",
+      twitter_url: user?.twitter_url || "",
+      devto_url: user?.devto_url || ""
     });
     setEditModalOpen(true);
   };
@@ -126,7 +137,7 @@ export default function UserProfilePage() {
   };
 
   // Filter published posts
-  const filteredPosts = PUBLISHED_POSTS.filter(p => {
+  const filteredPosts = profilePosts.filter(p => {
     const q = postSearch.toLowerCase();
     return !q || 
       p.title.toLowerCase().includes(q) || 
@@ -146,14 +157,12 @@ export default function UserProfilePage() {
           <div className="profile-cover-grid" />
           
           <div className="profile-cover-tags">
-            <span className="profile-badge-pill verified">
-              <ShieldCheck size={13} />
-              <span>Verified NexziByte Architect</span>
-            </span>
-            <span className="profile-badge-pill id-code">
-              <Terminal size={12} />
-              {user?.passId && <span>ID: {user.passId}</span>}
-            </span>
+            {user?.passId && (
+              <span className="profile-badge-pill id-code">
+                <Terminal size={12} />
+                <span>ID: {user.passId}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -173,9 +182,9 @@ export default function UserProfilePage() {
                   }}
                 />
                 <div className="profile-avatar-fallback" style={{ display: "none" }}>
-                  {user?.avatarInitials || "MA"}
+                  {(user?.name || "?").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
-                <div className="profile-status-indicator" title={user?.status || "Available for Consulting"} />
+                {user && <div className="profile-status-indicator" title={user.is_active ? "Active account" : "Inactive account"} />}
               </div>
 
               {/* Action Buttons: Edit (Session), Share, Pass */}
@@ -228,10 +237,7 @@ export default function UserProfilePage() {
                 >
                   <Edit3 size={16} />
                 </button>
-                <span className="profile-handle">{user?.handle || "@nexzibyte_techtalk"}</span>
-                <span className="profile-verified-badge" title="Verified Engineering Fellow">
-                  <CheckCircle2 size={16} />
-                </span>
+                {user?.handle && <span className="profile-handle">{user.handle}</span>}
               </div>
 
               <div className="profile-headline-title">
@@ -290,10 +296,10 @@ export default function UserProfilePage() {
               EXECUTIVE METRICS GRID
               ══════════════════════════════════════════════════════════════════ */}
           <div className="profile-metrics-strip">
-            {PROFILE_METRICS.map((metric, idx) => (
+            {profileMetrics.map((metric, idx) => (
               <div key={idx} className="metric-strip-card">
                 <div className="metric-strip-val">
-                  {idx === 1 ? savedPosts.length : metric.value}{metric.suffix}
+                  {metric.value}{metric.suffix}
                 </div>
                 <div className="metric-strip-label">{metric.label}</div>
                 <div className="metric-strip-desc">{metric.desc}</div>
@@ -326,7 +332,7 @@ export default function UserProfilePage() {
               >
                 <BookOpen size={16} />
                 <span>Published Dispatches</span>
-                <span className="tab-counter-badge">{PUBLISHED_POSTS.length}</span>
+                <span className="tab-counter-badge">{profilePosts.length}</span>
               </button>
 
               <button
@@ -482,7 +488,7 @@ export default function UserProfilePage() {
                 </p>
 
                 <div className="activity-timeline-list">
-                  {ACTIVITY_FEED.map((act) => (
+                  {activityFeed.map((act) => (
                     <div key={act.id} className="activity-timeline-item">
                       <div className="timeline-badge-node" style={{ backgroundColor: act.badgeColor }}>
                         {act.type === "commit" && <GitCommit size={14} />}
@@ -517,7 +523,7 @@ export default function UserProfilePage() {
                             type="button"
                             className="btn btn-secondary btn-sm activity-view-btn"
                             onClick={() => {
-                              const art = PUBLISHED_POSTS.find(p => p.id === act.articleId);
+                              const art = profilePosts.find(p => p.id === act.articleId);
                               if (art) openArticleReader(art);
                             }}
                           >
@@ -735,7 +741,7 @@ export default function UserProfilePage() {
                   >
                     All Disciplines
                   </button>
-                  {SKILL_CATEGORIES.map((cat, idx) => (
+                  {profileSkillCategories.map((cat, idx) => (
                     <button
                       key={idx}
                       type="button"
@@ -749,7 +755,7 @@ export default function UserProfilePage() {
               </div>
 
               <div className="skills-domains-grid">
-                {SKILL_CATEGORIES.filter(cat => selectedSkillCategory === "All" || selectedSkillCategory === cat.category).map((cat, idx) => (
+                {profileSkillCategories.filter(cat => selectedSkillCategory === "All" || selectedSkillCategory === cat.category).map((cat, idx) => (
                   <div key={idx} className="skill-domain-card">
                     <div className="domain-card-header">
                       <div className="domain-accent-dot" style={{ backgroundColor: cat.color }} />
@@ -798,7 +804,7 @@ export default function UserProfilePage() {
                 <p className="card-desc">Demonstrated enterprise impact across high-growth technology ventures.</p>
 
                 <div className="career-timeline-wrapper">
-                  {CAREER_TIMELINE.map((item, idx) => (
+                  {careerTimeline.map((item, idx) => (
                     <div key={idx} className="career-timeline-card">
                       <div className="career-period-badge">{item.period}</div>
                       <div className="career-card-content">
@@ -826,7 +832,7 @@ export default function UserProfilePage() {
                 <p className="card-desc">Keynote addresses and technical workshops presented to engineering audiences.</p>
 
                 <div className="speaking-grid">
-                  {SPEAKING_ENGAGEMENTS.map((spk, idx) => (
+                  {speakingEngagements.map((spk, idx) => (
                     <div key={idx} className="speaking-card">
                       <div className="speaking-tag-pill">{spk.tag}</div>
                       <h4 className="speaking-topic">{spk.topic}</h4>
