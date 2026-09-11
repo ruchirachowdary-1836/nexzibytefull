@@ -791,7 +791,16 @@ def delete_summit(event_id:int,db:Session=Depends(get_db),_:User=Depends(require
 @app.post('/founder-meets',status_code=201)
 def create_founder_meet(body:EventIn,db:Session=Depends(get_db),_:User=Depends(require_admin)): return make_event(db,FounderMeet,body)
 @app.get('/founder-meets')
-def list_founder_meets(status:str|None=None,db:Session=Depends(get_db)): return list_events(db,FounderMeet,status)
+def list_founder_meets(status: str | None = None, public: bool = False, db: Session = Depends(get_db)):
+    query = db.query(FounderMeet)
+    if public:
+        query = query.filter(FounderMeet.is_published.is_(True))
+    if status:
+        if status not in ('upcoming', 'past'):
+            raise HTTPException(422, detail='status must be upcoming or past')
+        compare = FounderMeet.date >= date.today() if status == 'upcoming' else FounderMeet.date < date.today()
+        query = query.filter(compare)
+    return [event_response(event) for event in query.order_by(FounderMeet.date)]
 @app.get('/founder-meets/{event_id}')
 def founder_meet_detail(event_id:int,db:Session=Depends(get_db)): return event_response(one(db,FounderMeet,event_id))
 @app.get('/founder-meets/{event_id}/agenda')

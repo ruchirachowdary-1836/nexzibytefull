@@ -1,15 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Sparkles, Rocket, Users, Shield, TrendingUp, Building2, Calendar, 
   MapPin, Clock, ArrowRight, CheckCircle2, ChevronRight, 
   Ticket, Coffee, Award, Lock, Star, MessageSquare
 } from "lucide-react";
-import { 
-  FOUNDER_NETWORKING_OPPORTUNITIES, 
-  FOUNDER_MEETS_LIST 
-} from "../data/founderMeetsData.js";
+import { FOUNDER_NETWORKING_OPPORTUNITIES } from "../data/founderMeetsData.js";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 const OPPORTUNITY_ICONS = {
   Shield: Shield,
@@ -21,17 +19,48 @@ const OPPORTUNITY_ICONS = {
 export default function FounderMeetsPage() {
   const navigate = useNavigate();
   const { openPassModal, showToast } = useApp();
+  const [founderMeets, setFounderMeets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeFilter, setActiveFilter] = useState("all"); // "all", "upcoming", "past"
 
+  useEffect(() => {
+    let active = true;
+    api.getFounderMeets()
+      .then((items) => {
+        if (active) {
+          setFounderMeets(items.map((meet) => ({
+            ...meet,
+            name: meet.title,
+            date: new Date(`${meet.date}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+            time: meet.time ? new Date(`1970-01-01T${meet.time}`).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "Time to be announced",
+            badge: meet.founder_information || "FOUNDER MEET",
+            shortDescription: meet.description || "Details will be announced by the TechTalk team.",
+            location: meet.location || "Location to be announced",
+            spotsTotal: null,
+            spotsRemaining: null,
+          })));
+        }
+      })
+      .catch(() => {
+        if (active) showToast("Unable to load founder meets from the database.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [showToast]);
+
   // Filtered Meets
   const filteredMeets = useMemo(() => {
-    if (activeFilter === "all") return FOUNDER_MEETS_LIST;
-    return FOUNDER_MEETS_LIST.filter((m) => m.status === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === "all") return founderMeets;
+    return founderMeets.filter((m) => m.status === activeFilter);
+  }, [activeFilter, founderMeets]);
 
-  const upcomingCount = FOUNDER_MEETS_LIST.filter(m => m.status === "upcoming").length;
-  const pastCount = FOUNDER_MEETS_LIST.filter(m => m.status === "past").length;
+  const upcomingCount = founderMeets.filter(m => m.status === "upcoming").length;
+  const pastCount = founderMeets.filter(m => m.status === "past").length;
 
   return (
     <div className="founder-meets-page-luxury">
@@ -278,7 +307,7 @@ export default function FounderMeetsPage() {
                 {/* Event Image Banner */}
                 <div className="meet-card-img-wrap">
                   <img 
-                    src={meet.image} 
+                    src={meet.banner || undefined}
                     alt={meet.name} 
                     className="meet-card-img"
                     loading="lazy"
@@ -327,7 +356,7 @@ export default function FounderMeetsPage() {
 
 
                   {/* Spots indicator */}
-                  {meet.status === "upcoming" && (
+                  {meet.status === "upcoming" && meet.spotsTotal && meet.spotsRemaining !== null && (
                     <div className="meet-spots-indicator">
                       <div className="spots-bar-bg">
                         <div 

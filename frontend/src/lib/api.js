@@ -19,6 +19,7 @@ export async function apiRequest(path, options = {}) {
 }
 
 export const api = {
+  getFounderMeets: () => apiRequest("/founder-meets?public=true"),
   subscribeNewsletter: (email) =>
     apiRequest("/newsletter/subscribe", {
       method: "POST",
