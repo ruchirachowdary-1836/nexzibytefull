@@ -1,8 +1,8 @@
-"""Add profile website and LinkedIn fields.
+"""Add user profile URL and role fields.
 
 These fields were added to the ORM after the original production schema was
-created. Keep the migration conditional so databases bootstrapped from the
-current metadata remain compatible.
+created. Keep the migration conditional so older databases and databases
+bootstrapped from current metadata remain compatible.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -17,17 +17,21 @@ def upgrade():
     inspector = sa.inspect(op.get_bind())
     columns = {column['name'] for column in inspector.get_columns('users')}
 
-    if 'website' not in columns:
-        op.add_column('users', sa.Column('website', sa.String(length=500), nullable=True))
-    if 'linkedin_url' not in columns:
-        op.add_column('users', sa.Column('linkedin_url', sa.String(length=500), nullable=True))
+    additions = (
+        ('profile_image', sa.String(length=500)),
+        ('professional_role', sa.String(length=120)),
+        ('website', sa.String(length=500)),
+        ('linkedin_url', sa.String(length=500)),
+    )
+    for name, column_type in additions:
+        if name not in columns:
+            op.add_column('users', sa.Column(name, column_type, nullable=True))
 
 
 def downgrade():
     inspector = sa.inspect(op.get_bind())
     columns = {column['name'] for column in inspector.get_columns('users')}
 
-    if 'linkedin_url' in columns:
-        op.drop_column('users', 'linkedin_url')
-    if 'website' in columns:
-        op.drop_column('users', 'website')
+    for name in ('linkedin_url', 'website', 'professional_role', 'profile_image'):
+        if name in columns:
+            op.drop_column('users', name)
