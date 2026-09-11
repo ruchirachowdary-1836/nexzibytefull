@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
-from sqlalchemy import func, or_
+from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db
@@ -18,6 +18,7 @@ from .auth import create_access_token, get_current_user, get_optional_user, hash
 async def lifespan(_: FastAPI):
     # Migrations own schema changes; this only bootstraps a brand-new database.
     Base.metadata.create_all(bind=engine)
+    ensure_user_profile_columns()
     yield
 
 
@@ -29,6 +30,22 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+
+def ensure_user_profile_columns():
+    columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    additions = {
+        'profile_image': 'VARCHAR(500)',
+        'professional_role': 'VARCHAR(120)',
+        'website': 'VARCHAR(500)',
+        'linkedin_url': 'VARCHAR(500)',
+    }
+    missing = [(name, column_type) for name, column_type in additions.items() if name not in columns]
+    if not missing:
+        return
+    with engine.begin() as connection:
+        for name, column_type in missing:
+            connection.execute(text(f'ALTER TABLE users ADD COLUMN {name} {column_type}'))
 
 @app.get('/', tags=['System'])
 def root():
