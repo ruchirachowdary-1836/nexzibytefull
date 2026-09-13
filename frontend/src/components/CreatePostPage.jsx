@@ -407,8 +407,8 @@ export default function CreatePostPage() {
                         className="preview-author-avatar"
                       />
                       <div>
-                        <div className="preview-author-name">{user?.name || "M. L. S. V. Aiswarya"}</div>
-                        <div className="preview-author-role">{user?.role || "Senior Full Stack Developer"}</div>
+                        <div className="preview-author-name">{user?.name || "Your name"}</div>
+                        <div className="preview-author-role">{user?.role || "Community member"}</div>
                       </div>
                     </div>
 

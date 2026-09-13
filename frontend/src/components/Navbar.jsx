@@ -421,7 +421,7 @@ export default function Navbar() {
                 />
               </div>
               <span className="nav-profile-name-tiny">
-                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "Aiswarya"}
+                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "Profile"}
               </span>
             </Link>
 
@@ -476,7 +476,7 @@ export default function Navbar() {
               style={{ display: "flex", alignItems: "center", gap: "10px", color: "#38BDF8", fontWeight: 700 }}
             >
               <User size={18} />
-              <span>{user?.name || "M. L. S. V. Aiswarya"} (View Profile)</span>
+              <span>{user?.name || "View profile"}</span>
             </Link>
             <Link
               to="/create-post"

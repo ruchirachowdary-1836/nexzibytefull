@@ -222,8 +222,9 @@ export default function CheckoutPage() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Form Fields (Right Column)
-  const [email, setEmail] = useState("lalitha@nexzibyte.com");
-  const [phone, setPhone] = useState("9876543210");
+  const { user } = useApp();
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("Lalitha Mindhi");
   const [country, setCountry] = useState("India");
   const [state, setState] = useState("Telangana");
