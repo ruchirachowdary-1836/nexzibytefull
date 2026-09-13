@@ -1,18 +1,18 @@
 import React from "react";
-import { 
-  Sparkles, ShieldCheck, QrCode, Copy, Check, Download, 
-  Smartphone, ExternalLink, Calendar, MapPin 
+import {
+  Sparkles, ShieldCheck, QrCode, Copy, Check, Download,
+  Smartphone, ExternalLink, Calendar, MapPin
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 // Minimal SVG QR Code generator for the pass
 export function PassQRCodeSVG({ value, size = 130 }) {
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 100 100" 
-      fill="none" 
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label={`QR Code: ${value}`}
     >
@@ -70,7 +70,6 @@ export function PassQRCodeSVG({ value, size = 130 }) {
 
 export default function DigitalPass() {
   const { activePass, showToast } = useApp();
-  if (!activePass) return null;
 
   const handleCopyId = () => {
     navigator.clipboard?.writeText(activePass.passId);
@@ -117,7 +116,11 @@ export default function DigitalPass() {
             <div className="ticket-body">
               <div className="ticket-info-block">
                 <div>
-                  <span className="ticket-pass-type-badge">
+                  <span className={`ticket-pass-type-badge ${
+                    activePass.passType?.includes("STUDENT") ? "student" :
+                    activePass.passType?.includes("FOUNDER") ? "founder" :
+                    activePass.passType?.includes("DELEGAT") ? "delegate" : "visitor"
+                  }`}>
                     {activePass.passType}
                   </span>
                 </div>
@@ -125,15 +128,20 @@ export default function DigitalPass() {
                 <div>
                   <div className="ticket-field-label">PASS HOLDER</div>
                   <div className="ticket-field-value">{activePass.holder}</div>
+                  {(activePass.role || activePass.organization) && (
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px", fontWeight: 600 }}>
+                      {[activePass.role, activePass.organization].filter(Boolean).join(" • ")}
+                    </div>
+                  )}
                 </div>
 
                 <div>
-                  <div className="ticket-field-label">PASS ID</div>
+                  <div className="ticket-field-label">PASS ID NO.</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span className="ticket-id-value">{activePass.passId}</span>
-                    <button 
+                    <button
                       type="button"
-                      onClick={handleCopyId} 
+                      onClick={handleCopyId}
                       style={{ color: "var(--text-secondary)", padding: "4px" }}
                       title="Copy Pass ID"
                     >
@@ -187,8 +195,8 @@ export default function DigitalPass() {
 
         {/* Supporting Actions */}
         <div className="ticket-actions-bar">
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn btn-secondary btn-sm"
             onClick={handleDownload}
           >

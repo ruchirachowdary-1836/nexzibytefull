@@ -1,65 +1,141 @@
 import React, { useState } from "react";
-import { X, Sparkles, User } from "lucide-react";
-import { useClerk } from "@clerk/clerk-react";
+import { Link, useNavigate } from "react-router-dom";
+import { X, Sparkles, User, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function LoginModal() {
-  const { loginModalOpen, setLoginModalOpen, login, register, showToast } = useApp();
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const { loginModalOpen, setLoginModalOpen, user, login, showToast } = useApp();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const clerkEnabled = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
   if (!loginModalOpen) return null;
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
     setError("");
     try {
-      if (mode === "register") await register({ name, email, password });
-      else await login({ email, password, name });
+      const authenticatedUser = await login({ email, password });
       setLoginModalOpen(false);
-      showToast("Welcome to NexziByte TechTalk.");
+      showToast(`Welcome back, ${authenticatedUser.name || "Member"}! Signed in to NexziByte TechTalk.`);
     } catch (requestError) {
       setError(requestError.message);
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const handleRegisterClick = () => {
+    setLoginModalOpen(false);
+    navigate("/register");
   };
 
   return (
     <div className="modal-backdrop-overlay" onClick={() => setLoginModalOpen(false)}>
-      <div className="modal-content-card" style={{ maxWidth: "440px" }} onClick={(event) => event.stopPropagation()}>
-        <button type="button" className="modal-close-btn" onClick={() => setLoginModalOpen(false)} aria-label="Close modal"><X size={18} /></button>
-        <div style={{ marginBottom: "24px" }}>
-          <span className="section-label"><Sparkles size={13} /> {mode === "login" ? "MEMBER SIGN IN" : "CREATE YOUR ACCOUNT"}</span>
-          <h3 style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>{mode === "login" ? "Welcome to TechTalk" : "Join NexziByte TechTalk"}</h3>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>Your profile is created from the details you submit and stored in your account.</p>
+      <div className="modal-content-card" style={{ maxWidth: "440px" }} onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={() => setLoginModalOpen(false)}
+          aria-label="Close modal"
+        >
+          <X size={18} />
+        </button>
+
+        <div style={{ marginBottom: "20px" }}>
+          <span className="section-label">
+            <Sparkles size={13} />
+            MEMBER SIGN IN
+          </span>
+          <h3 style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>
+            Welcome to TechTalk
+          </h3>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+            Access your registered digital passes, discussions, and authored dispatches.
+          </p>
         </div>
-        <form onSubmit={handleSubmit}>
-          {mode === "register" ? <div className="form-field-group"><label className="form-label">Full Name</label><input type="text" required className="form-input" value={name} onChange={(event) => setName(event.target.value)} /></div> : null}
-          <div className="form-field-group"><label className="form-label">Email</label><input type="email" required className="form-input" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
-          <div className="form-field-group"><label className="form-label">Password</label><input type="password" required minLength={8} className="form-input" value={password} onChange={(event) => setPassword(event.target.value)} /></div>
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "10px" }}><User size={16} /><span>{mode === "login" ? "Sign In to NexziByte" : "Create NexziByte Account"}</span></button>
-          {error ? <p className="form-error">{error}</p> : null}
+
+        <form onSubmit={handleLogin}>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <div className="form-field-group">
+            <label className="form-label">Email Address</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="email"
+                required
+                className="form-input"
+                placeholder="name@organization.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-field-group">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label className="form-label">Password</label>
+              <button
+                type="button"
+                className="form-link-subtle"
+                onClick={() => showToast(`Password recovery link sent to ${email}.`)}
+              >
+                Forgot password?
+              </button>
+            </div>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                className="form-input"
+                style={{ paddingRight: "40px" }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="form-checkbox-row">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span>Remember me for 30 days</span>
+            </label>
+          </div>
+
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "14px" }} disabled={submitting}>
+            <span>{submitting ? "Signing in..." : "Sign In to NexziByte"}</span>
+            <ArrowRight size={15} />
+          </button>
+
+          <div className="auth-footer-switcher" style={{ marginTop: "18px", textAlign: "center", fontSize: "0.875rem" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Don't have an account? </span>
+            <button
+              type="button"
+              className="switcher-link"
+              onClick={handleRegisterClick}
+              style={{ background: "none", border: "none", color: "var(--nexzibyte-purple)", fontWeight: 700, cursor: "pointer" }}
+            >
+              Register here
+            </button>
+          </div>
         </form>
-        {clerkEnabled ? <ClerkGoogleButton onSuccess={() => { setLoginModalOpen(false); showToast("Welcome to Nexzibyte TechTalk."); }} /> : null}
-        <button type="button" className="btn btn-secondary" style={{ width: "100%", marginTop: "10px" }} onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>{mode === "login" ? "Create an account" : "Already have an account? Sign in"}</button>
       </div>
     </div>
-  );
-}
-
-function ClerkGoogleButton({ onSuccess }) {
-  const { openSignIn } = useClerk();
-  return (
-    <button
-      type="button"
-      className="btn btn-secondary"
-      style={{ width: "100%", marginTop: "10px" }}
-      onClick={() => openSignIn({ afterSignInUrl: window.location.pathname }).then(onSuccess)}
-    >
-      Continue with Google
-    </button>
   );
 }

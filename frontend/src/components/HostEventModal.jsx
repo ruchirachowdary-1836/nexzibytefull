@@ -38,20 +38,15 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
         first_name: firstName,
         last_name: lastNameParts.join(" ") || firstName,
         email: formData.email,
-        partnership_type: modalType === "host" ? "event-hosting" : "speaker",
-        details: [
-          `Organisation: ${formData.org || "Not provided"}`,
-          `Format: ${formData.format}`,
-          `Topic: ${formData.topic}`,
-          formData.message ? `Details: ${formData.message}` : "",
-        ].filter(Boolean).join("\n"),
+        partnership_type: modalType === "host" ? "event-hosting" : "speaker-application",
+        details: `Organisation: ${formData.org || "Not provided"}\nTopic: ${formData.topic}\nFormat: ${formData.format}\n${formData.message || ""}`.trim()
       });
-      setSubmitting(false);
       setSubmitted(true);
       showToast(modalType === "host" ? "Event proposal submitted!" : "Speaker application received!");
-    } catch (error) {
+    } catch (requestError) {
+      showToast(requestError.message);
+    } finally {
       setSubmitting(false);
-      showToast(error.message);
     }
   };
 
@@ -69,11 +64,11 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div 
+      <div
         className="modal-container host-event-modal-container"
         onClick={(e) => e.stopPropagation()}
       >
-        <button 
+        <button
           type="button"
           onClick={onClose}
           className="modal-close-btn"
@@ -85,16 +80,16 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
         {/* Modal Type Selector Tabs */}
         <div className="host-modal-header">
           <div className="host-type-toggle">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`host-type-tab ${modalType === "host" ? "active" : ""}`}
               onClick={() => { setModalType("host"); setSubmitted(false); }}
             >
               <Calendar size={16} />
               <span>Host an Event</span>
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`host-type-tab ${modalType === "speaker" ? "active" : ""}`}
               onClick={() => { setModalType("speaker"); setSubmitted(false); }}
             >
@@ -120,24 +115,24 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
               <div className="event-form-row">
                 <div className="event-form-group" style={{ flex: 1 }}>
                   <label className="event-form-label"><User size={14} /> Full Name *</label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    required 
-                    placeholder="Your Name" 
-                    className="event-form-input" 
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="Your Name"
+                    className="event-form-input"
                     value={formData.name}
                     onChange={handleChange}
                   />
                 </div>
                 <div className="event-form-group" style={{ flex: 1 }}>
                   <label className="event-form-label"><Mail size={14} /> Email Address *</label>
-                  <input 
-                    type="email" 
-                    name="email" 
-                    required 
-                    placeholder="you@company.com" 
-                    className="event-form-input" 
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="you@company.com"
+                    className="event-form-input"
                     value={formData.email}
                     onChange={handleChange}
                   />
@@ -147,19 +142,19 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
               <div className="event-form-row">
                 <div className="event-form-group" style={{ flex: 1 }}>
                   <label className="event-form-label"><Building size={14} /> Organization / College</label>
-                  <input 
-                    type="text" 
-                    name="org" 
-                    placeholder="Company or Institution" 
-                    className="event-form-input" 
+                  <input
+                    type="text"
+                    name="org"
+                    placeholder="Company or Institution"
+                    className="event-form-input"
                     value={formData.org}
                     onChange={handleChange}
                   />
                 </div>
                 <div className="event-form-group" style={{ flex: 1 }}>
                   <label className="event-form-label">Preferred Format</label>
-                  <select 
-                    name="format" 
+                  <select
+                    name="format"
                     className="event-form-select"
                     value={formData.format}
                     onChange={handleChange}
@@ -175,12 +170,12 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
 
               <div className="event-form-group">
                 <label className="event-form-label"><FileText size={14} /> {modalType === "host" ? "Event Theme / Concept *" : "Proposed Talk Title / Topic *"}</label>
-                <input 
-                  type="text" 
-                  name="topic" 
-                  required 
-                  placeholder={modalType === "host" ? "e.g. AI In Healthcare Workshop or Cloud Migration Panel" : "e.g. Scaling Kubernetes with Zero-Downtime at High Concurrency"} 
-                  className="event-form-input" 
+                <input
+                  type="text"
+                  name="topic"
+                  required
+                  placeholder={modalType === "host" ? "e.g. AI In Healthcare Workshop or Cloud Migration Panel" : "e.g. Scaling Kubernetes with Zero-Downtime at High Concurrency"}
+                  className="event-form-input"
                   value={formData.topic}
                   onChange={handleChange}
                 />
@@ -188,8 +183,8 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
 
               <div className="event-form-group">
                 <label className="event-form-label">Additional Details / Objectives</label>
-                <textarea 
-                  name="message" 
+                <textarea
+                  name="message"
                   rows={3}
                   placeholder="Tell us about the target audience, expected outcomes, or preferred dates..."
                   className="event-form-textarea"
@@ -199,8 +194,8 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
               </div>
 
               <div className="host-form-actions">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-blue-primary btn-full"
                   disabled={submitting}
                 >
@@ -222,8 +217,8 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
               <p className="host-success-desc">
                 Thank you, <strong>{formData.name}</strong>. Our NexziByte Community Review Committee will review your details and connect with you at <strong>{formData.email}</strong> within 2 business days.
               </p>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-blue-primary"
                 onClick={onClose}
                 style={{ marginTop: "16px" }}

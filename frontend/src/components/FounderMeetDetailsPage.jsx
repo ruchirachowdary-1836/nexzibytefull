@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { 
-  Sparkles, Calendar, Clock, MapPin, Share2, Bookmark, CheckCircle2, 
-  ArrowRight, ArrowLeft, Mic, Building2, Ticket, 
+import {
+  Sparkles, Calendar, Clock, MapPin, Share2, Bookmark, CheckCircle2,
+  ArrowRight, ArrowLeft, Mic, Building2, Ticket,
   Shield, Lock, Coffee, Check, Navigation, AlertCircle, Award,
   MessageSquare
 } from "lucide-react";
@@ -61,8 +61,8 @@ export default function FounderMeetDetailsPage() {
             </Link>
 
             <div className="founder-subbar-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`subbar-action-btn ${savedMeet ? "active" : ""}`}
                 onClick={() => {
                   setSavedMeet(!savedMeet);
@@ -73,8 +73,8 @@ export default function FounderMeetDetailsPage() {
                 <span>{savedMeet ? "Saved" : "Save Meet"}</span>
               </button>
 
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="subbar-action-btn"
                 onClick={handleShare}
               >
@@ -82,8 +82,8 @@ export default function FounderMeetDetailsPage() {
                 <span>Share</span>
               </button>
 
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="subbar-action-btn"
                 onClick={handleAddToCalendar}
               >
@@ -98,9 +98,9 @@ export default function FounderMeetDetailsPage() {
       {/* ── 2. EXECUTIVE HERO BANNER ── */}
       <section className="meet-hero-banner">
         <div className="meet-hero-bg-overlay" />
-        <img 
-          src={currentMeet.bannerImage} 
-          alt={currentMeet.name} 
+        <img
+          src={currentMeet.bannerImage}
+          alt={currentMeet.name}
           className="meet-hero-backdrop-img"
           onError={(e) => {
             e.target.onerror = null;
@@ -180,11 +180,11 @@ export default function FounderMeetDetailsPage() {
                 {currentMeet.status === "upcoming" ? (
                   <button
                     type="button"
-                    className="btn btn-coral btn-lg meet-register-cta"
-                    onClick={() => openPassModal("delegate-pass")}
+                    className="btn btn-amber btn-lg meet-register-cta"
+                    onClick={() => openPassModal(currentMeet.registration?.passTypeId || "founder-pass")}
                   >
                     <Ticket size={18} />
-                    <span>{currentMeet.registration?.ctaText || "Apply for Founder Pass — ₹250"}</span>
+                    <span>{currentMeet.registration?.ctaText || "Get Founder VIP Pass — ₹499"}</span>
                     <ArrowRight size={18} />
                   </button>
                 ) : (
@@ -367,9 +367,16 @@ export default function FounderMeetDetailsPage() {
                 <p className="launch-quote-body">
                   We are proud and excited to announce the official launch of our product by K. T. Rama Rao garu. This launch is a major milestone in our journey toward innovation, technology, and digital transformation. Our platform is designed to empower businesses, streamline hiring, and connect talented professionals with the right opportunities through AI-driven solutions.
                 </p>
-                <div className="launch-quote-author">
-                  <strong>Nagunoori Durga Prasad</strong>
-                  <span>Founder &amp; Managing Director, NexziByte Solutions</span>
+                <div className="launch-quote-author" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <img
+                    src="/images/founder-md-durga-prasad.png"
+                    alt="Nagunoori Durga Prasad - Founder & Managing Director, NexziByte Solutions"
+                    style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", objectPosition: "center 15%", border: "2px solid #D97706", boxShadow: "0 4px 14px rgba(217, 119, 6, 0.4)", flexShrink: 0 }}
+                  />
+                  <div>
+                    <strong>Nagunoori Durga Prasad</strong>
+                    <span>Founder &amp; Managing Director, NexziByte Solutions</span>
+                  </div>
                 </div>
               </div>
 
@@ -503,11 +510,11 @@ export default function FounderMeetDetailsPage() {
               {currentMeet.status === "upcoming" ? (
                 <button
                   type="button"
-                  className="btn btn-coral btn-lg w-100"
-                  onClick={() => openPassModal("delegate-pass")}
+                  className="btn btn-amber btn-lg w-100"
+                  onClick={() => openPassModal(currentMeet.registration?.passTypeId || "founder-pass")}
                 >
                   <Ticket size={16} />
-                  <span>{currentMeet.registration?.ctaText || "Claim Delegate Pass — ₹250"}</span>
+                  <span>{currentMeet.registration?.ctaText || "Get Founder VIP Pass — ₹499"}</span>
                 </button>
               ) : (
                 <button
@@ -549,8 +556,8 @@ export default function FounderMeetDetailsPage() {
 
             <div className="related-meets-grid">
               {FOUNDER_MEETS_LIST.filter(m => m.id !== currentMeet.id).slice(0, 2).map((rel) => (
-                <div 
-                  key={rel.id} 
+                <div
+                  key={rel.id}
                   className="related-meet-card"
                   onClick={() => navigate(`/founder-meets/${rel.id}`)}
                   role="button"

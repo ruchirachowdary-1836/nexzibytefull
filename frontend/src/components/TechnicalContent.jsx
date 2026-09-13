@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight, Clock, User, BookOpen } from "lucide-react";
 import { TECHNICAL_ARTICLES } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -21,16 +22,16 @@ export default function TechnicalContent() {
             </p>
           </div>
 
-          <a href="/explore" className="btn btn-secondary">
+          <Link to="/explore" className="btn btn-secondary">
             <span>Explore All Articles</span>
             <ArrowRight size={16} />
-          </a>
+          </Link>
         </div>
 
         <div className="articles-grid">
           {TECHNICAL_ARTICLES.map((art) => (
-            <div 
-              key={art.id} 
+            <div
+              key={art.id}
               className="article-card"
               onClick={() => openArticleReader(art)}
               role="button"
@@ -50,10 +51,14 @@ export default function TechnicalContent() {
                   </div>
                 </div>
 
-                <div className="article-read-btn">
+                <Link
+                  to={`/posts/${art.id}`}
+                  className="article-read-btn"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <span>Read Article</span>
                   <ArrowRight size={14} />
-                </div>
+                </Link>
               </div>
             </div>
           ))}

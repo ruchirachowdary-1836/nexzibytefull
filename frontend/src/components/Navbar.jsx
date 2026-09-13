@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  ChevronDown, ChevronUp, Menu, X, ArrowRight, Sparkles, User, ShieldCheck, 
+import {
+  ChevronDown, ChevronUp, Menu, X, ArrowRight, Sparkles, User, ShieldCheck,
   Calendar, Users, Rocket, Mic, BookOpen, Layers, CheckCircle2, Ticket,
-  Handshake, Cpu, Globe
+  Handshake, Cpu, Globe, Bell, Plus
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -12,9 +12,9 @@ export function TechTalkBrandedLogo() {
   return (
     <div className="techtalk-brand-logo-wrap" aria-label="TechTalk by NexziByte">
       <div className="nexzibyte-nav-brand-card" title="NexziByte">
-        <img 
-          src="/images/nexzibyte-logo-nav.png" 
-          alt="NexziByte" 
+        <img
+          src="/images/nexzibyte-logo-nav.png"
+          alt="NexziByte"
           className="nexzibyte-nav-brand-img"
         />
       </div>
@@ -32,14 +32,14 @@ export const TechLogoSymbol = TechTalkBrandedLogo;
 // Custom Right Arrow SVG icon matching the boxed arrow button in reference images
 function DropdownArrowIcon() {
   return (
-    <svg 
-      width="20" 
-      height="15" 
-      viewBox="0 0 20 15" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="1.6" 
-      strokeLinecap="round" 
+    <svg
+      width="20"
+      height="15"
+      viewBox="0 0 20 15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
       strokeLinejoin="round"
       className="dropdown-editorial-svg"
     >
@@ -49,7 +49,7 @@ function DropdownArrowIcon() {
 }
 
 export default function Navbar() {
-  const { setLoginModalOpen, openPassModal, user, backendOnline } = useApp();
+  const { setLoginModalOpen, openPassModal, user, unreadNotificationCount } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -117,13 +117,13 @@ export default function Navbar() {
           {/* CENTER: Navigation with Dropdown Cards matching reference screenshots */}
           <nav className="nav-center-menu-dark" aria-label="Main Navigation">
             {/* 1. COMMUNITY (Events & Pricing) */}
-            <div 
+            <div
               className="nav-dropdown-wrapper"
               onMouseEnter={() => setActiveDropdown("community")}
               onMouseLeave={() => setActiveDropdown(null)}
             >
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`nav-dropdown-btn-pill ${activeDropdown === "community" ? "is-active" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -141,7 +141,7 @@ export default function Navbar() {
 
               {activeDropdown === "community" && (
                 <div className="nav-editorial-dropdown-panel" role="menu">
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/events", null)}
@@ -156,7 +156,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/summits", null)}
@@ -171,7 +171,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/founder-meets", null)}
@@ -186,7 +186,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => {
@@ -208,13 +208,13 @@ export default function Navbar() {
             </div>
 
             {/* 2. SERVICES (Courses & Internship in place of CV & Individual Coaching) */}
-            <div 
+            <div
               className="nav-dropdown-wrapper"
               onMouseEnter={() => setActiveDropdown("services")}
               onMouseLeave={() => setActiveDropdown(null)}
             >
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`nav-dropdown-btn-pill ${activeDropdown === "services" ? "is-active" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -232,7 +232,7 @@ export default function Navbar() {
 
               {activeDropdown === "services" && (
                 <div className="nav-editorial-dropdown-panel" role="menu">
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/courses", null)}
@@ -247,7 +247,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/internship", null)}
@@ -266,13 +266,13 @@ export default function Navbar() {
             </div>
 
             {/* 3. RESOURCES (Resource center & Success stories) */}
-            <div 
+            <div
               className="nav-dropdown-wrapper"
               onMouseEnter={() => setActiveDropdown("resources")}
               onMouseLeave={() => setActiveDropdown(null)}
             >
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`nav-dropdown-btn-pill ${activeDropdown === "resources" ? "is-active" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -290,7 +290,7 @@ export default function Navbar() {
 
               {activeDropdown === "resources" && (
                 <div className="nav-editorial-dropdown-panel" role="menu">
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/explore", null)}
@@ -305,7 +305,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/#testimonials", "testimonials")}
@@ -324,13 +324,13 @@ export default function Navbar() {
             </div>
 
             {/* 4. ABOUT (About us & Contact us) */}
-            <div 
+            <div
               className="nav-dropdown-wrapper"
               onMouseEnter={() => setActiveDropdown("about")}
               onMouseLeave={() => setActiveDropdown(null)}
             >
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`nav-dropdown-btn-pill ${activeDropdown === "about" ? "is-active" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -348,7 +348,7 @@ export default function Navbar() {
 
               {activeDropdown === "about" && (
                 <div className="nav-editorial-dropdown-panel" role="menu">
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/#community-intro", "community-intro")}
@@ -363,7 +363,7 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     type="button"
                     className="nav-editorial-dropdown-item"
                     onClick={() => handleNavigation("/#join-techtalk", "join-techtalk")}
@@ -382,8 +382,8 @@ export default function Navbar() {
             </div>
 
             {/* 5. PARTNER (Lime accent matching Screenshot 4) */}
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="nav-partner-btn"
               onClick={() => {
                 openPassModal("speaker-pass");
@@ -393,38 +393,57 @@ export default function Navbar() {
             </button>
           </nav>
 
-          {/* RIGHT: Profile + Login + Join Community CTA */}
+          {/* RIGHT: Post + Notification + Profile + Login + Join Community CTA */}
           <div className="nav-right-actions-dark">
-            <span className={`backend-status backend-status-${backendOnline === null ? "checking" : backendOnline ? "online" : "offline"}`} title={backendOnline ? "Backend connected" : backendOnline === false ? "Backend unavailable" : "Checking backend connection"}>
-              {backendOnline === null ? "Checking" : backendOnline ? "Connected" : "Offline"}
-            </span>
-            {user ? <Link
-              to="/profile" 
+            {/* Notifications Bell (§19 & §20 Requirement) */}
+            <Link
+              to="/profile?tab=notifications"
+              className={`nav-notif-bell-btn ${location.search.includes("tab=notifications") ? "is-active" : ""}`}
+              title="View Ecosystem Notifications"
+            >
+              <Bell size={16} />
+              {unreadNotificationCount > 0 && (
+                <span className="notif-indicator-dot" />
+              )}
+            </Link>
+
+            {/* Profile Pill */}
+            <Link
+              to="/profile"
               className={`nav-profile-pill-link ${location.pathname === "/profile" ? "is-active" : ""}`}
               title="View Professional Technology Profile"
             >
               <div className="nav-profile-avatar-tiny">
-                <img 
-                  src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"} 
-                  alt={user?.name || "Profile"} 
+                <img
+                  src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"}
+                  alt={user?.name || "Profile"}
                   onError={(e) => { e.target.style.display = "none"; }}
                 />
               </div>
               <span className="nav-profile-name-tiny">
-                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "TechTalk"}
+                {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "Aiswarya"}
               </span>
-            </Link> : null}
+            </Link>
 
-            <button 
-              type="button" 
+            {/* Quick Post Action Button — Situated properly with creator profile */}
+            <Link
+              to="/create-post"
+              className={`nav-quick-post-btn ${location.pathname === "/create-post" ? "is-active" : ""}`}
+              title="Create Technical Dispatch"
+            >
+              <Plus size={14} strokeWidth={2.4} />
+              <span>Post</span>
+            </Link>
+
+            <Link
+              to="/login"
               className="nav-login-btn-dark"
-              onClick={() => setLoginModalOpen(true)}
             >
               Login
-            </button>
+            </Link>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="nav-join-community-btn"
               onClick={() => openPassModal("visitor-pass")}
             >
@@ -432,7 +451,7 @@ export default function Navbar() {
             </button>
 
             {/* Mobile Menu Button */}
-            <button 
+            <button
               type="button"
               className="mobile-toggle-btn-dark"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -448,46 +467,64 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="mobile-drawer-dark">
           {/* USER PROFILE Section */}
-          {user ? <div className="mobile-drawer-section" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "14px" }}>
-            <div className="mobile-drawer-category">TECHNOLOGY PROFILE</div>
-            <Link 
+          <div className="mobile-drawer-section" style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "14px" }}>
+            <div className="mobile-drawer-category">TECHNOLOGY PROFILE &amp; ACTIONS</div>
+            <Link
               to="/profile"
               className={`mobile-nav-link-dark ${location.pathname === "/profile" ? "active-mobile-blue" : ""}`}
               onClick={() => setMobileMenuOpen(false)}
               style={{ display: "flex", alignItems: "center", gap: "10px", color: "#38BDF8", fontWeight: 700 }}
             >
               <User size={18} />
-              <span>{user?.name || "Nexzibyte TechTalk"} (View Profile)</span>
+              <span>{user?.name || "M. L. S. V. Aiswarya"} (View Profile)</span>
             </Link>
-          </div> : null}
+            <Link
+              to="/create-post"
+              className="mobile-nav-link-dark"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--coral)", fontWeight: 700, marginTop: "6px" }}
+            >
+              <Plus size={18} />
+              <span>+ Create Technical Dispatch</span>
+            </Link>
+            <Link
+              to="/profile?tab=notifications"
+              className="mobile-nav-link-dark"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}
+            >
+              <Bell size={18} />
+              <span>Notifications {unreadNotificationCount > 0 ? `(${unreadNotificationCount} unread)` : ""}</span>
+            </Link>
+          </div>
 
           {/* COMMUNITY Section */}
           <div className="mobile-drawer-section">
             <div className="mobile-drawer-category">COMMUNITY</div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`mobile-nav-link-dark ${location.pathname === "/events" ? "active-mobile-blue" : ""}`}
               onClick={() => handleNavigation("/events", null)}
             >
               Events (Upcoming &amp; Discovery)
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`mobile-nav-link-dark ${location.pathname.startsWith("/summits") ? "active-mobile-blue" : ""}`}
               onClick={() => handleNavigation("/summits", null)}
             >
               Summits (Flagship Conferences)
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`mobile-nav-link-dark ${location.pathname.startsWith("/founder-meets") ? "active-mobile-blue" : ""}`}
               onClick={() => handleNavigation("/founder-meets", null)}
             >
               Founder Meets (Venture Network)
             </button>
-            <button 
-              type="button" 
-              className="mobile-nav-link-dark" 
+            <button
+              type="button"
+              className="mobile-nav-link-dark"
               onClick={() => { setMobileMenuOpen(false); openPassModal("visitor-pass"); }}
             >
               Pricing &amp; Passes
@@ -497,15 +534,15 @@ export default function Navbar() {
           {/* SERVICES Section */}
           <div className="mobile-drawer-section">
             <div className="mobile-drawer-category">SERVICES</div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`mobile-nav-link-dark ${location.pathname === "/courses" ? "active-mobile-blue" : ""}`}
               onClick={() => handleNavigation("/courses", null)}
             >
               Courses (65+ Tracks)
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`mobile-nav-link-dark ${location.pathname === "/internship" ? "active-mobile-blue" : ""}`}
               onClick={() => handleNavigation("/internship", null)}
             >
@@ -516,16 +553,16 @@ export default function Navbar() {
           {/* RESOURCES Section */}
           <div className="mobile-drawer-section">
             <div className="mobile-drawer-category">RESOURCES</div>
-            <button 
-              type="button" 
-              className="mobile-nav-link-dark" 
+            <button
+              type="button"
+              className="mobile-nav-link-dark"
               onClick={() => handleNavigation("/explore", null)}
             >
               Resource Center &amp; Articles
             </button>
-            <button 
-              type="button" 
-              className="mobile-nav-link-dark" 
+            <button
+              type="button"
+              className="mobile-nav-link-dark"
               onClick={() => handleNavigation("/#testimonials", "testimonials")}
             >
               Success Stories
@@ -535,22 +572,22 @@ export default function Navbar() {
           {/* ABOUT & PARTNER Section */}
           <div className="mobile-drawer-section">
             <div className="mobile-drawer-category">ABOUT &amp; PARTNER</div>
-            <button 
-              type="button" 
-              className="mobile-nav-link-dark" 
+            <button
+              type="button"
+              className="mobile-nav-link-dark"
               onClick={() => handleNavigation("/#community-intro", "community-intro")}
             >
               About Us
             </button>
-            <button 
-              type="button" 
-              className="mobile-nav-link-dark" 
+            <button
+              type="button"
+              className="mobile-nav-link-dark"
               onClick={() => handleNavigation("/#join-techtalk", "join-techtalk")}
             >
               Contact Us
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="mobile-nav-link-dark"
               style={{ color: "#FFFFFF", fontWeight: 800 }}
               onClick={() => { setMobileMenuOpen(false); openPassModal("speaker-pass"); }}
@@ -558,18 +595,18 @@ export default function Navbar() {
               Partner With Us
             </button>
           </div>
-          
+
           <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary btn-sm"
               style={{ flex: 1 }}
               onClick={() => { setMobileMenuOpen(false); setLoginModalOpen(true); }}
             >
               Login
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="nav-join-community-btn"
               style={{ flex: 1 }}
               onClick={() => { setMobileMenuOpen(false); openPassModal("visitor-pass"); }}
