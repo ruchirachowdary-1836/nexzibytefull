@@ -1112,21 +1112,6 @@ export const PASSES = [
   }
 ];
 
-export const SAMPLE_PASS = {
-  org: "NEXZIBYTE",
-  event: "TECHTALK 2026",
-  passType: "DELEGATE PASS",
-  price: "₹250",
-  holder: "LALITHA",
-  passId: "TT26-000125",
-  validation: "VALID FOR EVENT ENTRY",
-  status: "Verified",
-  checkedIn: false,
-  checkInTime: null,
-  tags: ["Secure", "Unique", "Contactless"],
-  qrData: "TECHTALK:TT26-000125:LALITHA:DELEGATE:250:VERIFIED"
-};
-
 export const HOW_IT_WORKS_STEPS = [
   {
     step: "01",
@@ -1252,9 +1237,9 @@ export const TESTIMONIALS = [
   },
   {
     id: "t2",
-    name: "Lalitha Mindhi",
+    name: "Community member",
     role: "Staff Cloud Architect",
-    company: "NexziByte Ecosystem",
+    company: "Technology community",
     image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&auto=format&fit=crop&q=80",
     quote: "The digital pass experience, the high-density technical sessions, and the founder circles made TechTalk the most rewarding conference I've attended in years."
   },

@@ -130,7 +130,7 @@ export default function PassRegistrationModal() {
               className="form-input" 
               value={name} 
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Lalitha Mindhi"
+              placeholder="e.g. Your full name"
             />
           </div>
 
@@ -142,7 +142,7 @@ export default function PassRegistrationModal() {
               className="form-input" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. lalitha@company.com"
+              placeholder="e.g. name@company.com"
             />
           </div>
 
