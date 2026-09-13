@@ -409,11 +409,11 @@ export default function UserProfilePage() {
                   <div className="heatmap-stats-pills">
                     <div className="stat-pill">
                       <span className="stat-pill-label">Longest Streak</span>
-                      <span className="stat-pill-val">34 Days</span>
+                      <span className="stat-pill-val">—</span>
                     </div>
                     <div className="stat-pill">
                       <span className="stat-pill-label">Current Streak</span>
-                      <span className="stat-pill-val">12 Days</span>
+                      <span className="stat-pill-val">—</span>
                     </div>
                   </div>
                 </div>
