@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { X, Sparkles, User, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function LoginModal() {
-  const { loginModalOpen, setLoginModalOpen, user, login, showToast } = useApp();
-  const navigate = useNavigate();
+  const { loginModalOpen, setLoginModalOpen, user, login, register, showToast } = useApp();
   const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,19 +20,18 @@ export default function LoginModal() {
     setSubmitting(true);
     setError("");
     try {
-      const authenticatedUser = await login({ email, password });
+      const authenticatedUser = isRegistering
+        ? await register({ name, email, password, role: "user" })
+        : await login({ email, password });
       setLoginModalOpen(false);
-      showToast(`Welcome back, ${authenticatedUser.name || "Member"}! Signed in to NexziByte TechTalk.`);
+      showToast(isRegistering
+        ? `Account created for ${authenticatedUser.name || name}.`
+        : `Welcome back, ${authenticatedUser.name || "Member"}! Signed in to NexziByte TechTalk.`);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleRegisterClick = () => {
-    setLoginModalOpen(false);
-    navigate("/register");
   };
 
   return (
@@ -50,18 +49,33 @@ export default function LoginModal() {
         <div style={{ marginBottom: "20px" }}>
           <span className="section-label">
             <Sparkles size={13} />
-            MEMBER SIGN IN
+            {isRegistering ? "CREATE ACCOUNT" : "MEMBER SIGN IN"}
           </span>
           <h3 style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>
-            Welcome to TechTalk
+            {isRegistering ? "Join the TechTalk community" : "Welcome to TechTalk"}
           </h3>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-            Access your registered digital passes, discussions, and authored dispatches.
+            {isRegistering
+              ? "Create your account to register for events and save your profile."
+              : "Access your registered digital passes, discussions, and authored dispatches."}
           </p>
         </div>
 
         <form onSubmit={handleLogin}>
           {error && <p className="form-error" role="alert">{error}</p>}
+          {isRegistering && (
+            <div className="form-field-group">
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                required
+                className="form-input"
+                placeholder="Your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
           <div className="form-field-group">
             <label className="form-label">Email Address</label>
             <div style={{ position: "relative" }}>
@@ -79,13 +93,13 @@ export default function LoginModal() {
           <div className="form-field-group">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label className="form-label">Password</label>
-              <button
+              {!isRegistering && <button
                 type="button"
                 className="form-link-subtle"
                 onClick={() => showToast(`Password recovery link sent to ${email}.`)}
               >
                 Forgot password?
-              </button>
+              </button>}
             </div>
             <div style={{ position: "relative" }}>
               <input
@@ -119,7 +133,7 @@ export default function LoginModal() {
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "14px" }} disabled={submitting}>
-            <span>{submitting ? "Signing in..." : "Sign In to NexziByte"}</span>
+            <span>{submitting ? (isRegistering ? "Creating account..." : "Signing in...") : (isRegistering ? "Create account" : "Sign In to NexziByte")}</span>
             <ArrowRight size={15} />
           </button>
 
@@ -128,10 +142,13 @@ export default function LoginModal() {
             <button
               type="button"
               className="switcher-link"
-              onClick={handleRegisterClick}
+              onClick={() => {
+                setIsRegistering((current) => !current);
+                setError("");
+              }}
               style={{ background: "none", border: "none", color: "var(--nexzibyte-purple)", fontWeight: 700, cursor: "pointer" }}
             >
-              Register here
+              {isRegistering ? "Sign in instead" : "Register here"}
             </button>
           </div>
         </form>
