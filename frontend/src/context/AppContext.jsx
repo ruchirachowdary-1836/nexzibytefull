@@ -90,7 +90,19 @@ export function AppProvider({ children }) {
       notes,
     });
     const isVisitor = passType === "visitor-pass" || passType === "VISITOR PASS";
-    setActivePass(null);
+    setActivePass({
+      passId: response.pass_id,
+      qrData: response.qr_data,
+      holder: response.holder,
+      passType: response.pass_type === "visitor-pass" ? "VISITOR PASS" : "DELEGATE PASS",
+      price: response.amount,
+      organization: response.company,
+      role: response.role,
+      event: "NexziByte TechTalk",
+      org: "NexziByte TechTalk",
+      validation: "Issued",
+      checkedIn: false,
+    });
     setPassModalOpen(false);
 
     showToast(

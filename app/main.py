@@ -2,6 +2,7 @@ from datetime import date, datetime, time
 import datetime as datetime_module
 from contextlib import asynccontextmanager
 from typing import Literal
+import secrets
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -143,6 +144,20 @@ class PassRequestIn(BaseModel):
 def item(obj):
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
     return data
+
+def pass_request_response(request):
+    return {
+        'id': request.id,
+        'status': request.status,
+        'pass_id': request.pass_id,
+        'qr_data': request.qr_data,
+        'issued_at': request.issued_at,
+        'holder': f'{request.first_name} {request.last_name}'.strip(),
+        'pass_type': request.pass_type,
+        'amount': request.amount,
+        'company': request.company,
+        'role': request.role,
+    }
 def user_item(user):
     return {c.name: getattr(user, c.name) for c in user.__table__.columns if c.name != 'password_hash'}
 def one(db, cls, ident):
@@ -250,13 +265,18 @@ def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user
         notes=body.notes,
     )
     db.add(request)
+    db.flush()
+    request.pass_id = f"TT26-{request.id:06d}"
+    request.qr_data = f"techtalk:pass:{secrets.token_urlsafe(24)}"
+    request.issued_at = datetime.utcnow()
+    request.status = 'issued'
     db.commit()
     db.refresh(request)
-    return {'id': request.id, 'status': request.status, 'detail': 'Pass request received'}
+    return {**pass_request_response(request), 'detail': 'Digital pass issued'}
 
 @app.get('/users/me/pass-requests')
 def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return [item(request) for request in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
+    return [pass_request_response(request) for request in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
 
 @app.get('/admin/pass-requests')
 def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require_admin)):

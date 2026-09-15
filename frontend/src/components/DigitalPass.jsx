@@ -179,7 +179,7 @@ export default function DigitalPass() {
               {/* QR Code & Status */}
               <div className="ticket-qr-block">
                 <div className="ticket-qr-svg-wrap">
-                  <PassQRCodeSVG value={activePass.qrData} size={120} />
+                  <PassQRCodeSVG value={activePass.qrData || activePass.passId} size={120} />
                 </div>
 
                 <div className="ticket-valid-tag">

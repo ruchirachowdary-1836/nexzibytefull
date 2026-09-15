@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, CheckCircle2, Ticket, ShieldCheck, CreditCard, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { PASSES } from "../data/mockData.js";
@@ -12,6 +13,7 @@ export default function PassRegistrationModal() {
     registerPass,
     showToast
   } = useApp();
+  const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,11 +42,7 @@ export default function PassRegistrationModal() {
         notes,
       });
       setIsProcessing(false);
-      // Smoothly jump down to the generated ticket
-      const ticketEl = document.getElementById("digital-pass");
-      if (ticketEl) {
-        ticketEl.scrollIntoView({ behavior: "smooth" });
-      }
+      navigate("/passes#digital-pass");
     } catch (error) {
       setIsProcessing(false);
       showToast(error.message);
