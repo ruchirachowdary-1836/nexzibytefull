@@ -71,6 +71,20 @@ export function PassQRCodeSVG({ value, size = 130 }) {
 export default function DigitalPass() {
   const { activePass, showToast } = useApp();
 
+  if (!activePass) {
+    return (
+      <section className="section-padding digital-pass-section" id="digital-pass">
+        <div className="container">
+          <div className="events-empty-state">
+            <ShieldCheck size={40} style={{ opacity: 0.55, marginBottom: "12px" }} />
+            <h2>No issued digital pass yet</h2>
+            <p>Register for an event and complete the pass request process to receive your real QR-enabled pass.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const handleCopyId = () => {
     navigator.clipboard?.writeText(activePass.passId);
     showToast(`Copied Pass ID ${activePass.passId} to clipboard.`);

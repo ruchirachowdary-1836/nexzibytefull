@@ -22,6 +22,8 @@ export async function apiRequest(path, options = {}) {
 }
 
 export const api = {
+  getUpcomingEvents: () => apiRequest("/events/upcoming?limit=12"),
+  getSummits: () => apiRequest("/summits?status=upcoming"),
   getFounderMeets: () => apiRequest("/founder-meets?public=true"),
   subscribeNewsletter: (email) =>
     apiRequest("/newsletter/subscribe", {

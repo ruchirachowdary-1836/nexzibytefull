@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { ClerkProvider } from "@clerk/clerk-react";
-import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { 
   Sparkles, Search, Filter, ArrowLeft, ArrowRight, Calendar, MapPin, 
   Clock, Mic, QrCode, CheckCircle2, BookOpen, Layers, ShieldCheck 
@@ -278,11 +278,23 @@ function ScannerPage() {
 function App() {
   const { toastMessage, user, setLoginModalOpen } = useApp();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Scroll to top on navigation change
   useEffect(() => {
+    if (location.pathname === "/" && location.hash === "#scanner") {
+      navigate("/scanner#scanner", { replace: true });
+      return;
+    }
+    if (location.pathname === "/" && location.hash === "#digital-pass") {
+      navigate("/passes#digital-pass", { replace: true });
+      return;
+    }
     window.scrollTo(0, 0);
-  }, [location.pathname]);
+    if (location.hash) {
+      window.setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start" }), 0);
+    }
+  }, [location.pathname, location.hash, navigate]);
 
   const isHomePage = location.pathname === "/";
 
