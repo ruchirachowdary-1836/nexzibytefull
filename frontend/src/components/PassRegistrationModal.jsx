@@ -20,6 +20,8 @@ export default function PassRegistrationModal() {
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
+  const [phone, setPhone] = useState("");
+  const [referralContact, setReferralContact] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isVisitor = selectedPassType === "visitor-pass" || selectedPassType === "VISITOR PASS";
@@ -40,6 +42,8 @@ export default function PassRegistrationModal() {
         company,
         role,
         notes,
+        phone,
+        referralContact,
       });
       setIsProcessing(false);
       navigate("/passes#digital-pass");
@@ -142,6 +146,14 @@ export default function PassRegistrationModal() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. name@company.com"
             />
+          </div>
+          <div className="form-field-group">
+            <label className="form-label">Contact Number</label>
+            <input type="tel" required className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div className="form-field-group">
+            <label className="form-label">Referral Contact Number (optional)</label>
+            <input type="tel" className="form-input" value={referralContact} onChange={(e) => setReferralContact(e.target.value)} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>

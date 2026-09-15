@@ -1,4 +1,4 @@
-import { neonAuthEnabled, neonClient, getNeonSession, getNeonToken } from "./neon.js";
+import { neonAuthEnabled, neonClient, getNeonSession, getNeonToken, signInWithGoogle } from "./neon.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
 const TOKEN_KEY = "techtalk-token";
@@ -17,7 +17,11 @@ const request = async (path, options = {}) => {
 };
 
 export const authService = {
-  async register({ name, email, password, role }) {
+  async loginWithGoogle() {
+    if (!neonAuthEnabled) throw new Error("Google sign-in is not configured.");
+    return signInWithGoogle();
+  },
+  async register({ name, email, password, role, referral_contact, accept_terms }) {
     if (neonAuthEnabled) {
       const result = await neonClient.auth.signUp.email({ name, email, password });
       if (result?.error) throw new Error(result.error.message || "Unable to create your Neon account.");
@@ -27,7 +31,7 @@ export const authService = {
 
     await request("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password, professional_role: role || null })
+      body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms })
     });
     return this.login({ email, password, name });
   },
@@ -39,6 +43,7 @@ export const authService = {
       await cacheNeonToken();
       return normalizeNeonUser(result?.data?.user || result?.user, name);
     }
+
 
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${API_URL}/auth/login`, {

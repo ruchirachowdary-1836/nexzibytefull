@@ -17,6 +17,10 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_token: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)
+    verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(String(20), default='user')
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -102,6 +106,8 @@ class PassRequest(Base):
     first_name: Mapped[str] = mapped_column(String(80))
     last_name: Mapped[str] = mapped_column(String(80))
     email: Mapped[str] = mapped_column(String(255), index=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)
     pass_type: Mapped[str] = mapped_column(String(40))
     amount: Mapped[str] = mapped_column(String(40))
     company: Mapped[str | None] = mapped_column(String(160), nullable=True)
@@ -111,6 +117,7 @@ class PassRequest(Base):
     pass_id: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True, index=True)
     qr_data: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     issued_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

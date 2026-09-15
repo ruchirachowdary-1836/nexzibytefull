@@ -1,8 +1,10 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 import datetime as datetime_module
 from contextlib import asynccontextmanager
 from typing import Literal
 import secrets
+import smtplib
+from email.message import EmailMessage
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,12 +17,27 @@ from .database import Base, engine, get_db
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
 
+def send_verification_email(user: User):
+    if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+        return
+    message = EmailMessage()
+    message['Subject'] = 'Verify your NexziByte TechTalk account'
+    message['From'] = settings.mail_from
+    message['To'] = user.email
+    link = f'{settings.frontend_url}/verify-email?token={user.verification_token}'
+    message.set_content(f'Confirm your account by opening this link: {link}')
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+        server.starttls()
+        server.login(settings.smtp_user, settings.smtp_password)
+        server.send_message(message)
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Migrations own schema changes; this only bootstraps a brand-new database.
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
     ensure_pass_issue_columns()
+    ensure_auth_columns()
     yield
 
 
@@ -58,6 +75,9 @@ def ensure_pass_issue_columns():
         'pass_id': 'VARCHAR(40)',
         'qr_data': 'VARCHAR(255)',
         'issued_at': 'TIMESTAMP',
+        'expires_at': 'TIMESTAMP',
+        'phone': 'VARCHAR(40)',
+        'referral_contact': 'VARCHAR(40)',
     }
     missing = [(name, column_type) for name, column_type in additions.items() if name not in columns]
     if not missing:
@@ -65,6 +85,19 @@ def ensure_pass_issue_columns():
     with engine.begin() as connection:
         for name, column_type in missing:
             connection.execute(text(f'ALTER TABLE pass_requests ADD COLUMN {name} {column_type}'))
+
+def ensure_auth_columns():
+    columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    additions = {
+        'referral_contact': 'VARCHAR(40)',
+        'email_verified': 'BOOLEAN DEFAULT FALSE',
+        'verification_token': 'VARCHAR(128)',
+        'verification_expires_at': 'TIMESTAMP',
+    }
+    with engine.begin() as connection:
+        for name, column_type in additions.items():
+            if name not in columns:
+                connection.execute(text(f'ALTER TABLE users ADD COLUMN {name} {column_type}'))
 
 @app.get('/', tags=['System'])
 def root():
@@ -78,6 +111,8 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     professional_role: str | None = None
+    referral_contact: str | None = Field(default=None, max_length=40)
+    accept_terms: bool = False
     profile_image: str | None = None
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
@@ -154,6 +189,8 @@ class PassRequestIn(BaseModel):
     company: str | None = Field(default=None, max_length=160)
     role: str | None = Field(default=None, max_length=160)
     notes: str | None = Field(default=None, max_length=3000)
+    phone: str | None = Field(default=None, max_length=40)
+    referral_contact: str | None = Field(default=None, max_length=40)
 
 
 def item(obj):
@@ -167,6 +204,7 @@ def pass_request_response(request):
         'pass_id': request.pass_id,
         'qr_data': request.qr_data,
         'issued_at': request.issued_at,
+        'expires_at': request.expires_at,
         'holder': f'{request.first_name} {request.last_name}'.strip(),
         'pass_type': request.pass_type,
         'amount': request.amount,
@@ -278,16 +316,27 @@ def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user
         company=body.company,
         role=body.role,
         notes=body.notes,
+        phone=body.phone,
+        referral_contact=body.referral_contact,
     )
     db.add(request)
     db.flush()
-    request.pass_id = f"TT26-{request.id:06d}"
-    request.qr_data = f"techtalk:pass:{secrets.token_urlsafe(24)}"
-    request.issued_at = datetime.utcnow()
-    request.status = 'issued'
+    request.status = 'pending_approval'
     db.commit()
     db.refresh(request)
-    return {**pass_request_response(request), 'detail': 'Digital pass issued'}
+    return {**pass_request_response(request), 'detail': 'Pass submitted for staff approval'}
+
+@app.patch('/admin/pass-requests/{request_id}/approve')
+def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    request = one(db, PassRequest, request_id)
+    request.pass_id = request.pass_id or f"TT26-{request.id:06d}"
+    request.qr_data = request.qr_data or f"techtalk:pass:{secrets.token_urlsafe(24)}"
+    request.issued_at = datetime.utcnow()
+    request.expires_at = datetime.utcnow() + timedelta(minutes=10) if request.pass_type.lower() == 'visitor-pass' else None
+    request.status = 'approved'
+    db.commit()
+    db.refresh(request)
+    return pass_request_response(request)
 
 @app.get('/users/me/pass-requests')
 def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -299,6 +348,8 @@ def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
+    if not body.accept_terms:
+        raise HTTPException(400, detail='You must accept the Terms and Conditions.')
     normalized_email = body.email.lower().strip()
     if db.query(User).filter_by(email=normalized_email).first(): raise HTTPException(409, detail='Email already registered')
     user = User(
@@ -307,17 +358,35 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         password_hash=hash_password(body.password),
         professional_role=getattr(body, 'professional_role', None),
         profile_image=getattr(body, 'profile_image', None),
+        referral_contact=body.referral_contact,
+        email_verified=False,
+        verification_token=secrets.token_urlsafe(32),
+        verification_expires_at=datetime.utcnow() + time_delta(hours=24),
     )
     db.add(user); db.commit(); db.refresh(user)
     ensure_user_settings(db, user)
-    return user_item(user)
+    send_verification_email(user)
+    return {'detail': 'Account created. Check your email to verify your account.', 'email_verification_required': True}
 
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
     if not user or not user.password_hash or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
+    if user.email_verified is False:
+        raise HTTPException(403, detail='Verify your email before signing in.')
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
+
+@app.get('/auth/verify-email')
+def verify_email(token: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter_by(verification_token=token).first()
+    if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
+        raise HTTPException(400, detail='Verification link is invalid or expired.')
+    user.email_verified = True
+    user.verification_token = None
+    user.verification_expires_at = None
+    db.commit()
+    return {'detail': 'Email verified. You can now sign in.'}
 
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)

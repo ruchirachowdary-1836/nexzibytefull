@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { X, Sparkles, User, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { neonAuthEnabled } from "../lib/neon.js";
 
 export default function LoginModal() {
-  const { loginModalOpen, setLoginModalOpen, user, login, register, showToast } = useApp();
+  const { loginModalOpen, setLoginModalOpen, user, login, register, loginWithGoogle, showToast } = useApp();
   const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -12,6 +13,8 @@ export default function LoginModal() {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [referralContact, setReferralContact] = useState("");
 
   if (!loginModalOpen) return null;
 
@@ -21,7 +24,7 @@ export default function LoginModal() {
     setError("");
     try {
       const authenticatedUser = isRegistering
-        ? await register({ name, email, password, role: "user" })
+        ? await register({ name, email, password, role: "user", referral_contact: referralContact, accept_terms: acceptTerms })
         : await login({ email, password });
       setLoginModalOpen(false);
       showToast(isRegistering
@@ -31,6 +34,14 @@ export default function LoginModal() {
       setError(requestError.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (requestError) {
+      setError(requestError.message);
     }
   };
 
@@ -74,6 +85,16 @@ export default function LoginModal() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+            </div>
+          )}
+          {isRegistering && (
+            <div className="form-field-group">
+              <label className="form-label">Referral contact number (optional)</label>
+              <input type="tel" className="form-input" value={referralContact} onChange={(e) => setReferralContact(e.target.value)} />
+              <label className="checkbox-label" style={{ marginTop: "10px" }}>
+                <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} required />
+                <span>I accept the Terms and Conditions and Privacy Policy.</span>
+              </label>
             </div>
           )}
           <div className="form-field-group">
@@ -136,6 +157,11 @@ export default function LoginModal() {
             <span>{submitting ? (isRegistering ? "Creating account..." : "Signing in...") : (isRegistering ? "Create account" : "Sign In to NexziByte")}</span>
             <ArrowRight size={15} />
           </button>
+          {!isRegistering && neonAuthEnabled && (
+            <button type="button" className="btn btn-secondary" style={{ width: "100%", marginTop: "10px" }} onClick={handleGoogle}>
+              Continue with Google
+            </button>
+          )}
 
           <div className="auth-footer-switcher" style={{ marginTop: "18px", textAlign: "center", fontSize: "0.875rem" }}>
             <span style={{ color: "var(--text-secondary)" }}>Don't have an account? </span>

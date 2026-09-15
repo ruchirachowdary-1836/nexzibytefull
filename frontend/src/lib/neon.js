@@ -4,7 +4,7 @@ const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
 
 export const neonAuthEnabled =
-  import.meta.env.VITE_AUTH_PROVIDER === "neon" && Boolean(authUrl && dataApiUrl);
+  Boolean(authUrl && dataApiUrl) && import.meta.env.VITE_AUTH_PROVIDER !== "fastapi";
 
 export const neonClient = neonAuthEnabled
   ? createClient({
@@ -22,6 +22,16 @@ export async function getNeonSession() {
   if (!neonClient) return null;
   const result = await neonClient.auth.getSession();
   return result?.data || result || null;
+}
+
+export async function signInWithGoogle() {
+  if (!neonClient) throw new Error("Neon Auth is not configured for this environment.");
+  const result = await neonClient.auth.signIn.social({
+    provider: "google",
+    callbackURL: window.location.href,
+  });
+  if (result?.error) throw new Error(result.error.message || "Unable to continue with Google.");
+  return result;
 }
 
 export async function queryNeonTable(table, query = {}) {

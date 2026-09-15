@@ -29,5 +29,11 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://techtalk-backend-shob.onrender.com
+      - key: VITE_AUTH_PROVIDER
+        value: neon
+      - key: VITE_NEON_DATA_API_URL
+        value: https://ep-mute-resonance-ay0g7clj.apirest.c-5.us-east-2.aws.neon.tech/neondb/rest/v1
+      - key: VITE_NEON_AUTH_URL
+        value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth
       - key: VITE_CLERK_PUBLISHABLE_KEY
         value: pk_test_YW1hemVkLXdpbGRjYXQtMzg1Ny5jbGVyay5hY2NvdW50cy5kZXYk

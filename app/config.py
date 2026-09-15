@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
     cors_origins: str = "*"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    mail_from: str | None = None
+    frontend_url: str = "https://techtalk-frontend-acvb.onrender.com"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

@@ -67,6 +67,8 @@ export function AppProvider({ children }) {
     return authenticatedUser;
   };
 
+  const loginWithGoogle = () => authService.loginWithGoogle();
+
   const register = async (credentials) => {
     const authenticatedUser = await authService.register(credentials);
     setUser(authenticatedUser);
@@ -79,7 +81,7 @@ export function AppProvider({ children }) {
   };
 
   // Register or Purchase a new Pass
-  const registerPass = async ({ attendeeName, email, passType, amount, company, role, notes }) => {
+  const registerPass = async ({ attendeeName, email, passType, amount, company, role, notes, phone, referralContact }) => {
     const response = await api.submitPassRequest({
       name: attendeeName,
       email,
@@ -88,9 +90,11 @@ export function AppProvider({ children }) {
       company,
       role,
       notes,
+      phone,
+      referral_contact: referralContact,
     });
     const isVisitor = passType === "visitor-pass" || passType === "VISITOR PASS";
-    setActivePass({
+    setActivePass(response.pass_id ? {
       passId: response.pass_id,
       qrData: response.qr_data,
       holder: response.holder,
@@ -102,12 +106,12 @@ export function AppProvider({ children }) {
       org: "NexziByte TechTalk",
       validation: "Issued",
       checkedIn: false,
-    });
+    } : null);
     setPassModalOpen(false);
 
     showToast(
       isVisitor
-        ? `Visitor pass request submitted for ${attendeeName}.`
+        ? `Visitor pass submitted for staff approval. QR access will appear after approval.`
         : `Delegate pass request submitted for ${attendeeName}.`
     );
 
@@ -236,6 +240,7 @@ export function AppProvider({ children }) {
       value={{
         user,
         login,
+        loginWithGoogle,
         register,
         logout,
         backendOnline,
