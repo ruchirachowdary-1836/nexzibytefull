@@ -1,8 +1,8 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Sparkles, ArrowRight, Calendar, MapPin, Clock,
-  Users, CheckCircle2, ShieldCheck, Ticket, Briefcase, Zap
+import { 
+  Sparkles, ArrowRight, Calendar, MapPin, Clock, 
+  Users, CheckCircle2, ShieldCheck, Ticket, Briefcase, Zap 
 } from "lucide-react";
 import { FOUNDER_MEETS_DATA } from "../data/mockData.js";
 import { FOUNDER_MEETS_LIST } from "../data/founderMeetsData.js";
@@ -51,11 +51,11 @@ export default function FounderMeets() {
         {landmarkMeet && (
           <div className="landmark-meet-compact-card">
             <div className="landmark-meet-media">
-              <img
-                src={landmarkMeet.image}
-                alt={landmarkMeet.name}
-                className="landmark-meet-img"
-                loading="lazy"
+              <img 
+                src={landmarkMeet.image} 
+                alt={landmarkMeet.name} 
+                className="landmark-meet-img" 
+                loading="lazy" 
               />
               <div className="landmark-meet-badge-overlay">
                 <Sparkles size={13} />
@@ -115,7 +115,7 @@ export default function FounderMeets() {
 
               {/* Action Buttons */}
               <div className="landmark-actions-row">
-                <Link
+                <Link 
                   to={`/founder-meets/${landmarkMeet.id}`}
                   className="btn btn-coral"
                 >
@@ -167,10 +167,10 @@ export default function FounderMeets() {
               </div>
 
               <div className="circle-guest-preview">
-                <img
-                  src={circle.guestOfHonor?.image}
-                  alt={circle.guestOfHonor?.name}
-                  className="circle-guest-avatar"
+                <img 
+                  src={circle.guestOfHonor?.image} 
+                  alt={circle.guestOfHonor?.name} 
+                  className="circle-guest-avatar" 
                 />
                 <div>
                   <div className="circle-guest-name">{circle.guestOfHonor?.name}</div>

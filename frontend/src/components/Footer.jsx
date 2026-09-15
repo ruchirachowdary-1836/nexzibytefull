@@ -52,9 +52,9 @@ export default function Footer() {
           <div className="footer-brand-col">
             <Link to="/" className="brand-logo-link" style={{ display: "inline-block", textDecoration: "none" }}>
               <div className="footer-nexzibyte-card" title="NexziByte Solutions">
-                <img
-                  src="/images/nexzibyte-logo-clean.png"
-                  alt="NexziByte"
+                <img 
+                  src="/images/nexzibyte-logo-clean.png" 
+                  alt="NexziByte" 
                   className="footer-nexzibyte-img"
                 />
               </div>
@@ -110,9 +110,9 @@ export default function Footer() {
             <h4 className="footer-col-title">Passes</h4>
             <ul className="footer-links-list">
               <li>
-                <button
-                  type="button"
-                  className="footer-link"
+                <button 
+                  type="button" 
+                  className="footer-link" 
                   style={{ textAlign: "left", background: "none", border: "none", padding: 0 }}
                   onClick={() => openPassModal("visitor-pass")}
                 >
@@ -120,9 +120,9 @@ export default function Footer() {
                 </button>
               </li>
               <li>
-                <button
-                  type="button"
-                  className="footer-link"
+                <button 
+                  type="button" 
+                  className="footer-link" 
                   style={{ textAlign: "left", background: "none", border: "none", padding: 0 }}
                   onClick={() => openPassModal("student-pass")}
                 >
@@ -130,9 +130,9 @@ export default function Footer() {
                 </button>
               </li>
               <li>
-                <button
-                  type="button"
-                  className="footer-link"
+                <button 
+                  type="button" 
+                  className="footer-link" 
                   style={{ textAlign: "left", background: "none", border: "none", padding: 0 }}
                   onClick={() => openPassModal("founder-pass")}
                 >
@@ -140,9 +140,9 @@ export default function Footer() {
                 </button>
               </li>
               <li>
-                <button
-                  type="button"
-                  className="footer-link"
+                <button 
+                  type="button" 
+                  className="footer-link" 
                   style={{ textAlign: "left", background: "none", border: "none", padding: 0 }}
                   onClick={() => openPassModal("delegation-pass")}
                 >
@@ -168,33 +168,33 @@ export default function Footer() {
           </div>
 
           <div className="footer-social-row">
-            <button
-              type="button"
-              className="footer-social-icon-btn"
+            <button 
+              type="button" 
+              className="footer-social-icon-btn" 
               onClick={() => handleSocialClick("LinkedIn")}
               aria-label="LinkedIn"
             >
               <LinkedInIcon size={17} />
             </button>
-            <button
-              type="button"
-              className="footer-social-icon-btn"
+            <button 
+              type="button" 
+              className="footer-social-icon-btn" 
               onClick={() => handleSocialClick("Instagram")}
               aria-label="Instagram"
             >
               <InstagramIcon size={17} />
             </button>
-            <button
-              type="button"
-              className="footer-social-icon-btn"
+            <button 
+              type="button" 
+              className="footer-social-icon-btn" 
               onClick={() => handleSocialClick("YouTube")}
               aria-label="YouTube"
             >
               <YouTubeIcon size={17} />
             </button>
-            <button
-              type="button"
-              className="footer-social-icon-btn"
+            <button 
+              type="button" 
+              className="footer-social-icon-btn" 
               onClick={() => handleSocialClick("X (Twitter)")}
               aria-label="X"
             >

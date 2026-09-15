@@ -4,7 +4,6 @@ import {
   CheckCircle2, ArrowRight, Share2, Award, UserCheck, Send 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { api } from "../lib/api.js";
 
 export default function CourseModal() {
   const { 
@@ -25,7 +24,6 @@ export default function CourseModal() {
     notes: ""
   });
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   // Close on Escape key press
   useEffect(() => {
@@ -52,31 +50,14 @@ export default function CourseModal() {
 
   if (!courseModalOpen || !selectedCourse) return null;
 
-  const handleSubmitApplication = async (e) => {
+  const handleSubmitApplication = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
       return;
     }
-    setSubmitting(true);
-    try {
-      await api.submitCourseApplication({
-        course_id: selectedCourse.id,
-        course_title: selectedCourse.title,
-        name: formData.name.trim(),
-        email: formData.email,
-        phone: formData.phone,
-        interest_role: formData.interestRole,
-        experience_level: formData.experienceLevel,
-        notes: formData.notes || null,
-      });
-      setSubmitted(true);
-      showToast(`Application for ${selectedCourse.title} submitted successfully.`);
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      setSubmitting(false);
-    }
+    setSubmitted(true);
+    showToast(`🎉 Application for ${selectedCourse.title} submitted successfully! Our team will contact you.`);
   };
 
   return (

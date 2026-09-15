@@ -769,6 +769,42 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-1px);
 }
 
+.nav-logout-btn-dark {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #F87171;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 7px 16px;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.nav-logout-btn-dark:hover {
+  color: #FFFFFF;
+  background: #EF4444;
+  border-color: #EF4444;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+.profile-logout-btn {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #EF4444 !important;
+}
+
+.profile-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: #EF4444 !important;
+  color: #EF4444 !important;
+}
+
 .nav-join-community-btn {
   font-size: 0.8125rem;
   font-weight: 800;
@@ -7490,7 +7526,7 @@ body:has(.app-shell-home-luxury) {
 
 /* ══════════════════════════════════════════════════════════════════
    PROFESSIONAL TECHNOLOGY PROFILE — STYLESHEET
-   Authenticated community profile
+   M. L. S. V. Aiswarya • Senior Full Stack Developer
    ══════════════════════════════════════════════════════════════════ */
 
 /* NAVBAR PROFILE PILL LINK */
@@ -12853,6 +12889,10 @@ body:has(.app-shell-home-luxury) {
     padding: 6px 14px;
     font-size: 0.8125rem;
   }
+  .nav-logout-btn-dark {
+    padding: 6px 12px;
+    font-size: 0.775rem;
+  }
   .nav-join-community-btn {
     padding: 7px 18px;
     font-size: 0.775rem;
@@ -16049,3 +16089,6 @@ body:has(.app-shell-home-luxury) {
     flex-direction: column;
   }
 }
+
+
+

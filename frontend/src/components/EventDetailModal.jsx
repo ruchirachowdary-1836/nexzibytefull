@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import {
-  X, Calendar, Clock, MapPin, Sparkles, CheckCircle2,
-  ArrowRight, Users, BookOpen, Award, Building, User, Mail, Phone, MapPinCheck
+import { 
+  X, Calendar, Clock, MapPin, Sparkles, CheckCircle2, 
+  ArrowRight, Users, BookOpen, Award, Building, User, Mail, Phone, MapPinCheck 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { api } from "../lib/api.js";
 
 export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegister = false }) {
   const { showToast } = useApp();
@@ -27,7 +26,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRegisterSubmit = async (e) => {
+  const handleRegisterSubmit = (e) => {
     e.preventDefault();
     if (!formData.fullName || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
@@ -35,17 +34,13 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
     }
 
     setSubmitting(true);
-    try {
-      const eventType = event.type === "founder_meet" ? "founder_meet" : "summit";
-      const registration = await api.registerForEvent(eventType, Number(event.id));
-      setRegPassId(registration.id ? `Registration #${registration.id}` : "Registration received");
-      setRegistered(true);
-      showToast("Registration submitted successfully.");
-    } catch (requestError) {
-      showToast(requestError.message);
-    } finally {
+    setTimeout(() => {
+      const generatedPassId = `NEX-EVT-${Math.floor(100000 + Math.random() * 900000)}`;
+      setRegPassId(generatedPassId);
       setSubmitting(false);
-    }
+      setRegistered(true);
+      showToast(`Registration confirmed! Pass ID: ${generatedPassId}`);
+    }, 800);
   };
 
   const handleResetRegistration = () => {
@@ -62,12 +57,12 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
-      <div
+      <div 
         className="modal-container event-detail-modal-container"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
-        <button
+        <button 
           type="button"
           onClick={onClose}
           className="modal-close-btn"
@@ -78,9 +73,9 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
 
         {/* Hero Event Banner */}
         <div className="event-modal-banner-wrap">
-          <img
-            src={event.image}
-            alt={event.title}
+          <img 
+            src={event.image} 
+            alt={event.title} 
             className="event-modal-banner-img"
             onError={(e) => {
               e.target.onerror = null;
@@ -166,9 +161,9 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                 <div className="event-speakers-grid">
                   {(event.speakers || event.speakersList || []).map((spk, idx) => (
                     <div key={idx} className="event-speaker-card">
-                      <img
-                        src={spk.image}
-                        alt={spk.name}
+                      <img 
+                        src={spk.image} 
+                        alt={spk.name} 
                         className="event-speaker-avatar"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -241,7 +236,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       <label htmlFor="reg-name" className="event-form-label">
                         <User size={14} /> Full Name *
                       </label>
-                      <input
+                      <input 
                         id="reg-name"
                         type="text"
                         name="fullName"
@@ -258,7 +253,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       <label htmlFor="reg-email" className="event-form-label">
                         <Mail size={14} /> Email Address *
                       </label>
-                      <input
+                      <input 
                         id="reg-email"
                         type="email"
                         name="email"
@@ -274,7 +269,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       <label htmlFor="reg-phone" className="event-form-label">
                         <Phone size={14} /> Phone Number *
                       </label>
-                      <input
+                      <input 
                         id="reg-phone"
                         type="tel"
                         name="phone"
@@ -290,7 +285,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       <label htmlFor="reg-org" className="event-form-label">
                         <Building size={14} /> College / Company
                       </label>
-                      <input
+                      <input 
                         id="reg-org"
                         type="text"
                         name="organization"
@@ -306,7 +301,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                         <label htmlFor="reg-role" className="event-form-label">
                           Role
                         </label>
-                        <input
+                        <input 
                           id="reg-role"
                           type="text"
                           name="role"
@@ -321,7 +316,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                         <label htmlFor="reg-city" className="event-form-label">
                           <MapPinCheck size={14} /> City
                         </label>
-                        <input
+                        <input 
                           id="reg-city"
                           type="text"
                           name="city"
@@ -333,8 +328,8 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       </div>
                     </div>
 
-                    <button
-                      type="submit"
+                    <button 
+                      type="submit" 
                       className="btn btn-blue-primary btn-full"
                       disabled={submitting}
                     >
@@ -371,15 +366,15 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                   </div>
 
                   <div className="event-success-actions">
-                    <button
-                      type="button"
+                    <button 
+                      type="button" 
                       className="btn btn-blue-primary btn-full"
                       onClick={onClose}
                     >
                       Done &amp; Return to Events
                     </button>
-                    <button
-                      type="button"
+                    <button 
+                      type="button" 
                       className="btn btn-secondary btn-sm btn-full"
                       onClick={handleResetRegistration}
                       style={{ marginTop: "8px" }}

@@ -30,8 +30,8 @@ export default function TechnicalContent() {
 
         <div className="articles-grid">
           {TECHNICAL_ARTICLES.map((art) => (
-            <div
-              key={art.id}
+            <div 
+              key={art.id} 
               className="article-card"
               onClick={() => openArticleReader(art)}
               role="button"
@@ -51,8 +51,8 @@ export default function TechnicalContent() {
                   </div>
                 </div>
 
-                <Link
-                  to={`/posts/${art.id}`}
+                <Link 
+                  to={`/posts/${art.id}`} 
                   className="article-read-btn"
                   onClick={(e) => e.stopPropagation()}
                 >

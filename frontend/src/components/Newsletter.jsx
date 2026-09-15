@@ -1,26 +1,17 @@
 import React, { useState } from "react";
 import { Sparkles, Mail, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { api } from "../lib/api.js";
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const { showToast } = useApp();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
-      showToast("Please enter a valid email address.");
-      return;
-    }
-    try {
-      await api.subscribeNewsletter(email);
-      setSubscribed(true);
-      showToast(`Subscribed! Weekly technology dispatches will arrive at ${email}`);
-    } catch (error) {
-      showToast(error.message);
-    }
+    if (!email || !email.includes("@")) return;
+    setSubscribed(true);
+    showToast(`🎉 Subscribed! Weekly technology dispatches will arrive at ${email}`);
   };
 
   return (
