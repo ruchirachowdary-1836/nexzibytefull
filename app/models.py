@@ -89,6 +89,9 @@ class CourseApplication(Base):
     experience_level: Mapped[str | None] = mapped_column(String(120), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default='submitted')
+    pass_id: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True, index=True)
+    qr_data: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    issued_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
