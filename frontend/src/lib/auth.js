@@ -60,7 +60,7 @@ export const authService = {
       await cacheNeonToken();
       return normalizeNeonUser(session.user);
     }
-    return request("/users/me", {
+    return request("/auth/session", {
       headers: { Authorization: `Bearer ${getToken()}` }
     });
   },

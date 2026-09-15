@@ -322,6 +322,10 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
+@app.get('/auth/session')
+def auth_session(user: User = Depends(get_current_user)):
+    return user_item(user)
+
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
