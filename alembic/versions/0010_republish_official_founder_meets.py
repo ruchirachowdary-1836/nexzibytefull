@@ -3,7 +3,7 @@ from datetime import date, time
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0010_republish_official_founder_meets"
+revision = "0010_official_events"
 down_revision = "0009_official_founder_meets"
 branch_labels = None
 depends_on = None
