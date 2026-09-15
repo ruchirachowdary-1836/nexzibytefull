@@ -20,6 +20,7 @@ async def lifespan(_: FastAPI):
     # Migrations own schema changes; this only bootstraps a brand-new database.
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
+    ensure_pass_issue_columns()
     yield
 
 
@@ -50,6 +51,20 @@ def ensure_user_profile_columns():
     with engine.begin() as connection:
         for name, column_type in missing:
             connection.execute(text(f'ALTER TABLE users ADD COLUMN {name} {column_type}'))
+
+def ensure_pass_issue_columns():
+    columns = {column['name'] for column in inspect(engine).get_columns('pass_requests')}
+    additions = {
+        'pass_id': 'VARCHAR(40)',
+        'qr_data': 'VARCHAR(255)',
+        'issued_at': 'TIMESTAMP',
+    }
+    missing = [(name, column_type) for name, column_type in additions.items() if name not in columns]
+    if not missing:
+        return
+    with engine.begin() as connection:
+        for name, column_type in missing:
+            connection.execute(text(f'ALTER TABLE pass_requests ADD COLUMN {name} {column_type}'))
 
 @app.get('/', tags=['System'])
 def root():
