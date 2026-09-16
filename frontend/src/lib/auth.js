@@ -5,6 +5,23 @@ const TOKEN_KEY = "techtalk-token";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
+    if (neonAuthEnabled) {
+      if (!accept_terms) throw new Error("You must accept the Terms and Conditions.");
+      const result = await neonClient.auth.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: `${window.location.origin}/#/login`,
+      });
+      if (result?.error) {
+        throw new Error(result.error.message || "Unable to create your account.");
+      }
+      return {
+        detail: "Account created. Check your email for the verification link before signing in.",
+        email_verification_required: true,
+        email,
+      };
+    }
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
@@ -13,6 +30,14 @@ export const authService = {
   },
 
   async login({ email, password }) {
+    if (neonAuthEnabled) {
+      const result = await neonClient.auth.signIn.email({ email, password });
+      if (result?.error) {
+        throw new Error(result.error.message || "Unable to sign in. Verify your email first.");
+      }
+      const session = await getNeonSession();
+      return normalizeNeonUser(session?.user || result?.data?.user || result?.user);
+    }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
       method: "POST",
