@@ -20,6 +20,7 @@ export const api = {
   getUpcomingEvents: () => apiRequest("/events/upcoming?limit=12"),
   getSummits: () => apiRequest("/summits?status=upcoming"),
   getFounderMeets: () => apiRequest("/founder-meets?public=true"),
+  getCategories: () => apiRequest("/categories"),
   subscribeNewsletter: (email) => apiRequest("/newsletter/subscribe", { method: "POST", body: JSON.stringify({ email }) }),
   submitPartnershipInquiry: (payload) => apiRequest("/partnership-inquiries", { method: "POST", body: JSON.stringify(payload) }),
   submitCourseApplication: (payload) => apiRequest("/course-applications", { method: "POST", body: JSON.stringify(payload) }),

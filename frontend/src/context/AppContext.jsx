@@ -113,11 +113,14 @@ export function AppProvider({ children }) {
   };
 
   const createPost = async (payload) => {
+    const categories = await api.getCategories();
+    const categoryId = payload.categoryId || categories[0]?.id;
+    if (!categoryId) throw new Error("No publishing category is available.");
     const post = await api.createPost({
       title: payload.title,
       content: payload.content,
       excerpt: payload.excerpt || payload.content?.slice(0, 160),
-      category_id: payload.categoryId || null,
+      category_id: categoryId,
       status: payload.status === "draft" ? "draft" : "published",
     });
     if (payload.status === "draft") setUserDrafts((items) => [post, ...items]);
