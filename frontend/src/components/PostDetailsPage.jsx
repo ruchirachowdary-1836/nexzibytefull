@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, Clock, Calendar, Bookmark, Share2, Sparkles, 
+import {
+  ArrowLeft, Clock, Calendar, Bookmark, Share2, Sparkles,
   MessageSquare, Heart, ThumbsUp, Send, CheckCircle2, User,
   CornerDownRight, Copy, Check, ChevronRight, Tag, BookOpen,
   Eye, Terminal, Award
@@ -96,8 +96,8 @@ export default function PostDetailsPage() {
 
     const newComment = {
       id: `c-${Date.now()}`,
-      author: user?.name || "Authenticated member",
-      role: user?.role || "Senior Full Stack Developer",
+      author: user?.name || "TechTalk member",
+      role: user?.role || "Community member",
       avatar: user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80",
       time: "Just now",
       text: newCommentText.trim(),
@@ -171,8 +171,8 @@ export default function PostDetailsPage() {
             {/* Author Profile Strip */}
             <div className="post-author-editorial-bar">
               <div className="author-editorial-left">
-                <img 
-                  src={article.avatar || user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"} 
+                <img
+                  src={article.avatar || user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"}
                   alt={article.author}
                   className="author-editorial-avatar"
                 />
@@ -190,8 +190,8 @@ export default function PostDetailsPage() {
 
               {/* Action Buttons: Save & Share */}
               <div className="post-actions-editorial">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={`btn-action-pill ${isSaved ? "is-saved" : ""}`}
                   onClick={() => toggleSavePost(article)}
                   title={isSaved ? "Remove from Bookmarks" : "Save to Reading List"}
@@ -200,8 +200,8 @@ export default function PostDetailsPage() {
                   <span>{isSaved ? "Saved" : "Save"}</span>
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-action-pill"
                   onClick={handleShare}
                   title="Share Article Link"
@@ -215,8 +215,8 @@ export default function PostDetailsPage() {
 
           {/* Cover Graphic Banner */}
           <div className="post-hero-banner-frame">
-            <img 
-              src={article.coverImage || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&auto=format&fit=crop&q=80"} 
+            <img
+              src={article.coverImage || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&auto=format&fit=crop&q=80"}
               alt={article.title}
               className="post-hero-banner-img"
             />
@@ -265,8 +265,8 @@ export default function PostDetailsPage() {
                     <span className="dot dot-green" />
                   </div>
                   <span className="code-snippet-filename">rateLimiter.ts — Redis Token Bucket</span>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="code-copy-btn"
                     onClick={() => showToast("Code snippet copied to clipboard!")}
                   >
@@ -321,8 +321,8 @@ export class DistributedTokenBucket {
               {/* Floating Claps & Appreciation Bar */}
               <div className="post-engagement-bar">
                 <div className="engagement-left">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={`btn-clap ${hasLiked ? "has-clapped" : ""}`}
                     onClick={handleLike}
                   >
@@ -342,8 +342,8 @@ export class DistributedTokenBucket {
                 </div>
 
                 <div className="engagement-right">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={`btn-action-pill ${isSaved ? "is-saved" : ""}`}
                     onClick={() => toggleSavePost(article)}
                   >
@@ -351,8 +351,8 @@ export class DistributedTokenBucket {
                     <span>{isSaved ? "Saved" : "Save Article"}</span>
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn-action-pill"
                     onClick={handleShare}
                   >
@@ -364,8 +364,8 @@ export class DistributedTokenBucket {
 
               {/* Author Bio Card */}
               <div className="author-bio-card">
-                <img 
-                  src={article.avatar || user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"} 
+                <img
+                  src={article.avatar || user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"}
                   alt={article.author}
                   className="author-bio-avatar"
                 />
@@ -400,13 +400,13 @@ export class DistributedTokenBucket {
                 {/* Add Comment Form */}
                 <form onSubmit={handleAddComment} className="comment-form-card">
                   <div className="comment-form-top">
-                    <img 
-                      src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"} 
-                      alt="Current User" 
+                    <img
+                      src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"}
+                      alt="Current User"
                       className="comment-user-avatar"
                     />
                     <div className="comment-user-meta">
-                      <span className="comment-user-name">{user?.name || "Authenticated member"}</span>
+                      <span className="comment-user-name">{user?.name || "TechTalk member"}</span>
                       <span className="comment-user-role">Commenting as Verified Member</span>
                     </div>
                   </div>
@@ -439,16 +439,16 @@ export class DistributedTokenBucket {
                         </div>
                         <p className="comment-text-content">{comment.text}</p>
                         <div className="comment-footer-actions">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="comment-like-btn"
                             onClick={() => showToast("Liked comment.")}
                           >
                             <ThumbsUp size={13} />
                             <span>{comment.likes}</span>
                           </button>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="comment-reply-btn"
                             onClick={() => showToast("Reply thread opened.")}
                           >
@@ -473,8 +473,8 @@ export class DistributedTokenBucket {
 
             <div className="articles-grid">
               {relatedDispatches.map((rel) => (
-                <div 
-                  key={rel.id} 
+                <div
+                  key={rel.id}
                   className="article-card"
                   onClick={() => navigate(`/posts/${rel.id}`)}
                   role="button"

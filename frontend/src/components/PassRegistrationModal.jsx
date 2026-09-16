@@ -5,24 +5,23 @@ import { useApp } from "../context/AppContext.jsx";
 import { PASSES } from "../data/mockData.js";
 
 export default function PassRegistrationModal() {
-  const { 
-    passModalOpen, 
-    setPassModalOpen, 
-    selectedPassType, 
-    setSelectedPassType, 
-    registerPass,
-    showToast
+  const {
+    passModalOpen,
+    setPassModalOpen,
+    selectedPassType,
+    setSelectedPassType,
+    registerPass
   } = useApp();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [role, setRole] = useState("");
+  const [name, setName] = useState("Lalitha Mindhi");
+  const [email, setEmail] = useState("lalitha@nexzibyte.com");
+  const [phone, setPhone] = useState("+91 98765 43210");
+  const [organization, setOrganization] = useState("NexziByte Ecosystem");
+  const [role, setRole] = useState("Senior Systems Architect");
   const [additionalField, setAdditionalField] = useState("");
   const [notes, setNotes] = useState("");
-  const [phone, setPhone] = useState("");
-  const [referralContact, setReferralContact] = useState("");
+  const [delegationMembers, setDelegationMembers] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Normalize active pass type
@@ -60,18 +59,22 @@ export default function PassRegistrationModal() {
           btnText: "Secure Founder Pass — ₹499",
           subtext: "Chatham House rules. Zero vanity metrics. Authentic peer network."
         };
-      case "delegation-pass":
+      case "delegation-pass": {
+        const total = delegationMembers === 1 ? 250 : delegationMembers * 200;
         return {
           title: "Get Corporate Delegation Pass",
-          price: "₹250",
-          amount: "₹250",
+          price: `₹${total}`,
+          amount: `₹${total}`,
           badge: "Corporate Delegate",
           btnColor: "btn-coral",
           accentColor: "var(--coral)",
           btnIcon: CreditCard,
-          btnText: "Complete Purchase — ₹250",
-          subtext: "Full all-access corporate accreditation & digital kit."
+          btnText: `Complete Purchase — ₹${total} (${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"})`,
+          subtext: delegationMembers === 1
+            ? "₹250 for 1 member • Register 2+ members to unlock ₹200/member group rate!"
+            : `🎉 Group Rate Applied: ₹200 per member (${delegationMembers} attendees = ₹${total}, save ₹${delegationMembers * 50}!)`
         };
+      }
       default:
         return {
           title: "Claim Your Free Visitor Pass",
@@ -93,28 +96,39 @@ export default function PassRegistrationModal() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name || !email) return;
+    if (!name || !email || !phone) {
+      showToast("⚠️ Please provide Full Name, Email Address, and Contact Number.");
+      return;
+    }
 
     setIsProcessing(true);
-    registerPass({
-        attendeeName: name,
+    setTimeout(() => {
+      registerPass({
+        attendeeName: isDelegation ? `${name} (${delegationMembers} Attendees)` : name,
         email,
+        phone,
+        contact: phone,
         passType: activeType,
         amount: currentDetails.amount,
         organization,
         role: isStudent ? `${role} (${additionalField || "Student"})` : role,
-        notes: notes || additionalField
-        , phone, referralContact
-      }).catch((error) => showToast(`⚠️ ${error.message}`))
-      .finally(() => setIsProcessing(false));
+        notes: isDelegation ? `Delegation size: ${delegationMembers} members. Contact: ${phone}. ${notes}` : `Contact: ${phone}. ${notes || additionalField}`
+      });
+      setIsProcessing(false);
+      // Smoothly jump down to the generated ticket
+      const ticketEl = document.getElementById("digital-pass");
+      if (ticketEl) {
+        ticketEl.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 600);
   };
 
   return (
     <div className="modal-backdrop-overlay" onClick={() => setPassModalOpen(false)}>
       <div className="modal-content-card modal-pass-card-wide" onClick={(e) => e.stopPropagation()}>
-        <button 
-          type="button" 
-          className="modal-close-btn" 
+        <button
+          type="button"
+          className="modal-close-btn"
           onClick={() => setPassModalOpen(false)}
           aria-label="Close dialog"
         >
@@ -188,7 +202,7 @@ export default function PassRegistrationModal() {
             <div className="tab-pill-icon"><Building size={14} /></div>
             <div className="tab-pill-info">
               <span className="tab-pill-name">Delegation Pass</span>
-              <span className="tab-pill-price">₹250</span>
+              <span className="tab-pill-price">from ₹200</span>
             </div>
           </button>
         </div>
@@ -197,27 +211,39 @@ export default function PassRegistrationModal() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div className="form-field-group">
               <label className="form-label">Full Name *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
-                className="form-input" 
-                value={name} 
+                className="form-input"
+                value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
+                placeholder="e.g. Lalitha Mindhi"
               />
             </div>
 
             <div className="form-field-group">
               <label className="form-label">Email Address *</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
-                className="form-input" 
-                value={email} 
+                className="form-input"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="e.g. lalitha@company.com"
               />
             </div>
+          </div>
+
+          <div className="form-field-group">
+            <label className="form-label">Contact Number *</label>
+            <input
+              type="tel"
+              required
+              className="form-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +91 98765 43210"
+            />
           </div>
 
           {/* Dynamic Context Fields based on Pass Type */}
@@ -225,22 +251,22 @@ export default function PassRegistrationModal() {
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
               <div className="form-field-group">
                 <label className="form-label">College / University Name *</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
-                  className="form-input" 
-                  value={organization} 
+                  className="form-input"
+                  value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="e.g. JNTU Hyderabad / Osmania University"
                 />
               </div>
               <div className="form-field-group">
                 <label className="form-label">Degree &amp; Graduation Year *</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
-                  className="form-input" 
-                  value={role} 
+                  className="form-input"
+                  value={role}
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="e.g. B.Tech CSE (2026)"
                 />
@@ -253,22 +279,22 @@ export default function PassRegistrationModal() {
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
                 <div className="form-field-group">
                   <label className="form-label">Startup / Company Name *</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
-                    className="form-input" 
-                    value={organization} 
+                    className="form-input"
+                    value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
                     placeholder="e.g. AgenticIQ / MyStartup.ai"
                   />
                 </div>
                 <div className="form-field-group">
                   <label className="form-label">Role in Startup *</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
-                    className="form-input" 
-                    value={role} 
+                    className="form-input"
+                    value={role}
                     onChange={(e) => setRole(e.target.value)}
                     placeholder="e.g. Co-Founder &amp; CTO"
                   />
@@ -276,7 +302,7 @@ export default function PassRegistrationModal() {
               </div>
               <div className="form-field-group">
                 <label className="form-label">Funding &amp; Venture Stage</label>
-                <select 
+                <select
                   className="form-input"
                   value={additionalField}
                   onChange={(e) => setAdditionalField(e.target.value)}
@@ -293,65 +319,139 @@ export default function PassRegistrationModal() {
           )}
 
           {isDelegation && (
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
-              <div className="form-field-group">
-                <label className="form-label">Corporate Enterprise / Firm *</label>
-                <input 
-                  type="text" 
-                  required
-                  className="form-input" 
-                  value={organization} 
-                  onChange={(e) => setOrganization(e.target.value)}
-                  placeholder="e.g. NexziByte / Tech Enterprise"
-                />
+            <>
+              {/* Member Selection / Dynamic Roster Counter for Delegation Pass */}
+              <div style={{
+                background: "rgba(244, 63, 94, 0.07)",
+                border: "1px solid rgba(244, 63, 94, 0.28)",
+                borderRadius: "12px",
+                padding: "14px 16px",
+                marginBottom: "14px"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
+                  <div>
+                    <strong style={{ fontSize: "0.9rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>Delegation Attendees</span>
+                      <span style={{
+                        fontSize: "0.725rem",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        background: delegationMembers >= 2 ? "#10B981" : "rgba(244, 63, 94, 0.2)",
+                        color: "#FFFFFF",
+                        fontWeight: 700
+                      }}>
+                        {delegationMembers >= 2 ? "Group Rate: ₹200 / member" : "Single: ₹250"}
+                      </span>
+                    </strong>
+                    <p style={{ margin: "3px 0 0", fontSize: "0.775rem", color: "var(--text-secondary)" }}>
+                      {delegationMembers === 1
+                        ? "1 Member = ₹250. Add 2+ members to unlock the ₹200 per member group discount!"
+                        : `🎉 Group Discount Applied: ₹200 × ${delegationMembers} members = ₹${delegationMembers * 200} (You save ₹${delegationMembers * 50})`}
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: "32px", height: "32px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", fontWeight: 800, fontSize: "1rem" }}
+                      onClick={() => setDelegationMembers(Math.max(1, delegationMembers - 1))}
+                      disabled={delegationMembers <= 1}
+                      title="Decrease member count"
+                    >
+                      -
+                    </button>
+
+                    <span style={{ minWidth: "32px", textAlign: "center", fontWeight: 800, fontSize: "1.15rem", color: "var(--coral, #F43F5E)" }}>
+                      {delegationMembers}
+                    </span>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: "32px", height: "32px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", fontWeight: 800, fontSize: "1rem" }}
+                      onClick={() => setDelegationMembers(Math.min(25, delegationMembers + 1))}
+                      title="Add another member"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "10px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Quick presets:</span>
+                  {[1, 2, 3, 5, 10].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setDelegationMembers(num)}
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: "6px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        background: delegationMembers === num ? "var(--coral, #F43F5E)" : "rgba(255, 255, 255, 0.06)",
+                        color: delegationMembers === num ? "#FFFFFF" : "var(--text-secondary)",
+                        border: "1px solid",
+                        borderColor: delegationMembers === num ? "var(--coral, #F43F5E)" : "rgba(255, 255, 255, 0.12)",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {num} {num === 1 ? "member (₹250)" : `members (₹${num * 200})`}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="form-field-group">
-                <label className="form-label">Designation / Role *</label>
-                <input 
-                  type="text" 
-                  required
-                  className="form-input" 
-                  value={role} 
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g. Principal Cloud Architect"
-                />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+                <div className="form-field-group">
+                  <label className="form-label">Corporate Enterprise / Firm *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    placeholder="e.g. NexziByte / Tech Enterprise"
+                  />
+                </div>
+                <div className="form-field-group">
+                  <label className="form-label">Lead Delegate Role *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="e.g. Principal Cloud Architect"
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {isVisitor && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div className="form-field-group">
                 <label className="form-label">Affiliation / College (Optional)</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={organization} 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="NexziByte / University"
                 />
               </div>
               <div className="form-field-group">
                 <label className="form-label">Current Role / Interest</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={role} 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={role}
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="Developer / Enthusiast"
                 />
-              </div>
-            </div>
-          )}
-          {isVisitor && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-field-group">
-                <label className="form-label">Contact Number *</label>
-                <input type="tel" required className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <div className="form-field-group">
-                <label className="form-label">Referral Contact (optional)</label>
-                <input type="tel" className="form-input" value={referralContact} onChange={(e) => setReferralContact(e.target.value)} />
               </div>
             </div>
           )}
@@ -361,10 +461,10 @@ export default function PassRegistrationModal() {
               <label className="form-label">
                 {isFounder ? "What are you looking for from the Founder Circle?" : "Delegation Focus / Objectives"}
               </label>
-              <textarea 
-                className="form-input" 
+              <textarea
+                className="form-input"
                 rows="2"
-                value={notes} 
+                value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={isFounder ? "e.g. Looking for enterprise pilot design partners and seed angel syndicates..." : "e.g. Scalable microservices architecture, AI infrastructure, team upskilling..."}
               />
@@ -407,8 +507,8 @@ export default function PassRegistrationModal() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={`btn ${currentDetails.btnColor}`}
             style={{ width: "100%", padding: "12px 20px" }}
             disabled={isProcessing}
@@ -439,7 +539,10 @@ export default function PassRegistrationModal() {
               }}
               onClick={() => {
                 setPassModalOpen(false);
-                navigate(`/checkout?pass=${activeType}`);
+                const queryStr = isDelegation
+                  ? `/checkout?pass=${activeType}&members=${delegationMembers}`
+                  : `/checkout?pass=${activeType}`;
+                navigate(queryStr);
               }}
             >
               <Landmark size={15} style={{ color: "#004c8f" }} />

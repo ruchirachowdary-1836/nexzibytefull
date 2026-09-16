@@ -51,14 +51,15 @@ import {
 export default function UserProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { 
-    user, 
+  const {
+    user,
     isLoggedIn,
+    setUser,
     logout,
-    updateUserProfile, 
-    resetUserProfile, 
-    savedPosts, 
-    toggleSavePost, 
+    updateUserProfile,
+    resetUserProfile,
+    savedPosts,
+    toggleSavePost,
     openArticleReader,
     openPassModal,
     showToast,
@@ -114,6 +115,7 @@ export default function UserProfilePage() {
     confirmPass: ""
   });
   const [newLink, setNewLink] = useState({ label: "", url: "" });
+  const [editingLinkId, setEditingLinkId] = useState(null);
   const [savingLink, setSavingLink] = useState(false);
 
   // In-session Profile Editor Modal state
@@ -137,9 +139,9 @@ export default function UserProfilePage() {
   const [hoveredDay, setHoveredDay] = useState(null);
 
   // Check if current user details deviate from default (indicating active session edits)
-  const isModified = user?.name !== DEFAULT_PROFILE.name || 
-                     user?.bio !== DEFAULT_PROFILE.bio || 
-                     user?.location !== DEFAULT_PROFILE.location || 
+  const isModified = user?.name !== DEFAULT_PROFILE.name ||
+                     user?.bio !== DEFAULT_PROFILE.bio ||
+                     user?.location !== DEFAULT_PROFILE.location ||
                      user?.title !== DEFAULT_PROFILE.title;
 
   // Open Edit Modal with current values
@@ -193,10 +195,19 @@ export default function UserProfilePage() {
     if (!newLink.label.trim() || !newLink.url.trim()) return;
     setSavingLink(true);
     try {
-      const link = await api.createProfileLink({ label: newLink.label.trim(), url: newLink.url.trim() });
-      updateUserProfile({ links: [...(user?.links || []), link] });
+      const payload = { label: newLink.label.trim(), url: newLink.url.trim() };
+      const link = editingLinkId
+        ? await api.updateProfileLink(editingLinkId, payload)
+        : await api.createProfileLink(payload);
+      setUser((current) => ({
+        ...current,
+        links: editingLinkId
+          ? (current?.links || []).map((item) => item.id === editingLinkId ? link : item)
+          : [...(current?.links || []), link]
+      }));
       setNewLink({ label: "", url: "" });
-      showToast("Profile link added.");
+      setEditingLinkId(null);
+      showToast(editingLinkId ? "Profile link updated." : "Profile link added.");
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     } finally {
@@ -207,20 +218,28 @@ export default function UserProfilePage() {
   const handleDeleteProfileLink = async (linkId) => {
     try {
       await api.deleteProfileLink(linkId);
-      updateUserProfile({ links: (user?.links || []).filter((link) => link.id !== linkId) });
+      setUser((current) => ({
+        ...current,
+        links: (current?.links || []).filter((link) => link.id !== linkId)
+      }));
       showToast("Profile link removed.");
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }
   };
 
+  const handleEditProfileLink = (link) => {
+    setEditingLinkId(link.id);
+    setNewLink({ label: link.label || "", url: link.url || "" });
+  };
+
   // Filter posts (published or drafts)
   const currentPostSource = postsSubTab === "published" ? (userPosts || PUBLISHED_POSTS) : (userDrafts || DRAFT_POSTS_INITIAL);
   const filteredPosts = currentPostSource.filter(p => {
     const q = postSearch.toLowerCase();
-    return !q || 
-      p.title.toLowerCase().includes(q) || 
-      p.category.toLowerCase().includes(q) || 
+    return !q ||
+      p.title.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
       (p.tags && p.tags.some(t => t.toLowerCase().includes(q)));
   });
 
@@ -234,7 +253,7 @@ export default function UserProfilePage() {
         <div className="profile-cover-banner">
           <div className="profile-cover-mesh" />
           <div className="profile-cover-grid" />
-          
+
           <div className="profile-cover-tags">
             <span className="profile-badge-pill verified">
               <ShieldCheck size={13} />
@@ -252,8 +271,8 @@ export default function UserProfilePage() {
             <div className="profile-identity-top">
               {/* Avatar with Status Ring */}
               <div className="profile-avatar-wrapper">
-                <img 
-                  src={user?.avatar || DEFAULT_PROFILE.avatar} 
+                <img
+                  src={user?.avatar || DEFAULT_PROFILE.avatar}
                   alt={user?.name || "Authenticated member"}
                   className="profile-avatar-img"
                   onError={(e) => {
@@ -270,8 +289,8 @@ export default function UserProfilePage() {
 
               {/* Action Buttons: Edit (Session), Share, Pass */}
               <div className="profile-hero-actions">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-secondary btn-sm profile-action-btn"
                   onClick={handleOpenEdit}
                   id="btn-edit-profile-session"
@@ -280,8 +299,8 @@ export default function UserProfilePage() {
                   <span>Edit Profile <span className="action-pill-tag">Session</span></span>
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-secondary btn-sm profile-action-btn"
                   onClick={handleShareProfile}
                   id="btn-share-profile"
@@ -290,8 +309,8 @@ export default function UserProfilePage() {
                   <span>Share</span>
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-primary btn-sm profile-action-btn"
                   onClick={() => openPassModal("visitor-pass")}
                   id="btn-profile-pass"
@@ -301,8 +320,8 @@ export default function UserProfilePage() {
                 </button>
 
                 {isLoggedIn ? (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary btn-sm profile-action-btn profile-logout-btn"
                     onClick={() => {
                       logout();
@@ -315,7 +334,7 @@ export default function UserProfilePage() {
                     <span>Log Out</span>
                   </button>
                 ) : (
-                  <Link 
+                  <Link
                     to="/login"
                     className="btn btn-secondary btn-sm profile-action-btn"
                     id="btn-profile-login"
@@ -335,8 +354,8 @@ export default function UserProfilePage() {
                   <User size={15} style={{ color: "#EF4444" }} />
                   <span><strong>Signed Out Preview:</strong> You are currently viewing this technology profile in guest mode.</span>
                 </div>
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="session-reset-btn"
                   style={{ borderColor: "#EF4444", color: "#EF4444", textDecoration: "none" }}
                 >
@@ -352,8 +371,8 @@ export default function UserProfilePage() {
                   <span className="session-pulse-dot" />
                   <span><strong>Active Session Mode:</strong> Profile is currently customized for this session (not permanently saved to database).</span>
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="session-reset-btn"
                   onClick={handleResetToDefault}
                   title="Restore original profile details"
@@ -370,9 +389,9 @@ export default function UserProfilePage() {
                 <h1 className="profile-display-name">
                   {user?.name || DEFAULT_PROFILE.name}
                 </h1>
-                <button 
-                  type="button" 
-                  className="profile-quick-edit-pencil" 
+                <button
+                  type="button"
+                  className="profile-quick-edit-pencil"
                   onClick={handleOpenEdit}
                   title="Quick change display name (session only)"
                   aria-label="Edit name"
@@ -419,40 +438,40 @@ export default function UserProfilePage() {
 
               {/* Social & Professional Connections */}
               <div className="profile-social-links-row">
-                <a 
-                  href={user?.socials?.github || DEFAULT_PROFILE.socials.github} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={user?.github_url || undefined}
+                  target="_blank"
+                  rel="noreferrer"
                   className="profile-social-pill"
                 >
                   <GitHubIcon size={15} />
                   <span>GitHub</span>
                 </a>
 
-                <a 
-                  href={user?.socials?.linkedin || DEFAULT_PROFILE.socials.linkedin} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={user?.linkedin_url || undefined}
+                  target="_blank"
+                  rel="noreferrer"
                   className="profile-social-pill"
                 >
                   <LinkedInIcon size={15} />
                   <span>LinkedIn</span>
                 </a>
 
-                <a 
-                  href={user?.socials?.twitter || DEFAULT_PROFILE.socials.twitter} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={user?.twitter_url || undefined}
+                  target="_blank"
+                  rel="noreferrer"
                   className="profile-social-pill"
                 >
                   <XTwitterIcon size={15} />
                   <span>X / Twitter</span>
                 </a>
 
-                <a 
-                  href={user?.socials?.portfolio || DEFAULT_PROFILE.socials.portfolio} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={user?.website || undefined}
+                  target="_blank"
+                  rel="noreferrer"
                   className="profile-social-pill"
                 >
                   <Globe size={15} />
@@ -460,18 +479,18 @@ export default function UserProfilePage() {
                   <ExternalLink size={12} />
                 </a>
 
-                <a 
-                  href={user?.socials?.devto || DEFAULT_PROFILE.socials.devto} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={user?.devto_url || undefined}
+                  target="_blank"
+                  rel="noreferrer"
                   className="profile-social-pill"
                 >
                   <BookOpen size={15} />
                   <span>Dev.to</span>
                 </a>
 
-                <a 
-                  href={`mailto:${user?.email || DEFAULT_PROFILE.email}`} 
+                <a
+                  href={`mailto:${user?.email || DEFAULT_PROFILE.email}`}
                   className="profile-social-pill"
                 >
                   <Mail size={15} />
@@ -486,13 +505,25 @@ export default function UserProfilePage() {
                       <ExternalLink size={13} />
                       <span>{link.label}</span>
                     </a>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleEditProfileLink(link)}>Edit</button>
                     <button type="button" className="btn btn-secondary" onClick={() => handleDeleteProfileLink(link.id)}>Delete</button>
                   </div>
                 ))}
                 <form onSubmit={handleAddProfileLink} style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px" }}>
                   <input value={newLink.label} onChange={(event) => setNewLink({ ...newLink, label: event.target.value })} placeholder="Platform name" aria-label="Profile platform name" />
                   <input value={newLink.url} onChange={(event) => setNewLink({ ...newLink, url: event.target.value })} placeholder="https://example.com/username" aria-label="Profile URL" />
-                  <button type="submit" className="btn btn-primary" disabled={savingLink}>{savingLink ? "Saving..." : "+ Add Profile"}</button>
+                  <button type="submit" className="btn btn-primary" disabled={savingLink}>
+                    {savingLink ? "Saving..." : editingLinkId ? "Save Profile" : "+ Add Profile"}
+                  </button>
+                  {editingLinkId && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => { setEditingLinkId(null); setNewLink({ label: "", url: "" }); }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </form>
               </div>
             </div>
@@ -638,8 +669,8 @@ export default function UserProfilePage() {
                   {/* Month header row */}
                   <div className="heatmap-months-row">
                     {heatmapData.monthLabels.map((m, idx) => (
-                      <span 
-                        key={idx} 
+                      <span
+                        key={idx}
                         className="heatmap-month-label"
                         style={{ left: `${(m.weekIndex / 52) * 100}%` }}
                       >
@@ -825,7 +856,7 @@ export default function UserProfilePage() {
                   <article key={post.id} className="profile-post-card">
                     <div className="post-card-header">
                       <span className="post-category-tag">{post.category}</span>
-                      
+
                       {/* Post Status Badge (§19 Requirement) */}
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span className={`post-status-pill ${post.status === "Draft" ? "status-draft" : post.status === "Under Review" ? "status-review" : "status-published"}`}>
@@ -927,7 +958,7 @@ export default function UserProfilePage() {
                   <BookOpen size={42} style={{ opacity: 0.3 }} />
                   <h4>No {postsSubTab} dispatches found</h4>
                   <p>
-                    {postsSubTab === "drafts" 
+                    {postsSubTab === "drafts"
                       ? "You do not have any pending drafts. Click 'Create Dispatch' above to start writing."
                       : "Try adjusting your search keywords or publish a new dispatch."}
                   </p>
@@ -1078,12 +1109,12 @@ export default function UserProfilePage() {
                           <div className="skill-pill-bottom">
                             <span className="skill-years">{s.years} exp</span>
                             <div className="skill-bar-track">
-                              <div 
-                                className="skill-bar-fill" 
-                                style={{ 
+                              <div
+                                className="skill-bar-fill"
+                                style={{
                                   backgroundColor: cat.color,
                                   width: s.level === "Expert" ? "95%" : s.level === "Advanced" ? "82%" : "65%"
-                                }} 
+                                }}
                               />
                             </div>
                           </div>
@@ -1241,8 +1272,8 @@ export default function UserProfilePage() {
                 {notifications
                   .filter((n) => notifFilter === "all" || n.type === notifFilter)
                   .map((notif) => (
-                    <div 
-                      key={notif.id} 
+                    <div
+                      key={notif.id}
                       className={`notification-item-card ${!notif.read ? "is-unread" : ""}`}
                       onClick={() => {
                         if (!notif.read) markNotificationRead(notif.id);
@@ -1250,9 +1281,9 @@ export default function UserProfilePage() {
                       }}
                     >
                       <div className="notif-avatar-col">
-                        <img 
-                          src={notif.actor?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"} 
-                          alt={notif.actor?.name || "Member"} 
+                        <img
+                          src={notif.actor?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"}
+                          alt={notif.actor?.name || "Member"}
                           className="notif-avatar-img"
                         />
                         <span className={`notif-type-icon-badge badge-${notif.type}`}>
@@ -1278,8 +1309,8 @@ export default function UserProfilePage() {
 
                         <div className="notif-actions-bottom">
                           {notif.targetLink && (
-                            <Link 
-                              to={notif.targetLink} 
+                            <Link
+                              to={notif.targetLink}
                               className="notif-target-link"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1383,7 +1414,7 @@ export default function UserProfilePage() {
                 <div className="settings-content-card">
                   {/* 1. Profile Identity Settings */}
                   {settingsSection === "profile" && (
-                    <form 
+                    <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         updateUserProfile(formData);
@@ -1463,8 +1494,8 @@ export default function UserProfilePage() {
                           <Check size={15} />
                           <span>Save Profile Changes</span>
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={handleResetToDefault}
                         >
@@ -1477,7 +1508,7 @@ export default function UserProfilePage() {
 
                   {/* 2. Account & Credentials Settings */}
                   {settingsSection === "account" && (
-                    <form 
+                    <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         updateUserProfile({ email: accountEmail, handle: accountHandle, timezone: accountTimezone });
@@ -1546,8 +1577,8 @@ export default function UserProfilePage() {
                               Terminates your active session on this browser. You can securely log back in at any time with your credentials.
                             </p>
                           </div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn btn-sm"
                             style={{ background: "#EF4444", color: "#FFFFFF", border: "none", fontWeight: 700, padding: "8px 18px", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
                             onClick={() => {
@@ -1694,7 +1725,7 @@ export default function UserProfilePage() {
 
                   {/* 5. Security & Password Settings */}
                   {settingsSection === "security" && (
-                    <form 
+                    <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (passwords.newPass !== passwords.confirmPass) {
@@ -1772,15 +1803,15 @@ export default function UserProfilePage() {
           ══════════════════════════════════════════════════════════════════ */}
       {editModalOpen && (
         <div className="modal-backdrop-overlay" onClick={() => setEditModalOpen(false)}>
-          <div 
+          <div
             className="modal-content-card profile-edit-modal-card"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-labelledby="modal-title-profile-edit"
           >
-            <button 
-              type="button" 
-              className="modal-close-btn" 
+            <button
+              type="button"
+              className="modal-close-btn"
               onClick={() => setEditModalOpen(false)}
               aria-label="Close edit modal"
             >

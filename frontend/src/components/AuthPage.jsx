@@ -1,12 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { 
-  Sparkles, Lock, Mail, User, Briefcase, Eye, EyeOff, 
-  CheckCircle2, ArrowRight, ShieldCheck, QrCode, Terminal, 
+import {
+  Sparkles, Lock, Mail, User, Briefcase, Eye, EyeOff,
+  CheckCircle2, ArrowRight, ShieldCheck, QrCode, Terminal,
   ArrowLeft, Check, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { neonAuthEnabled } from "../lib/neon.js";
+
+export function TechTalkMinimalLogo({ size = 1 }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        transform: `scale(${size})`,
+        transformOrigin: "center"
+      }}
+      aria-label="TechTalk"
+    >
+      <svg width="72" height="46" viewBox="0 0 72 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="4" y1="5" x2="68" y2="5" stroke="#6C2BD9" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="16" y1="5" x2="16" y2="40" stroke="#6C2BD9" strokeWidth="3.5" strokeLinecap="round" />
+        <text x="21" y="19" fill="#6C2BD9" fontFamily="Inter, system-ui, sans-serif" fontSize="17" fontWeight="700">ech</text>
+        <text x="21" y="38" fill="#94A3B8" fontFamily="Inter, system-ui, sans-serif" fontSize="17" fontWeight="600">alk</text>
+      </svg>
+    </div>
+  );
+}
 
 const ROLE_OPTIONS = [
   "Senior Full Stack Developer",
@@ -286,8 +308,8 @@ export default function AuthPage({ defaultMode = "login" }) {
                       <Lock size={13} style={{ display: "inline", marginRight: "4px" }} />
                       Password
                     </label>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="form-link-subtle"
                       onClick={handleForgotPassword}
                     >

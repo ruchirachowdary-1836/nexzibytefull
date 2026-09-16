@@ -803,7 +803,7 @@ A valuable day of learning, conversations, networking, and new perspectives.
 
 We look forward to continuing these conversations and exploring opportunities to contribute to the evolving Pharma + AI + IT ecosystem.
 
-📍 Hyderabad 
+📍 Hyderabad
 🗓️ 3 September 2026`,
     hashtags: [
       "#NexzibyteSolutions", "#GPACTS2026", "#PharmaAI", "#ArtificialIntelligence",
@@ -969,7 +969,7 @@ We’re proud to announce the successful completion of a new Client collaboratio
 
 At NexziByte Solutions, we believe in creating long-term collaborations built on trust, innovation, technology, expertise, and shared growth.
 
-Looking forward to a successful journey ahead, creating new opportunities and achieving many more milestones together! 
+Looking forward to a successful journey ahead, creating new opportunities and achieving many more milestones together!
 
 Building partnerships. Creating opportunities. Driving growth.`,
     hashtags: [
@@ -1135,20 +1135,22 @@ export const PASSES = [
     id: "delegation-pass",
     type: "DELEGATION PASS",
     badge: "CORPORATE DELEGATE",
-    price: "₹250",
+    price: "₹250 / ₹200",
     priceNum: 250,
+    groupPriceNum: 200,
     currency: "₹",
-    description: "For corporate delegates, software architects, engineering managers, and tech leaders.",
+    description: "For corporate delegates, software architects, engineering managers, and teams. ₹250 for 1 member, ₹200 per member for 2+ members.",
     features: [
       "Full corporate delegate event accreditation",
+      "Dynamic Group Rate: ₹200/member for 2+ delegates",
       "All expert, architecture & teardown sessions",
       "Speaker Q&A & corporate networking lounges",
       "Official Event Kit & Digital Masterclass Notes",
       "Digital Certificate of Participation",
       "Full delegate community & priority seating"
     ],
-    buttonText: "Get Delegation Pass — ₹250",
-    subtext: "Complete all-access corporate accreditation.",
+    buttonText: "Get Delegation Pass — from ₹200",
+    subtext: "₹250 single member • ₹200/member for 2+ members.",
     highlight: false,
     color: "coral"
   }
@@ -1279,7 +1281,7 @@ export const TESTIMONIALS = [
   },
   {
     id: "t2",
-    name: "TechTalk Editorial",
+    name: "Lalitha Mindhi",
     role: "Staff Cloud Architect",
     company: "NexziByte Ecosystem",
     image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&auto=format&fit=crop&q=80",

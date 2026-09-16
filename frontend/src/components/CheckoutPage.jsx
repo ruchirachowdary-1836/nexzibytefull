@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate, useParams } from "react-router-dom";
-import { 
-  Check, CheckCircle2, ShieldCheck, Lock, CreditCard, ArrowLeft, 
-  ChevronDown, ChevronUp, Sparkles, GraduationCap, Briefcase, Building, 
-  Ticket, QrCode, Download, Copy, Tag, HelpCircle, Info, Smartphone, 
+import {
+  Check, CheckCircle2, ShieldCheck, Lock, CreditCard, ArrowLeft,
+  ChevronDown, ChevronUp, Sparkles, GraduationCap, Briefcase, Building,
+  Ticket, QrCode, Download, Copy, Tag, HelpCircle, Info, Smartphone,
   Landmark, AlertCircle, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
@@ -211,10 +211,10 @@ export default function CheckoutPage() {
 
   // Determine initial selected pass
   const queryPass = searchParams.get("pass") || routePassId || "student-pass";
-  const normalizedPass = (queryPass === "founder-pass" || queryPass === "founder") 
-    ? "founder-pass" 
+  const normalizedPass = (queryPass === "founder-pass" || queryPass === "founder")
+    ? "founder-pass"
     : (queryPass === "delegation-pass" || queryPass === "delegate-pass" || queryPass === "delegation")
-    ? "delegation-pass" 
+    ? "delegation-pass"
     : "student-pass";
 
   const [selectedPass, setSelectedPass] = useState(normalizedPass);
@@ -222,17 +222,17 @@ export default function CheckoutPage() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Form Fields (Right Column)
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [country, setCountry] = useState("");
-  const [state, setState] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [role, setRole] = useState("");
-  const [studentDegree, setStudentDegree] = useState("");
-  const [ventureStage, setVentureStage] = useState("");
+  const [email, setEmail] = useState("lalitha@nexzibyte.com");
+  const [phone, setPhone] = useState("9876543210");
+  const [fullName, setFullName] = useState("Lalitha Mindhi");
+  const [country, setCountry] = useState("India");
+  const [state, setState] = useState("Telangana");
+  const [address, setAddress] = useState("Hitech City, Madhapur");
+  const [pincode, setPincode] = useState("500081");
+  const [organization, setOrganization] = useState("NexziByte Ecosystem");
+  const [role, setRole] = useState("Senior Systems Architect");
+  const [studentDegree, setStudentDegree] = useState("B.Tech Computer Science (2026)");
+  const [ventureStage, setVentureStage] = useState("Bootstrapped / Early Revenue");
 
   // Payment Method Selection: "bank" | "upi" | "card"
   const [paymentMethod, setPaymentMethod] = useState("bank");
@@ -240,25 +240,25 @@ export default function CheckoutPage() {
   // Net Banking specific fields
   const [selectedBank, setSelectedBank] = useState("hdfc");
   const [customBank, setCustomBank] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState("");
+  const [accountHolderName, setAccountHolderName] = useState("Lalitha Mindhi");
 
   // UPI specific fields
   const [upiMethod, setUpiMethod] = useState("id"); // "id" | "qr"
-  const [upiId, setUpiId] = useState("");
+  const [upiId, setUpiId] = useState("lalitha@okhdfcbank");
   const [selectedUpiApp, setSelectedUpiApp] = useState("gpay");
 
   // Card specific fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("4532 8219 0921 4410");
+  const [cardExpiry, setCardExpiry] = useState("08/28");
+  const [cardCvc, setCardCvc] = useState("892");
+  const [cardName, setCardName] = useState("Lalitha Mindhi");
 
   // Tax / GSTIN
   const [showTaxId, setShowTaxId] = useState(false);
   const [taxId, setTaxId] = useState("");
 
   // Agreement
-  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(true);
 
   // Coupon Code logic
   const [couponInput, setCouponInput] = useState("");
@@ -272,6 +272,12 @@ export default function CheckoutPage() {
   const [completedPassData, setCompletedPassData] = useState(null);
   const [transactionRef, setTransactionRef] = useState("");
 
+  // Read optional delegation member count from URL query
+  const initialMembersParam = parseInt(searchParams.get("members"), 10);
+  const [delegationMembers, setDelegationMembers] = useState(
+    !isNaN(initialMembersParam) && initialMembersParam >= 1 ? initialMembersParam : 1
+  );
+
   // Update selected pass if query param changes
   useEffect(() => {
     if (queryPass && PASS_DETAILS[normalizedPass]) {
@@ -280,9 +286,18 @@ export default function CheckoutPage() {
   }, [queryPass, normalizedPass]);
 
   const activePassConfig = PASS_DETAILS[selectedPass] || PASS_DETAILS["student-pass"];
+  const isDelegation = selectedPass === "delegation-pass";
 
-  // Pricing calculations (in INR ₹)
-  const baseAmount = activePassConfig.basePrice;
+  // Dynamic pricing calculations (in INR ₹)
+  // Delegate Pass: 1 member = ₹250; 2+ members = ₹200 per member
+  const effectivePricePerMember = isDelegation
+    ? (delegationMembers === 1 ? 250 : 200)
+    : activePassConfig.basePrice;
+
+  const baseAmount = isDelegation
+    ? (delegationMembers === 1 ? 250 : delegationMembers * 200)
+    : activePassConfig.basePrice;
+
   let discountAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.type === "percent") {
@@ -366,22 +381,24 @@ export default function CheckoutPage() {
         methodLabel = `Card (RuPay / Visa ending in ${cardNumber.slice(-4) || "4410"})`;
       }
 
-      const orgField = selectedPass === "student-pass" 
-        ? organization 
+      const orgField = selectedPass === "student-pass"
+        ? organization
         : (selectedPass === "founder-pass" ? organization : organization);
 
-      const roleField = selectedPass === "student-pass" 
-        ? `${studentDegree} • Student` 
+      const roleField = selectedPass === "student-pass"
+        ? `${studentDegree} • Student`
         : (selectedPass === "founder-pass" ? `${role} (${ventureStage})` : role);
 
       const passCreated = registerPass({
-        attendeeName: fullName,
+        attendeeName: isDelegation ? `${fullName} (${delegationMembers} Attendees)` : fullName,
         email,
         passType: selectedPass,
         amount: `₹${totalAmount}`,
         organization: orgField,
         role: roleField,
-        notes: `Paid via ${methodLabel} | Txn: ${generatedTxn} | GSTIN: ${taxId || "B2C Consumer"}`
+        notes: isDelegation
+          ? `Delegation Size: ${delegationMembers} attendees (Rate: ₹${effectivePricePerMember}/member) | Paid via ${methodLabel} | Txn: ${generatedTxn} | GSTIN: ${taxId || "B2C Consumer"}`
+          : `Paid via ${methodLabel} | Txn: ${generatedTxn} | GSTIN: ${taxId || "B2C Consumer"}`
       });
 
       setCompletedPassData({
@@ -392,7 +409,8 @@ export default function CheckoutPage() {
         basePrice: baseAmount,
         gst: gstAmount,
         discount: discountAmount,
-        taxId: taxId || "N/A"
+        taxId: taxId || "N/A",
+        delegationMembers: isDelegation ? delegationMembers : 1
       });
 
       setIsProcessing(false);
@@ -439,7 +457,7 @@ export default function CheckoutPage() {
               <span className="success-tag">PAYMENT CONFIRMED • OFFICIAL PASS ISSUED</span>
               <h1 className="success-title">Welcome to TechTalk 2026!</h1>
               <p className="success-subtitle">
-                Your payment of <strong>₹{completedPassData?.totalPaid} INR</strong> was processed successfully. 
+                Your payment of <strong>₹{completedPassData?.totalPaid} INR</strong> was processed successfully.
                 Your digital badge and cryptographic pass are ready.
               </p>
 
@@ -494,8 +512,8 @@ export default function CheckoutPage() {
               </div>
 
               <div className="success-actions-row">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-primary btn-lg"
                   onClick={() => {
                     showToast(`Downloading digital ticket for ${completedPassData?.holder}...`);
@@ -557,7 +575,7 @@ export default function CheckoutPage() {
                     onClick={() => setSelectedPass("delegation-pass")}
                   >
                     <Building size={15} />
-                    <span>Delegation (₹250)</span>
+                    <span>Delegation (from ₹200)</span>
                   </button>
                 </div>
 
@@ -615,6 +633,89 @@ export default function CheckoutPage() {
                   <p>{activePassConfig.closingNote}</p>
                 </div>
 
+                {/* Interactive Delegation Member Count Selector */}
+                {isDelegation && (
+                  <div className="delegation-roster-selector" style={{
+                    background: "rgba(225, 29, 72, 0.06)",
+                    border: "1px solid rgba(225, 29, 72, 0.25)",
+                    borderRadius: "14px",
+                    padding: "16px 18px",
+                    marginBottom: "16px"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
+                      <div>
+                        <strong style={{ fontSize: "0.95rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span>Delegation Attendees</span>
+                          <span style={{
+                            fontSize: "0.75rem",
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: delegationMembers >= 2 ? "#10B981" : "rgba(225, 29, 72, 0.2)",
+                            color: "#FFFFFF",
+                            fontWeight: 700
+                          }}>
+                            {delegationMembers >= 2 ? "Group Rate: ₹200 / member" : "Single: ₹250"}
+                          </span>
+                        </strong>
+                        <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                          {delegationMembers === 1
+                            ? "Single Member: ₹250. Register 2+ members to unlock ₹200 per member group pricing!"
+                            : `🎉 Group Discount: ₹200 × ${delegationMembers} members = ₹${delegationMembers * 200} (Save ₹${delegationMembers * 50}!)`}
+                        </p>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: "34px", height: "34px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", fontWeight: 800, fontSize: "1.1rem" }}
+                          onClick={() => setDelegationMembers(Math.max(1, delegationMembers - 1))}
+                          disabled={delegationMembers <= 1}
+                          title="Reduce members"
+                        >
+                          -
+                        </button>
+                        <span style={{ minWidth: "34px", textAlign: "center", fontWeight: 800, fontSize: "1.2rem", color: "#E11D48" }}>
+                          {delegationMembers}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: "34px", height: "34px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", fontWeight: 800, fontSize: "1.1rem" }}
+                          onClick={() => setDelegationMembers(Math.min(30, delegationMembers + 1))}
+                          title="Add another member"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Quick presets:</span>
+                      {[1, 2, 3, 5, 10].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setDelegationMembers(num)}
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            background: delegationMembers === num ? "#E11D48" : "rgba(255, 255, 255, 0.06)",
+                            color: delegationMembers === num ? "#FFFFFF" : "var(--text-secondary)",
+                            border: "1px solid",
+                            borderColor: delegationMembers === num ? "#E11D48" : "rgba(255, 255, 255, 0.12)",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {num} {num === 1 ? "member (₹250)" : `members (₹${num * 200})`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Active Pass Radio Option matching screenshot */}
                 <div className="checkout-price-card">
                   <label className="checkout-radio-label">
@@ -624,10 +725,14 @@ export default function CheckoutPage() {
                     <div className="checkout-price-info">
                       <div className="checkout-price-amount">
                         <span className="currency-sym">₹</span>
-                        <span className="price-val">{activePassConfig.basePrice}</span>
+                        <span className="price-val">{baseAmount}</span>
                         <span className="inr-tag">INR</span>
                       </div>
-                      <div className="checkout-price-period">One-time fee • {activePassConfig.discountTag}</div>
+                      <div className="checkout-price-period">
+                        {isDelegation
+                          ? `${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"} • ₹${effectivePricePerMember}/member`
+                          : `One-time fee • ${activePassConfig.discountTag}`}
+                      </div>
                     </div>
                   </label>
                 </div>
@@ -647,8 +752,8 @@ export default function CheckoutPage() {
                       />
                     </div>
                     {appliedCoupon ? (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="btn-coupon-remove"
                         onClick={handleRemoveCoupon}
                       >
@@ -702,9 +807,15 @@ export default function CheckoutPage() {
                   {showOrderDetails && (
                     <div className="order-details-breakdown">
                       <div className="breakdown-line">
-                        <span>{activePassConfig.type} Base Fee:</span>
+                        <span>{activePassConfig.type} {isDelegation ? `(${delegationMembers} × ₹${effectivePricePerMember})` : "Base Fee"}:</span>
                         <span>₹{baseAmount} INR</span>
                       </div>
+                      {isDelegation && delegationMembers >= 2 && (
+                        <div className="breakdown-line discount" style={{ color: "#10B981" }}>
+                          <span>Group Discount Savings (₹50 off × {delegationMembers}):</span>
+                          <span>-₹{delegationMembers * 50} INR</span>
+                        </div>
+                      )}
                       {appliedCoupon && (
                         <div className="breakdown-line discount">
                           <span>Coupon Discount ({appliedCoupon.code}):</span>
@@ -862,7 +973,7 @@ export default function CheckoutPage() {
                           className="checkout-text-input"
                           value={accountHolderName}
                           onChange={(e) => setAccountHolderName(e.target.value)}
-                          placeholder="Full name"
+                          placeholder="e.g. Lalitha Mindhi"
                         />
                       </div>
                     </div>
@@ -1037,7 +1148,7 @@ export default function CheckoutPage() {
                         type="text"
                         required
                         className="checkout-text-input"
-                        placeholder="Full name"
+                        placeholder="e.g. Lalitha Mindhi"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                       />
