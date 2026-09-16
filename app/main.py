@@ -124,6 +124,10 @@ class RegisterIn(BaseModel):
     professional_role: str | None = None
     referral_contact: str | None = Field(default=None, max_length=40)
     accept_terms: bool = False
+
+
+class VerificationCodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=128)
     profile_image: str | None = None
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
@@ -423,6 +427,19 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(verification_token=token).first()
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
         raise HTTPException(400, detail='Verification link is invalid or expired.')
+    user.email_verified = True
+    user.verification_token = None
+    user.verification_expires_at = None
+    db.commit()
+    return {'detail': 'Email verified. You can now sign in.'}
+
+
+@app.post('/auth/verify-email')
+def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
+    code = body.code.strip()
+    user = db.query(User).filter_by(verification_token=code).first()
+    if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
+        raise HTTPException(400, detail='Verification code is invalid or expired.')
     user.email_verified = True
     user.verification_token = None
     user.verification_expires_at = None
