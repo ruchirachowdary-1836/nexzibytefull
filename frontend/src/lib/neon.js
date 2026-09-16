@@ -24,8 +24,12 @@ export async function signInWithGoogle() {
   if (!neonClient) throw new Error("Google sign-in is not configured.");
   const result = await neonClient.auth.signIn.social({
     provider: "google",
-    callbackURL: window.location.href,
+    callbackURL: `${window.location.origin}/login`,
   });
   if (result?.error) throw new Error(result.error.message || "Google sign-in failed.");
+  const redirectUrl = result?.data?.url || result?.url;
+  if (redirectUrl) {
+    window.location.assign(redirectUrl);
+  }
   return result;
 }

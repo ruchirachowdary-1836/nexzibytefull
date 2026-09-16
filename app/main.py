@@ -25,11 +25,22 @@ def send_verification_email(user: User):
     message['From'] = settings.mail_from
     message['To'] = user.email
     link = f'{settings.frontend_url}/verify-email?token={user.verification_token}'
-    message.set_content(f'Confirm your account by opening this link: {link}')
+    message.set_content(
+        f'Your NexziByte TechTalk verification code is: {user.verification_token}\n\n'
+        f'You can also verify directly by opening this link:\n{link}\n\n'
+        'This code and link expire in 24 hours.'
+    )
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
         server.starttls()
         server.login(settings.smtp_user, settings.smtp_password)
         server.send_message(message)
+
+
+def create_verification_code(db: Session) -> str:
+    code = f'{secrets.randbelow(1_000_000):06d}'
+    while db.query(User).filter_by(verification_token=code).first():
+        code = f'{secrets.randbelow(1_000_000):06d}'
+    return code
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -390,7 +401,7 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         profile_image=getattr(body, 'profile_image', None),
         referral_contact=body.referral_contact,
         email_verified=False,
-        verification_token=secrets.token_urlsafe(32),
+        verification_token=create_verification_code(db),
         verification_expires_at=datetime.utcnow() + time_delta(hours=24),
     )
     db.add(user); db.commit(); db.refresh(user)

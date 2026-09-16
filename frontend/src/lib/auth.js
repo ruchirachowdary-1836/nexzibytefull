@@ -6,8 +6,22 @@ const TOKEN_KEY = "techtalk-token";
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
     if (neonAuthEnabled) {
-      const result = await neonClient.auth.signUp.email({ name, email, password });
+      const result = await neonClient.auth.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: `${window.location.origin}/login`,
+      });
       if (result?.error) throw new Error(result.error.message || "Unable to create your account.");
+      if (result?.data?.user?.emailVerified === false && neonClient.auth.sendVerificationEmail) {
+        const verification = await neonClient.auth.sendVerificationEmail({
+          email,
+          callbackURL: `${window.location.origin}/login`,
+        });
+        if (verification?.error) {
+          throw new Error(verification.error.message || "Unable to send the verification email.");
+        }
+      }
       return { detail: "Account created. Check your email to verify your account.", email_verification_required: true };
     }
     const result = await apiRequest("/auth/register", {
