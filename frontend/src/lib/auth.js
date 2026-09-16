@@ -1,5 +1,5 @@
 import { apiRequest } from "./api.js";
-import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
+import { getNeonSession, neonAuthEnabled, neonClient, sendNeonVerificationCode, signInWithGoogle } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
 
@@ -15,6 +15,9 @@ export const authService = {
       });
       if (result?.error) {
         throw new Error(result.error.message || "Unable to create your account.");
+      }
+      if (neonClient.auth.emailOtp?.sendVerificationOTP) {
+        await sendNeonVerificationCode(email);
       }
       return {
         detail: "Account created. Check your email for the verification link before signing in.",

@@ -91,7 +91,7 @@ export default function AuthPage({ defaultMode = "login" }) {
     try {
       const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
       showToast(`📧 ${result.detail || "Account created. Check your email to verify your account."}`);
-      navigate("/login");
+      navigate(`/verify-email?email=${encodeURIComponent(regEmail.trim())}&provider=neon`);
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

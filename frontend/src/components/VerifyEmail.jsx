@@ -2,11 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { apiRequest } from "../lib/api.js";
+import { neonAuthEnabled, verifyNeonVerificationCode } from "../lib/neon.js";
 
 export default function VerifyEmail() {
   const [params] = useSearchParams();
   const [state, setState] = useState({ loading: Boolean(params.get("token")), message: "" });
   const [code, setCode] = useState("");
+  const email = params.get("email") || "";
+  const isNeonCode = neonAuthEnabled && params.get("provider") === "neon";
 
   useEffect(() => {
     const token = params.get("token");
@@ -27,11 +30,13 @@ export default function VerifyEmail() {
     }
     setState({ loading: true, message: "" });
     try {
-      const response = await apiRequest("/auth/verify-email", {
-        method: "POST",
-        body: JSON.stringify({ code }),
-      });
-      setState({ loading: false, message: response.detail });
+      const response = isNeonCode
+        ? await verifyNeonVerificationCode(email, code)
+        : await apiRequest("/auth/verify-email", {
+            method: "POST",
+            body: JSON.stringify({ code }),
+          });
+      setState({ loading: false, message: response?.detail || "Email verified. You can now sign in." });
     } catch (error) {
       setState({ loading: false, message: error.message, error: true });
     }

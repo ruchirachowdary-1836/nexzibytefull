@@ -57,3 +57,19 @@ export async function signInWithGoogle() {
   }
   return result;
 }
+
+export async function sendNeonVerificationCode(email) {
+  const method = neonClient?.auth?.emailOtp?.sendVerificationOTP;
+  if (!method) throw new Error("Neon email verification codes are not enabled for this Auth project.");
+  const result = await method({ email, type: "email-verification" });
+  if (result?.error) throw new Error(result.error.message || "Unable to send the verification code.");
+  return result;
+}
+
+export async function verifyNeonVerificationCode(email, otp) {
+  const method = neonClient?.auth?.emailOtp?.checkVerificationOTP;
+  if (!method) throw new Error("Neon email verification codes are not enabled for this Auth project.");
+  const result = await method({ email, type: "email-verification", otp });
+  if (result?.error) throw new Error(result.error.message || "Invalid or expired verification code.");
+  return result;
+}
