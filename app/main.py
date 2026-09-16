@@ -24,7 +24,7 @@ def send_verification_email(user: User):
     message['Subject'] = 'Verify your NexziByte TechTalk account'
     message['From'] = settings.mail_from
     message['To'] = user.email
-    link = f'{settings.frontend_url}/verify-email?token={user.verification_token}'
+    link = f'{settings.frontend_url}/#/verify-email?token={user.verification_token}'
     message.set_content(
         f'Your NexziByte TechTalk verification code is: {user.verification_token}\n\n'
         f'You can also verify directly by opening this link:\n{link}\n\n'

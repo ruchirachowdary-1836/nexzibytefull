@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
 import { 
   Sparkles, Search, Filter, ArrowLeft, ArrowRight, Calendar, MapPin, 
   Clock, Mic, QrCode, CheckCircle2, BookOpen, Layers, ShieldCheck 
@@ -417,11 +417,11 @@ if (rootElement) {
   }
   window.__techtalk_root.render(
     <ErrorBoundary>
-      <BrowserRouter>
+      <HashRouter>
         <AppProvider>
           <App />
         </AppProvider>
-      </BrowserRouter>
+      </HashRouter>
     </ErrorBoundary>
   );
 }
