@@ -27,5 +27,8 @@ export const ACTIVITY_FEED = [];
 export const CAREER_TIMELINE = [];
 export const SPEAKING_ENGAGEMENTS = [];
 export function generateContributionGrid() {
-  return [];
+  return {
+    monthLabels: [],
+    weeks: []
+  };
 }
