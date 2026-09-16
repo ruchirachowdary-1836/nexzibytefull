@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { ClerkProvider } from "@clerk/clerk-react";
-import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
 import { 
   Sparkles, Search, Filter, ArrowLeft, ArrowRight, Calendar, MapPin, 
   Clock, Mic, QrCode, CheckCircle2, BookOpen, Layers, ShieldCheck 
@@ -22,7 +21,7 @@ import CommunityIntro from "./components/CommunityIntro.jsx";
 import Stats from "./components/Stats.jsx";
 import ExploreTechTalk from "./components/ExploreTechTalk.jsx";
 import TechnologyTopics from "./components/TechnologyTopics.jsx";
-import FeaturedSummit from "./components/FeaturedSummit.jsx";
+import SummitsPage from "./components/SummitsPage.jsx";
 import UpcomingEvents from "./components/UpcomingEvents.jsx";
 import Speakers from "./components/Speakers.jsx";
 import Passes from "./components/Passes.jsx";
@@ -43,6 +42,10 @@ import UserProfilePage from "./components/UserProfilePage.jsx";
 import SummitDetailsPage from "./components/SummitDetailsPage.jsx";
 import FounderMeetsPage from "./components/FounderMeetsPage.jsx";
 import FounderMeetDetailsPage from "./components/FounderMeetDetailsPage.jsx";
+import PostDetailsPage from "./components/PostDetailsPage.jsx";
+import CheckoutPage from "./components/CheckoutPage.jsx";
+import CreatePostPage from "./components/CreatePostPage.jsx";
+import AuthPage from "./components/AuthPage.jsx";
 
 // Modals
 import PassRegistrationModal from "./components/PassRegistrationModal.jsx";
@@ -67,9 +70,9 @@ function HomePage() {
       <Stats />
       <ExploreTechTalk />
       <HowItWorks />
-      <UpcomingEvents />
       <TechnicalContent />
       <FounderMeets />
+      <Passes />
       <Testimonials />
       <CommunityImpact />
       <FinalCTA />
@@ -179,10 +182,14 @@ function ExploreFeedPage() {
                     <span>{art.readingTime}</span>
                   </div>
                 </div>
-                <div className="article-read-btn">
+                <Link 
+                  to={`/posts/${art.id}`} 
+                  className="article-read-btn"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <span>Read</span>
                   <ArrowRight size={14} />
-                </div>
+                </Link>
               </div>
             </div>
           ))}
@@ -276,39 +283,33 @@ function ScannerPage() {
    MAIN APPLICATION ROUTER & WRAPPER
    ══════════════════════════════════════════════════════════════════ */
 function App() {
-  const { toastMessage, user, setLoginModalOpen } = useApp();
+  const { toastMessage } = useApp();
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Scroll to top on navigation change
   useEffect(() => {
-    if (location.pathname === "/" && location.hash === "#scanner") {
-      navigate("/scanner#scanner", { replace: true });
-      return;
-    }
-    if (location.pathname === "/" && location.hash === "#digital-pass") {
-      navigate("/passes#digital-pass", { replace: true });
-      return;
-    }
     window.scrollTo(0, 0);
-    if (location.hash) {
-      window.setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start" }), 0);
-    }
-  }, [location.pathname, location.hash, navigate]);
+  }, [location.pathname]);
 
   const isHomePage = location.pathname === "/";
+  const isCheckoutPage = location.pathname.startsWith("/checkout") || location.pathname === "/payment";
 
   return (
-    <div className={`app-shell ${isHomePage ? "app-shell-home-luxury" : ""}`}>
-      {/* Sticky Header Navigation */}
-      <Navbar />
+    <div className={`app-shell ${isHomePage ? "app-shell-home-luxury" : ""} ${isCheckoutPage ? "app-shell-checkout" : ""}`}>
+      {/* Sticky Header Navigation (hidden on distraction-free checkout) */}
+      {!isCheckoutPage && <Navbar />}
 
       {/* Main Routed Content */}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/events" element={<EventsPage />} />
         <Route path="/explore" element={<ExploreFeedPage />} />
-        <Route path="/summits" element={<SummitDetailsPage />} />
+        <Route path="/posts/:id" element={<PostDetailsPage />} />
+        <Route path="/post/:id" element={<PostDetailsPage />} />
+        <Route path="/create-post" element={<CreatePostPage />} />
+        <Route path="/login" element={<AuthPage defaultMode="login" />} />
+        <Route path="/register" element={<AuthPage defaultMode="register" />} />
+        <Route path="/summits" element={<SummitsPage />} />
         <Route path="/summits/:id" element={<SummitDetailsPage />} />
         <Route path="/summit-details" element={<SummitDetailsPage />} />
         <Route path="/courses" element={<CoursesPage />} />
@@ -318,13 +319,16 @@ function App() {
         <Route path="/founder-meet-details" element={<FounderMeetDetailsPage />} />
         <Route path="/speakers" element={<SpeakersPage />} />
         <Route path="/passes" element={<PassesPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/:passId" element={<CheckoutPage />} />
+        <Route path="/payment" element={<CheckoutPage />} />
         <Route path="/scanner" element={<ScannerPage />} />
-        <Route path="/profile" element={user ? <UserProfilePage /> : <LoginRequired onLogin={() => setLoginModalOpen(true)} />} />
+        <Route path="/profile" element={<UserProfilePage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
 
-      {/* Spacious Footer */}
-      <Footer />
+      {/* Spacious Footer (hidden on distraction-free checkout) */}
+      {!isCheckoutPage && <Footer />}
 
       {/* Modals */}
       <PassRegistrationModal />
@@ -342,19 +346,6 @@ function App() {
           <span>{toastMessage}</span>
         </div>
       )}
-    </div>
-  );
-}
-
-function LoginRequired({ onLogin }) {
-  return (
-    <div className="section-padding">
-      <div className="container" style={{ maxWidth: "620px", textAlign: "center" }}>
-        <span className="section-label">MEMBERS ONLY</span>
-        <h1 className="section-heading">Create an account to view your profile.</h1>
-        <p className="section-subtitle">Your profile will be built from the information you submit and saved to your account.</p>
-        <button type="button" className="btn btn-primary" onClick={onLogin}>Login or create account</button>
-      </div>
     </div>
   );
 }
@@ -414,24 +405,17 @@ class ErrorBoundary extends React.Component {
 
 // Root Render
 const rootElement = document.getElementById("root");
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-function RootProviders({ children }) {
-  if (!clerkPublishableKey) return children;
-  return <ClerkProvider publishableKey={clerkPublishableKey}>{children}</ClerkProvider>;
-}
 if (rootElement) {
   if (!window.__techtalk_root) {
     window.__techtalk_root = createRoot(rootElement);
   }
   window.__techtalk_root.render(
     <ErrorBoundary>
-      <RootProviders>
-        <BrowserRouter>
-          <AppProvider>
-            <App />
-          </AppProvider>
-        </BrowserRouter>
-      </RootProviders>
+      <BrowserRouter>
+        <AppProvider>
+          <App />
+        </AppProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

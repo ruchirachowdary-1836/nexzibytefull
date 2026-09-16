@@ -1,24 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
+import { SAMPLE_PASS, TECHNICAL_ARTICLES, PASSES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
-import { checkBackendHealth } from "../lib/backend.js";
-import { authService } from "../lib/auth.js";
-import { api } from "../lib/api.js";
+import { DEFAULT_PROFILE, SAVED_POSTS_INITIAL, PUBLISHED_POSTS, DRAFT_POSTS_INITIAL, NOTIFICATIONS_INITIAL } from "../data/userProfileData.js";
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   // Pass Management
-  const [activePass, setActivePass] = useState(null);
-  const [passesList, setPassesList] = useState([]);
+  const [activePass, setActivePass] = useState(SAMPLE_PASS);
+  const [passesList, setPassesList] = useState([SAMPLE_PASS]);
   
-  // Profile data is loaded only from the authenticated backend user.
-  const [user, setUser] = useState(null);
-  const [backendOnline, setBackendOnline] = useState(null);
+  // User Profile (Default: M. L. S. V. Aiswarya, Logged in by default)
+  const [user, setUser] = useState({ ...DEFAULT_PROFILE, isLoggedIn: true });
+
+  // User Posts & Drafts (In-Session)
+  const [userPosts, setUserPosts] = useState(PUBLISHED_POSTS);
+  const [userDrafts, setUserDrafts] = useState(DRAFT_POSTS_INITIAL);
+
+  // Notifications (In-Session)
+  const [notifications, setNotifications] = useState(NOTIFICATIONS_INITIAL);
 
   // Saved Posts / Bookmarks (In-Session)
-  const [savedPosts, setSavedPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState(SAVED_POSTS_INITIAL);
 
   // UI Modals & State
   const [passModalOpen, setPassModalOpen] = useState(false);
@@ -39,21 +43,6 @@ export function AppProvider({ children }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    checkBackendHealth().then((online) => {
-      if (active) setBackendOnline(online);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!authService.hasToken()) return;
-    authService.me().then(setUser).catch(() => authService.logout());
-  }, []);
-
   const showToast = (message) => {
     setToastMessage(message);
     setTimeout(() => {
@@ -61,73 +50,86 @@ export function AppProvider({ children }) {
     }, 4500);
   };
 
-  const login = async (credentials) => {
-    const authenticatedUser = await authService.login(credentials);
-    setUser(authenticatedUser);
-    return authenticatedUser;
-  };
-
-  const loginWithGoogle = () => authService.loginWithGoogle();
-
-  const register = async (credentials) => {
-    const authenticatedUser = await authService.register(credentials);
-    setUser(authenticatedUser);
-    return authenticatedUser;
-  };
-
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
-
   // Register or Purchase a new Pass
-  const registerPass = async ({ attendeeName, email, passType, amount, company, role, notes, phone, referralContact }) => {
-    const response = await api.submitPassRequest({
-      name: attendeeName,
-      email,
-      pass_type: passType,
-      amount,
-      company,
-      role,
-      notes,
-      phone,
-      referral_contact: referralContact,
-    });
-    const isVisitor = passType === "visitor-pass" || passType === "VISITOR PASS";
-    setActivePass(response.pass_id ? {
-      passId: response.pass_id,
-      qrData: response.qr_data,
-      holder: response.holder,
-      passType: response.pass_type === "visitor-pass" ? "VISITOR PASS" : "DELEGATE PASS",
-      price: response.amount,
-      organization: response.company,
-      role: response.role,
-      event: "NexziByte TechTalk",
-      org: "NexziByte TechTalk",
-      validation: "Issued",
+  const registerPass = ({ attendeeName, email, passType, amount, notes, organization, role }) => {
+    let resolvedType = "VISITOR PASS";
+    let resolvedPrice = "FREE";
+    let qrType = "VISITOR";
+    let qrAmount = "FREE";
+    let passBadge = "Community Visitor";
+
+    if (passType === "student-pass" || passType === "STUDENT PASS") {
+      resolvedType = "STUDENT PASS";
+      resolvedPrice = amount || "₹99";
+      qrType = "STUDENT";
+      qrAmount = "99";
+      passBadge = "Student & Researcher";
+    } else if (passType === "founder-pass" || passType === "FOUNDER PASS") {
+      resolvedType = "FOUNDER PASS";
+      resolvedPrice = amount || "₹499";
+      qrType = "FOUNDER";
+      qrAmount = "499";
+      passBadge = "Founder & CXO";
+    } else if (passType === "delegation-pass" || passType === "DELEGATION PASS" || passType === "delegate-pass" || passType === "DELEGATE PASS") {
+      resolvedType = "DELEGATION PASS";
+      resolvedPrice = amount || "₹250";
+      qrType = "DELEGATE";
+      qrAmount = "250";
+      passBadge = "Corporate Delegate";
+    } else {
+      resolvedType = "VISITOR PASS";
+      resolvedPrice = "FREE";
+      qrType = "VISITOR";
+      qrAmount = "FREE";
+      passBadge = "Visitor";
+    }
+
+    const newPassId = `TT26-${String(Math.floor(100000 + Math.random() * 900000)).slice(-6)}`;
+    
+    const newPass = {
+      org: "NEXZIBYTE",
+      event: "TECHTALK 2026",
+      passType: resolvedType,
+      price: resolvedPrice,
+      holder: attendeeName.toUpperCase(),
+      email: email,
+      organization: organization || "",
+      role: role || "",
+      passId: newPassId,
+      badge: passBadge,
+      validation: "VALID FOR EVENT ENTRY",
+      status: "Verified",
       checkedIn: false,
-    } : null);
+      checkInTime: null,
+      notes: notes || "",
+      tags: ["Secure", "Unique", "Contactless", passBadge],
+      qrData: `TECHTALK:${newPassId}:${attendeeName.toUpperCase()}:${qrType}:${qrAmount}:VERIFIED`
+    };
+
+    setActivePass(newPass);
+    setPassesList((prev) => [newPass, ...prev]);
     setPassModalOpen(false);
 
     showToast(
-      isVisitor
-        ? `Visitor pass submitted for staff approval. QR access will appear after approval.`
-        : `Delegate pass request submitted for ${attendeeName}.`
+      `🎟️ Success! ${resolvedType} ${newPassId} generated for ${attendeeName} (${resolvedPrice}).`
     );
 
-    return response;
+    return newPass;
   };
 
   // Check In an Attendee via QR scanner or button
   const checkInPass = (passId) => {
-    if (!passId || !activePass?.passId) {
-      showToast("No issued pass is available for check-in.");
-      return null;
-    }
     let updated = null;
+    const matchId = (pId, target) => {
+      if (!pId || !target) return false;
+      const a = pId.toLowerCase().trim();
+      const b = target.toLowerCase().trim();
+      return a === b || a.endsWith(b) || b.endsWith(a.replace("tt26-", ""));
+    };
+
     setPassesList((prev) =>
       prev.map((p) => {
-        if (p.passId.toLowerCase() === passId.toLowerCase()) {
+        if (matchId(p.passId, passId)) {
           updated = {
             ...p,
             checkedIn: true,
@@ -139,7 +141,7 @@ export function AppProvider({ children }) {
       })
     );
 
-    if (activePass.passId.toLowerCase() === passId.toLowerCase()) {
+    if (matchId(activePass.passId, passId)) {
       setActivePass((prev) => ({
         ...prev,
         checkedIn: true,
@@ -148,16 +150,21 @@ export function AppProvider({ children }) {
     }
 
     showToast(`✓ Check-in verified for Pass ${passId}! Welcome to TechTalk 2026.`);
-    return updated || activePass;
   };
 
-  // Quick reset check-in status (for testing scanner toggle)
+  // Reset Check-in Status
   const resetCheckIn = (passId) => {
-    if (!passId || !activePass?.passId) return;
+    const matchId = (pId, target) => {
+      if (!pId || !target) return false;
+      const a = pId.toLowerCase().trim();
+      const b = target.toLowerCase().trim();
+      return a === b || a.endsWith(b) || b.endsWith(a.replace("tt26-", ""));
+    };
+
     setPassesList((prev) =>
-      prev.map((p) => (p.passId.toLowerCase() === passId.toLowerCase() ? { ...p, checkedIn: false, checkInTime: null } : p))
+      prev.map((p) => (matchId(p.passId, passId) ? { ...p, checkedIn: false, checkInTime: null } : p))
     );
-    if (activePass.passId.toLowerCase() === passId.toLowerCase()) {
+    if (matchId(activePass.passId, passId)) {
       setActivePass((prev) => ({ ...prev, checkedIn: false, checkInTime: null }));
     }
     showToast(`Status reset for Pass ${passId}. Ready for scan.`);
@@ -195,31 +202,47 @@ export function AppProvider({ children }) {
     setInternshipModalOpen(true);
   };
 
-  // Persist profile changes through the authenticated backend account.
+  // In-Session Profile Update (Temporary / In-Memory only)
   const updateUserProfile = (newFields) => {
-    return authService.updateProfile({
-      name: newFields.name,
-      email: newFields.email,
-      bio: newFields.bio,
-      location: newFields.location,
-      professional_role: newFields.title || newFields.role,
-      profile_image: newFields.avatar,
-      website: newFields.website,
-      linkedin_url: newFields.linkedin_url,
-      github_url: newFields.github_url,
-      twitter_url: newFields.twitter_url,
-      devto_url: newFields.devto_url,
-    }).then((updatedUser) => {
-      setUser(updatedUser);
-      showToast("Profile saved to your Nexzibyte account.");
-      return updatedUser;
+    setUser((prev) => {
+      const updated = {
+        ...prev,
+        ...newFields,
+        // Auto update initials if name changed
+        avatarInitials: newFields.name 
+          ? newFields.name.split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase()
+          : prev.avatarInitials
+      };
+      return updated;
     });
+    showToast(`✓ Profile updated for this session. (Temporary / In-memory)`);
   };
 
+  // Reset to default profile (M. L. S. V. Aiswarya)
   const resetUserProfile = () => {
-    logout();
-    showToast("Signed out of Nexzibyte TechTalk.");
+    setUser({ ...DEFAULT_PROFILE, isLoggedIn: true });
+    showToast(`✓ Profile reset to default (M. L. S. V. Aiswarya).`);
   };
+
+  // Auth Session Helpers (Login & Logout)
+  const logout = () => {
+    setUser((prev) => ({
+      ...(prev || DEFAULT_PROFILE),
+      isLoggedIn: false
+    }));
+    showToast("👋 You have been logged out of TechTalk successfully.");
+  };
+
+  const login = (credentials = {}) => {
+    setUser((prev) => ({
+      ...(prev || DEFAULT_PROFILE),
+      ...credentials,
+      isLoggedIn: true
+    }));
+    showToast(`✓ Welcome back, ${credentials.name || user?.name || "Member"}!`);
+  };
+
+  const isLoggedIn = Boolean(user && user.isLoggedIn !== false);
 
   // Toggle Save / Bookmark Post
   const toggleSavePost = (post) => {
@@ -235,35 +258,90 @@ export function AppProvider({ children }) {
     });
   };
 
+  // Create a new post or save draft
+  const createPost = ({ title, category, excerpt, content, tags, coverImage, status = "published" }) => {
+    const newId = `post-${Date.now()}`;
+    const dateFormatted = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const words = (content || "").trim().split(/\s+/).length;
+    const readingTime = `${Math.max(1, Math.ceil(words / 200))} min read`;
+
+    const newPostObj = {
+      id: newId,
+      title,
+      category: category || "GENERAL TECH",
+      author: user?.name || "M. L. S. V. Aiswarya",
+      role: user?.role || "Senior Full Stack Developer",
+      date: dateFormatted,
+      lastModified: dateFormatted,
+      readingTime,
+      views: "1",
+      likes: 0,
+      excerpt: excerpt || content?.slice(0, 140) + "...",
+      content,
+      tags: tags && tags.length > 0 ? tags : ["TechTalk", category || "Architecture"],
+      coverImage: coverImage || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&auto=format&fit=crop&q=80",
+      status: status === "draft" ? "Draft" : "Published",
+      progress: status === "draft" ? 60 : 100
+    };
+
+    if (status === "draft") {
+      setUserDrafts((prev) => [newPostObj, ...prev]);
+      showToast(`📝 Draft "${title.slice(0, 28)}..." saved successfully.`);
+    } else {
+      setUserPosts((prev) => [newPostObj, ...prev]);
+      showToast(`🚀 Technical dispatch "${title.slice(0, 28)}..." published successfully!`);
+    }
+
+    return newPostObj;
+  };
+
+  // Delete a post or draft
+  const deletePost = (postId, isDraft = false) => {
+    if (isDraft) {
+      setUserDrafts((prev) => prev.filter((d) => d.id !== postId));
+      showToast("Draft deleted from your workspace.");
+    } else {
+      setUserPosts((prev) => prev.filter((p) => p.id !== postId));
+      showToast("Published dispatch removed.");
+    }
+  };
+
+  // Mark notification read
+  const markNotificationRead = (notifId) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
+    );
+  };
+
+  // Mark all notifications read
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    showToast("✓ All notifications marked as read.");
+  };
+
+  const unreadNotificationCount = notifications.filter((n) => !n.read).length;
+
   return (
     <AppContext.Provider
       value={{
         user,
-        login,
-        loginWithGoogle,
-        register,
-        logout,
-        backendOnline,
         setUser,
-        updateUserProfile: async (newFields) => {
-          const updated = await authService.updateProfile({
-            name: newFields.name,
-            email: newFields.email,
-            bio: newFields.bio,
-            location: newFields.location,
-            professional_role: newFields.role || newFields.title,
-            profile_image: newFields.avatar,
-            website: newFields.website,
-            linkedin_url: newFields.linkedin_url,
-            github_url: newFields.github_url,
-            twitter_url: newFields.twitter_url,
-            devto_url: newFields.devto_url
-          });
-          setUser(updated);
-          showToast("Profile saved to your account.");
-          return updated;
-        },
+        isLoggedIn,
+        login,
+        logout,
+        updateUserProfile,
         resetUserProfile,
+        userPosts,
+        setUserPosts,
+        userDrafts,
+        setUserDrafts,
+        createPost,
+        deletePost,
+        notifications,
+        setNotifications,
+        markNotificationRead,
+        markAllNotificationsRead,
+        unreadNotificationCount,
         savedPosts,
         setSavedPosts,
         toggleSavePost,

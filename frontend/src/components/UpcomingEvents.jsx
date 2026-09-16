@@ -1,51 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   Calendar, MapPin, ArrowRight, Sparkles, Clock, Users, 
   Tag, ExternalLink, Filter, BookOpen 
 } from "lucide-react";
-import { api } from "../lib/api.js";
+import { UPCOMING_EVENTS } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
 
+const CATEGORY_TABS = [
+  { id: "all", label: "All Summits & Meets", count: UPCOMING_EVENTS.length },
+  { id: "summits", label: "Global Summits", count: UPCOMING_EVENTS.filter(e => e.category === "summits").length },
+  { id: "launches", label: "Product Launches", count: UPCOMING_EVENTS.filter(e => e.category === "launches").length },
+  { id: "roundtables", label: "Executive Meets", count: UPCOMING_EVENTS.filter(e => e.category === "roundtables").length },
+  { id: "partnerships", label: "Strategic MoUs", count: UPCOMING_EVENTS.filter(e => e.category === "partnerships").length },
+];
+
 export default function UpcomingEvents() {
-  const { openSummitModal } = useApp();
+  const { openPassModal, openSummitModal } = useApp();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
-    api.getUpcomingEvents()
-      .then((data) => {
-        if (!mounted) return;
-        const records = [
-          ...(data.summits || []).map((event) => ({ ...event, eventType: "summit" })),
-          ...(data.founder_meets || []).map((event) => ({ ...event, eventType: "founder_meet" })),
-        ];
-        setEvents(records.map((event) => ({
-          ...event,
-          image: event.banner,
-          date: event.date ? new Date(`${event.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "Date to be announced",
-          venue: event.venue || event.location,
-          type: event.founder_information || (event.venue ? "SUMMIT" : "FOUNDER MEET"),
-          category: event.founder_information ? "roundtables" : "summits",
-          description: event.description || "Event details will be published by the TechTalk team.",
-        })));
-      })
-      .catch((requestError) => {
-        if (mounted) setError(requestError.message);
-      })
-      .finally(() => mounted && setLoading(false));
-    return () => { mounted = false; };
-  }, []);
-
-  const categoryTabs = [
-    { id: "all", label: "All Summits & Meets", count: events.length },
-    { id: "summits", label: "Global Summits", count: events.filter(e => e.category === "summits").length },
-    { id: "roundtables", label: "Executive Meets", count: events.filter(e => e.category === "roundtables").length },
-  ];
-
-  const filteredEvents = events.filter((ev) => {
+  const filteredEvents = UPCOMING_EVENTS.filter((ev) => {
     if (activeFilter === "all") return true;
     return ev.category === activeFilter;
   });
@@ -68,7 +42,7 @@ export default function UpcomingEvents() {
 
           {/* Quick Stats Pill */}
           <div className="events-count-pill">
-            <span className="events-count-number">{events.length}</span>
+            <span className="events-count-number">{UPCOMING_EVENTS.length}</span>
             <span>Active Summits &amp; Milestones</span>
           </div>
         </div>
@@ -76,7 +50,7 @@ export default function UpcomingEvents() {
         {/* Filter Navigation Tabs */}
         <div className="events-filter-bar">
           <div className="events-filter-scroll">
-            {categoryTabs.map((tab) => (
+            {CATEGORY_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -91,9 +65,7 @@ export default function UpcomingEvents() {
         </div>
 
         {/* Summits & Events Grid */}
-        {loading && <div className="events-empty-state"><p>Loading upcoming events...</p></div>}
-        {error && <div className="events-empty-state"><h3>Unable to load events</h3><p>{error}</p></div>}
-        {!loading && !error && <div className="upcoming-events-grid">
+        <div className="upcoming-events-grid">
           {filteredEvents.map((ev) => (
             <div 
               key={ev.id} 
@@ -184,10 +156,10 @@ export default function UpcomingEvents() {
               </div>
             </div>
           ))}
-        </div>}
+        </div>
 
         {/* Empty Filter State */}
-        {!loading && !error && filteredEvents.length === 0 && (
+        {filteredEvents.length === 0 && (
           <div className="events-empty-state">
             <BookOpen size={40} style={{ opacity: 0.4, marginBottom: "12px" }} />
             <h3>No events found in this category</h3>

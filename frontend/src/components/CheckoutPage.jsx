@@ -222,18 +222,17 @@ export default function CheckoutPage() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Form Fields (Right Column)
-  const { user } = useApp();
-  const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState("");
-  const [fullName, setFullName] = useState(user?.name || "");
+  const [email, setEmail] = useState("lalitha@nexzibyte.com");
+  const [phone, setPhone] = useState("9876543210");
+  const [fullName, setFullName] = useState("Lalitha Mindhi");
   const [country, setCountry] = useState("India");
-  const [state, setState] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [role, setRole] = useState("");
-  const [studentDegree, setStudentDegree] = useState("");
-  const [ventureStage, setVentureStage] = useState("");
+  const [state, setState] = useState("Telangana");
+  const [address, setAddress] = useState("Hitech City, Madhapur");
+  const [pincode, setPincode] = useState("500081");
+  const [organization, setOrganization] = useState("NexziByte Ecosystem");
+  const [role, setRole] = useState("Senior Systems Architect");
+  const [studentDegree, setStudentDegree] = useState("B.Tech Computer Science (2026)");
+  const [ventureStage, setVentureStage] = useState("Bootstrapped / Early Revenue");
 
   // Payment Method Selection: "bank" | "upi" | "card"
   const [paymentMethod, setPaymentMethod] = useState("bank");
@@ -241,18 +240,18 @@ export default function CheckoutPage() {
   // Net Banking specific fields
   const [selectedBank, setSelectedBank] = useState("hdfc");
   const [customBank, setCustomBank] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState(user?.name || "");
+  const [accountHolderName, setAccountHolderName] = useState("Lalitha Mindhi");
 
   // UPI specific fields
   const [upiMethod, setUpiMethod] = useState("id"); // "id" | "qr"
-  const [upiId, setUpiId] = useState("");
+  const [upiId, setUpiId] = useState("lalitha@okhdfcbank");
   const [selectedUpiApp, setSelectedUpiApp] = useState("gpay");
 
   // Card specific fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState(user?.name || "");
+  const [cardNumber, setCardNumber] = useState("4532 8219 0921 4410");
+  const [cardExpiry, setCardExpiry] = useState("08/28");
+  const [cardCvc, setCardCvc] = useState("892");
+  const [cardName, setCardName] = useState("Lalitha Mindhi");
 
   // Tax / GSTIN
   const [showTaxId, setShowTaxId] = useState(false);
@@ -863,7 +862,7 @@ export default function CheckoutPage() {
                           className="checkout-text-input"
                           value={accountHolderName}
                           onChange={(e) => setAccountHolderName(e.target.value)}
-                          placeholder="e.g. Your full name"
+                          placeholder="e.g. Lalitha Mindhi"
                         />
                       </div>
                     </div>
@@ -1088,7 +1087,7 @@ export default function CheckoutPage() {
                           type="text"
                           maxLength="6"
                           className="checkout-text-input mono-code"
-                          placeholder="Postal code"
+                          placeholder="500081"
                           value={pincode}
                           onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
                         />

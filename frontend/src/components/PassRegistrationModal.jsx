@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, CheckCircle2, Ticket, ShieldCheck, CreditCard, Sparkles } from "lucide-react";
+import { X, CheckCircle2, Ticket, ShieldCheck, CreditCard, Sparkles, GraduationCap, Briefcase, Building, UserCheck, Landmark } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { PASSES } from "../data/mockData.js";
 
@@ -10,52 +10,111 @@ export default function PassRegistrationModal() {
     setPassModalOpen, 
     selectedPassType, 
     setSelectedPassType, 
-    registerPass,
-    showToast
+    registerPass 
   } = useApp();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [role, setRole] = useState("");
+  const [name, setName] = useState("Lalitha Mindhi");
+  const [email, setEmail] = useState("lalitha@nexzibyte.com");
+  const [organization, setOrganization] = useState("NexziByte Ecosystem");
+  const [role, setRole] = useState("Senior Systems Architect");
+  const [additionalField, setAdditionalField] = useState("");
   const [notes, setNotes] = useState("");
-  const [phone, setPhone] = useState("");
-  const [referralContact, setReferralContact] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const isVisitor = selectedPassType === "visitor-pass" || selectedPassType === "VISITOR PASS";
+  // Normalize active pass type
+  const activeType = selectedPassType === "delegate-pass" ? "delegation-pass" : selectedPassType || "visitor-pass";
+
+  const isVisitor = activeType === "visitor-pass";
+  const isStudent = activeType === "student-pass";
+  const isFounder = activeType === "founder-pass";
+  const isDelegation = activeType === "delegation-pass";
+
+  // Price & label lookup
+  const getPassDetails = () => {
+    switch (activeType) {
+      case "student-pass":
+        return {
+          title: "Claim Your Student Pass",
+          price: "₹99",
+          amount: "₹99",
+          badge: "Student & Researcher",
+          btnColor: "btn-teal",
+          accentColor: "#059669",
+          btnIcon: GraduationCap,
+          btnText: "Claim Student Pass — ₹99",
+          subtext: "Valid College / Student ID required at check-in counter."
+        };
+      case "founder-pass":
+        return {
+          title: "Apply for Founder VIP Pass",
+          price: "₹499",
+          amount: "₹499",
+          badge: "Founder & CXO Circle",
+          btnColor: "btn-amber",
+          accentColor: "#D97706",
+          btnIcon: Briefcase,
+          btnText: "Secure Founder Pass — ₹499",
+          subtext: "Chatham House rules. Zero vanity metrics. Authentic peer network."
+        };
+      case "delegation-pass":
+        return {
+          title: "Get Corporate Delegation Pass",
+          price: "₹250",
+          amount: "₹250",
+          badge: "Corporate Delegate",
+          btnColor: "btn-coral",
+          accentColor: "var(--coral)",
+          btnIcon: CreditCard,
+          btnText: "Complete Purchase — ₹250",
+          subtext: "Full all-access corporate accreditation & digital kit."
+        };
+      default:
+        return {
+          title: "Claim Your Free Visitor Pass",
+          price: "FREE",
+          amount: "FREE",
+          badge: "Community Visitor",
+          btnColor: "btn-primary",
+          accentColor: "var(--primary-purple)",
+          btnIcon: Ticket,
+          btnText: "Claim Free Visitor Pass",
+          subtext: "100% Free with instant digital QR pass generation."
+        };
+    }
+  };
+
+  const currentDetails = getPassDetails();
 
   if (!passModalOpen) return null;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !email) return;
 
     setIsProcessing(true);
-    try {
-      await registerPass({
+    setTimeout(() => {
+      registerPass({
         attendeeName: name,
         email,
-        passType: selectedPassType,
-        amount: isVisitor ? "FREE" : "₹250",
-        company,
-        role,
-        notes,
-        phone,
-        referralContact,
+        passType: activeType,
+        amount: currentDetails.amount,
+        organization,
+        role: isStudent ? `${role} (${additionalField || "Student"})` : role,
+        notes: notes || additionalField
       });
       setIsProcessing(false);
-      navigate("/passes#digital-pass");
-    } catch (error) {
-      setIsProcessing(false);
-      showToast(error.message);
-    }
+      // Smoothly jump down to the generated ticket
+      const ticketEl = document.getElementById("digital-pass");
+      if (ticketEl) {
+        ticketEl.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 600);
   };
 
   return (
     <div className="modal-backdrop-overlay" onClick={() => setPassModalOpen(false)}>
-      <div className="modal-content-card" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content-card modal-pass-card-wide" onClick={(e) => e.stopPropagation()}>
         <button 
           type="button" 
           className="modal-close-btn" 
@@ -65,173 +124,319 @@ export default function PassRegistrationModal() {
           <X size={18} />
         </button>
 
-        <div style={{ marginBottom: "24px" }}>
+        <div style={{ marginBottom: "20px" }}>
           <span className="section-label">
             <Sparkles size={13} />
             ACCREDITATION PORTAL
           </span>
-          <h3 style={{ fontSize: "1.6rem", fontWeight: 800, marginTop: "6px" }}>
-            {isVisitor ? "Claim Your Free Visitor Pass" : "Get Your Delegate Pass (₹250)"}
+          <h3 style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>
+            {currentDetails.title}
           </h3>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "3px" }}>
             Instant digital credentials issued with cryptographic QR verification.
           </p>
         </div>
 
-        {/* Pass Type Selector Toggle */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-          background: "var(--bg-main)",
-          padding: "6px",
-          borderRadius: "var(--radius-md)",
-          marginBottom: "24px"
-        }}>
+        {/* 4 Separate Passes Selector Tabs */}
+        <div className="pass-modal-tabs-strip" role="tablist">
           <button
             type="button"
-            style={{
-              padding: "10px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "0.875rem",
-              fontWeight: 700,
-              background: isVisitor ? "var(--bg-white)" : "transparent",
-              color: isVisitor ? "var(--text-main)" : "var(--text-secondary)",
-              boxShadow: isVisitor ? "var(--shadow-sm)" : "none",
-              border: isVisitor ? "2px solid var(--primary-purple)" : "none"
-            }}
+            className={`pass-modal-tab ${isVisitor ? "active visitor" : ""}`}
             onClick={() => setSelectedPassType("visitor-pass")}
+            role="tab"
+            aria-selected={isVisitor}
           >
-            Visitor Pass (Free)
+            <div className="tab-pill-icon"><Ticket size={14} /></div>
+            <div className="tab-pill-info">
+              <span className="tab-pill-name">Visitor Pass</span>
+              <span className="tab-pill-price">FREE</span>
+            </div>
           </button>
 
           <button
             type="button"
-            style={{
-              padding: "10px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: "0.875rem",
-              fontWeight: 700,
-              background: !isVisitor ? "var(--bg-white)" : "transparent",
-              color: !isVisitor ? "var(--coral)" : "var(--text-secondary)",
-              boxShadow: !isVisitor ? "var(--shadow-sm)" : "none",
-              border: !isVisitor ? "1px solid var(--border-color)" : "none"
-            }}
-            onClick={() => setSelectedPassType("delegate-pass")}
+            className={`pass-modal-tab ${isStudent ? "active student" : ""}`}
+            onClick={() => setSelectedPassType("student-pass")}
+            role="tab"
+            aria-selected={isStudent}
           >
-            Delegate Pass (₹250)
+            <div className="tab-pill-icon"><GraduationCap size={14} /></div>
+            <div className="tab-pill-info">
+              <span className="tab-pill-name">Student Pass</span>
+              <span className="tab-pill-price">₹99</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`pass-modal-tab ${isFounder ? "active founder" : ""}`}
+            onClick={() => setSelectedPassType("founder-pass")}
+            role="tab"
+            aria-selected={isFounder}
+          >
+            <div className="tab-pill-icon"><Briefcase size={14} /></div>
+            <div className="tab-pill-info">
+              <span className="tab-pill-name">Founder Pass</span>
+              <span className="tab-pill-price">₹499</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`pass-modal-tab ${isDelegation ? "active delegate" : ""}`}
+            onClick={() => setSelectedPassType("delegation-pass")}
+            role="tab"
+            aria-selected={isDelegation}
+          >
+            <div className="tab-pill-icon"><Building size={14} /></div>
+            <div className="tab-pill-info">
+              <span className="tab-pill-name">Delegation Pass</span>
+              <span className="tab-pill-price">₹250</span>
+            </div>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-field-group">
-            <label className="form-label">Full Name</label>
-            <input 
-              type="text" 
-              required
-              className="form-input" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Your full name"
-            />
-          </div>
-
-          <div className="form-field-group">
-            <label className="form-label">Email Address</label>
-            <input 
-              type="email" 
-              required
-              className="form-input" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. name@company.com"
-            />
-          </div>
-          <div className="form-field-group">
-            <label className="form-label">Contact Number</label>
-            <input type="tel" required className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="form-field-group">
-            <label className="form-label">Referral Contact Number (optional)</label>
-            <input type="tel" className="form-input" value={referralContact} onChange={(e) => setReferralContact(e.target.value)} />
-          </div>
-
+        <form onSubmit={handleSubmit} style={{ marginTop: "16px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div className="form-field-group">
-              <label className="form-label">Company / College</label>
+              <label className="form-label">Full Name *</label>
               <input 
                 type="text" 
+                required
                 className="form-input" 
-                value={company} 
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="NexziByte / University"
+                value={name} 
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Lalitha Mindhi"
               />
             </div>
+
             <div className="form-field-group">
-              <label className="form-label">Designation / Role</label>
+              <label className="form-label">Email Address *</label>
               <input 
-                type="text" 
+                type="email" 
+                required
                 className="form-input" 
-                value={role} 
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Software Engineer"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. lalitha@company.com"
               />
             </div>
           </div>
 
-          {!isVisitor && (
+          {/* Dynamic Context Fields based on Pass Type */}
+          {isStudent && (
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+              <div className="form-field-group">
+                <label className="form-label">College / University Name *</label>
+                <input 
+                  type="text" 
+                  required
+                  className="form-input" 
+                  value={organization} 
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="e.g. JNTU Hyderabad / Osmania University"
+                />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">Degree &amp; Graduation Year *</label>
+                <input 
+                  type="text" 
+                  required
+                  className="form-input" 
+                  value={role} 
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="e.g. B.Tech CSE (2026)"
+                />
+              </div>
+            </div>
+          )}
+
+          {isFounder && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+                <div className="form-field-group">
+                  <label className="form-label">Startup / Company Name *</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="form-input" 
+                    value={organization} 
+                    onChange={(e) => setOrganization(e.target.value)}
+                    placeholder="e.g. AgenticIQ / MyStartup.ai"
+                  />
+                </div>
+                <div className="form-field-group">
+                  <label className="form-label">Role in Startup *</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="form-input" 
+                    value={role} 
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="e.g. Co-Founder &amp; CTO"
+                  />
+                </div>
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">Funding &amp; Venture Stage</label>
+                <select 
+                  className="form-input"
+                  value={additionalField}
+                  onChange={(e) => setAdditionalField(e.target.value)}
+                >
+                  <option value="">Select Stage...</option>
+                  <option value="Bootstrapped / Revenue-funded">Bootstrapped / Revenue-funded</option>
+                  <option value="Pre-Seed (Building MVP)">Pre-Seed (Building MVP)</option>
+                  <option value="Seed Stage ($200K - $1M)">Seed Stage ($200K - $1M)</option>
+                  <option value="Growth / Series A+">Growth / Series A+</option>
+                  <option value="Ideation / Early Concept">Ideation / Early Concept</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {isDelegation && (
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+              <div className="form-field-group">
+                <label className="form-label">Corporate Enterprise / Firm *</label>
+                <input 
+                  type="text" 
+                  required
+                  className="form-input" 
+                  value={organization} 
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="e.g. NexziByte / Tech Enterprise"
+                />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">Designation / Role *</label>
+                <input 
+                  type="text" 
+                  required
+                  className="form-input" 
+                  value={role} 
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="e.g. Principal Cloud Architect"
+                />
+              </div>
+            </div>
+          )}
+
+          {isVisitor && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-field-group">
+                <label className="form-label">Affiliation / College (Optional)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={organization} 
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="NexziByte / University"
+                />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">Current Role / Interest</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={role} 
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="Developer / Enthusiast"
+                />
+              </div>
+            </div>
+          )}
+
+          {(isFounder || isDelegation) && (
             <div className="form-field-group">
-              <label className="form-label">Why would you like Delegate Access?</label>
+              <label className="form-label">
+                {isFounder ? "What are you looking for from the Founder Circle?" : "Delegation Focus / Objectives"}
+              </label>
               <textarea 
                 className="form-input" 
                 rows="2"
                 value={notes} 
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Share your focus area (e.g. AI research, founder scaling, infrastructure architecture)..."
+                placeholder={isFounder ? "e.g. Looking for enterprise pilot design partners and seed angel syndicates..." : "e.g. Scalable microservices architecture, AI infrastructure, team upskilling..."}
               />
             </div>
           )}
 
-          {/* Pricing Summary Box */}
+          {/* Pricing & Accreditation Summary Box */}
           <div style={{
             background: "var(--bg-main)",
-            padding: "16px",
+            padding: "14px 16px",
             borderRadius: "var(--radius-md)",
             border: "1px solid var(--border-color)",
-            marginBottom: "24px"
+            marginTop: "8px",
+            marginBottom: "18px"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "4px" }}>
-              <span style={{ color: "var(--text-secondary)" }}>Pass Type</span>
-              <span style={{ fontWeight: 700 }}>{isVisitor ? "Free Visitor Event Access" : "All-Access Delegate Credential"}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8125rem", marginBottom: "4px" }}>
+              <span style={{ color: "var(--text-secondary)" }}>Pass Category</span>
+              <span style={{ fontWeight: 700, color: currentDetails.accentColor }}>{currentDetails.badge}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.1rem", fontWeight: 800 }}>
-              <span>Total Amount</span>
-              <span style={{ color: isVisitor ? "#15803D" : "var(--coral)" }}>
-                {isVisitor ? "FREE (₹0)" : "₹250"}
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 800, color: currentDetails.accentColor }}>
+                  {currentDetails.amount === "FREE" ? "FREE (₹0)" : currentDetails.amount}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  {currentDetails.subtext}
+                </div>
+              </div>
+              <div style={{
+                fontSize: "0.75rem",
+                padding: "4px 10px",
+                borderRadius: "var(--radius-full)",
+                background: "var(--bg-white)",
+                border: "1px solid var(--border-color)",
+                fontWeight: 600,
+                color: "var(--text-secondary)"
+              }}>
+                Instant Digital QR Pass
+              </div>
             </div>
           </div>
 
           <button 
             type="submit" 
-            className={`btn ${isVisitor ? "btn-primary" : "btn-coral"}`}
-            style={{ width: "100%" }}
+            className={`btn ${currentDetails.btnColor}`}
+            style={{ width: "100%", padding: "12px 20px" }}
             disabled={isProcessing}
           >
             {isProcessing ? (
-              <span>Generating Secure Pass...</span>
-            ) : isVisitor ? (
-              <>
-                <Ticket size={17} />
-                <span>Claim Free Visitor Pass</span>
-              </>
+              <span>Generating Verified Pass...</span>
             ) : (
               <>
-                <CreditCard size={17} />
-                <span>Complete Purchase — ₹250</span>
+                <currentDetails.btnIcon size={17} />
+                <span>{currentDetails.btnText}</span>
               </>
             )}
           </button>
+
+          {!isVisitor && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{
+                width: "100%",
+                marginTop: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                fontSize: "0.85rem",
+                padding: "10px 16px"
+              }}
+              onClick={() => {
+                setPassModalOpen(false);
+                navigate(`/checkout?pass=${activeType}`);
+              }}
+            >
+              <Landmark size={15} style={{ color: "#004c8f" }} />
+              <span>Proceed to Indian Banking / UPI Checkout Page 🇮🇳</span>
+            </button>
+          )}
         </form>
       </div>
     </div>

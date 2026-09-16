@@ -83,7 +83,7 @@ export const FEATURED_FOUNDERS = [
     company: "NexziByte Solutions",
     domain: "Enterprise Software & AI Systems",
     stage: "Growth Stage Enterprise",
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+    image: "/images/founder-md-durga-prasad.png",
     gender: "male",
     bio: "Technology entrepreneur leading NexziByte Solutions. Spearheaded the architecture and product development of 'The Future of Trusted & Verified Talent', presented directly to Sri KTR.",
     quote: "This launch is a major milestone in our journey toward innovation, technology, and digital transformation. Our platform is designed to empower businesses, streamline hiring, and connect talented professionals with the right opportunities through AI-driven solutions.",
@@ -169,7 +169,7 @@ The historic launch event brought together partner founders—including Karthik 
     },
     featuredFoundersPreview: [
       { name: "Sri K. T. Rama Rao (KTR)", company: "Chief Dignitary", avatar: "/images/ktr-nexzibyte-launch.jpg" },
-      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&auto=format&fit=crop&q=80" },
+      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "/images/founder-md-durga-prasad.png" },
       { name: "Narasaiah Nagunoori", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" }
     ],
     featuredFounders: [
@@ -187,7 +187,7 @@ The historic launch event brought together partner founders—including Karthik 
         role: "Founder & Managing Director",
         company: "NexziByte Solutions",
         topic: "Presenting 'The Future of Trusted & Verified Talent' to Sri KTR",
-        avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        avatar: "/images/founder-md-durga-prasad.png",
         gender: "male",
         bio: "Founder and CEO of NexziByte Solutions, leading enterprise AI platform development and empowering tech builders across South Asia."
       },
@@ -285,7 +285,7 @@ The historic launch event brought together partner founders—including Karthik 
       role: "Managing Director",
       organization: "NexziByte Solutions",
       gender: "male",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+      image: "/images/founder-md-durga-prasad.png",
       topic: "Scaling High-Margin Enterprise Software Platforms",
       bio: "Technology entrepreneur leading NexziByte Solutions with a strong track record in enterprise software engineering and AI systems.",
       quote: "Authentic founder collaboration solves scaling bottlenecks faster than any advisory board."
@@ -307,7 +307,7 @@ The historic launch event brought together partner founders—including Karthik 
       included: "Full roundtable access, dinner buffet, and private syndicate introductions."
     },
     featuredFoundersPreview: [
-      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&auto=format&fit=crop&q=80" },
+      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "/images/founder-md-durga-prasad.png" },
       { name: "Narasaiah Nagunoori", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" }
     ],
     featuredFounders: [
@@ -316,7 +316,7 @@ The historic launch event brought together partner founders—including Karthik 
         role: "Founder & MD",
         company: "NexziByte Solutions",
         topic: "Pricing Developer Tools for 80%+ Gross Margins",
-        avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        avatar: "/images/founder-md-durga-prasad.png",
         gender: "male",
         bio: "Founder and CEO of NexziByte Solutions, leading enterprise AI platform development."
       },
@@ -376,7 +376,7 @@ The historic launch event brought together partner founders—including Karthik 
       role: "Founder & MD",
       organization: "NexziByte Solutions",
       gender: "male",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+      image: "/images/founder-md-durga-prasad.png",
       topic: "Founder-Led Capital Formation in Enterprise Tech",
       bio: "Serial technology builder facilitating high-trust capital networks for South Asian engineers.",
       quote: "The best capital is aligned with deep technical execution, not vanity growth."
@@ -398,7 +398,7 @@ The historic launch event brought together partner founders—including Karthik 
       included: "Access to syndicate partners, term-sheet review clinic, and dinner."
     },
     featuredFoundersPreview: [
-      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&auto=format&fit=crop&q=80" },
+      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "/images/founder-md-durga-prasad.png" },
       { name: "Narasaiah Nagunoori", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" }
     ],
     featuredFounders: [
@@ -407,7 +407,7 @@ The historic launch event brought together partner founders—including Karthik 
         role: "Founder & MD",
         company: "NexziByte Solutions",
         topic: "B2B Venture Fundraising & Capital Efficiency",
-        avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        avatar: "/images/founder-md-durga-prasad.png",
         gender: "male",
         bio: "Founder and CEO of NexziByte Solutions."
       },
@@ -467,7 +467,7 @@ The historic launch event brought together partner founders—including Karthik 
       role: "Founder & MD",
       organization: "NexziByte Solutions",
       gender: "male",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+      image: "/images/founder-md-durga-prasad.png",
       topic: "Deploying Private LLMs and High-Scale Infrastructure",
       bio: "Leading enterprise AI and cloud engineering architectures at NexziByte Solutions.",
       quote: "Engineering moats in AI belong to those who master latency, reliability, and proprietary evaluation datasets."
@@ -489,7 +489,7 @@ The historic launch event brought together partner founders—including Karthik 
       included: "Full session access, architecture demo labs, and networking buffet."
     },
     featuredFoundersPreview: [
-      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&auto=format&fit=crop&q=80" },
+      { name: "Nagunoori Durga Prasad", company: "NexziByte", avatar: "/images/founder-md-durga-prasad.png" },
       { name: "Narasaiah Nagunoori", company: "NexziByte", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" }
     ],
     featuredFounders: [
@@ -498,7 +498,7 @@ The historic launch event brought together partner founders—including Karthik 
         role: "Founder & MD",
         company: "NexziByte Solutions",
         topic: "GPU Compute Economics & Infrastructure Sourcing",
-        avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        avatar: "/images/founder-md-durga-prasad.png",
         gender: "male",
         bio: "Founder and CEO of NexziByte Solutions."
       },

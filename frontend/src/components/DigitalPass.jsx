@@ -1,18 +1,18 @@
 import React from "react";
-import {
-  Sparkles, ShieldCheck, QrCode, Copy, Check, Download,
-  Smartphone, ExternalLink, Calendar, MapPin
+import { 
+  Sparkles, ShieldCheck, QrCode, Copy, Check, Download, 
+  Smartphone, ExternalLink, Calendar, MapPin 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 // Minimal SVG QR Code generator for the pass
 export function PassQRCodeSVG({ value, size = 130 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       aria-label={`QR Code: ${value}`}
     >
@@ -70,20 +70,6 @@ export function PassQRCodeSVG({ value, size = 130 }) {
 
 export default function DigitalPass() {
   const { activePass, showToast } = useApp();
-
-  if (!activePass) {
-    return (
-      <section className="section-padding digital-pass-section" id="digital-pass">
-        <div className="container">
-          <div className="events-empty-state">
-            <ShieldCheck size={40} style={{ opacity: 0.55, marginBottom: "12px" }} />
-            <h2>No issued digital pass yet</h2>
-            <p>Register for an event and complete the pass request process to receive your real QR-enabled pass.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   const handleCopyId = () => {
     navigator.clipboard?.writeText(activePass.passId);
@@ -153,9 +139,9 @@ export default function DigitalPass() {
                   <div className="ticket-field-label">PASS ID NO.</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span className="ticket-id-value">{activePass.passId}</span>
-                    <button
+                    <button 
                       type="button"
-                      onClick={handleCopyId}
+                      onClick={handleCopyId} 
                       style={{ color: "var(--text-secondary)", padding: "4px" }}
                       title="Copy Pass ID"
                     >
@@ -179,7 +165,7 @@ export default function DigitalPass() {
               {/* QR Code & Status */}
               <div className="ticket-qr-block">
                 <div className="ticket-qr-svg-wrap">
-                  <PassQRCodeSVG value={activePass.qrData || activePass.passId} size={120} />
+                  <PassQRCodeSVG value={activePass.qrData} size={120} />
                 </div>
 
                 <div className="ticket-valid-tag">
@@ -209,8 +195,8 @@ export default function DigitalPass() {
 
         {/* Supporting Actions */}
         <div className="ticket-actions-bar">
-          <button
-            type="button"
+          <button 
+            type="button" 
             className="btn btn-secondary btn-sm"
             onClick={handleDownload}
           >

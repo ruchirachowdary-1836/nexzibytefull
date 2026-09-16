@@ -990,7 +990,7 @@ export const SPEAKERS = [
     company: "NexziByte Solutions",
     category: "leadership",
     topic: "Architecting Enterprise AI & Scalable Digital Ecosystems for the Next Decade",
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&auto=format&fit=crop&q=80",
+    image: "/images/founder-md-durga-prasad.png",
     linkedin: "https://linkedin.com",
     bio: "Pioneering technology executive championing AI-powered products, developer communities, and enterprise digital transformation globally."
   },
@@ -1079,7 +1079,7 @@ export const PASSES = [
     description: "Experience TechTalk, connect with the community and attend selected open sessions.",
     features: [
       "Open community event entry",
-      "Selected keynote sessions",
+      "Selected keynote sessions & panels",
       "Technology exhibition hall access",
       "Community networking lounges",
       "Verified digital QR pass"
@@ -1090,27 +1090,84 @@ export const PASSES = [
     color: "purple"
   },
   {
-    id: "delegate-pass",
-    type: "DELEGATE PASS",
-    badge: "ALL-ACCESS DELEGATE",
+    id: "student-pass",
+    type: "STUDENT PASS",
+    badge: "STUDENT & RESEARCHER",
+    price: "₹99",
+    priceNum: 99,
+    currency: "₹",
+    description: "Subsidized accreditation for college students, researchers, and aspiring tech developers.",
+    features: [
+      "Full student community event entry",
+      "Selected architecture keynotes & student tracks",
+      "Hands-on coding workshop & lab access",
+      "Internship pool & campus recruiter networking",
+      "Digital Student Certificate of Participation",
+      "Verified digital QR student pass"
+    ],
+    buttonText: "Claim Student Pass — ₹99",
+    subtext: "Valid Student ID required at check-in.",
+    highlight: false,
+    color: "teal"
+  },
+  {
+    id: "founder-pass",
+    type: "FOUNDER PASS",
+    badge: "FOUNDER & CXO CIRCLE",
+    price: "₹499",
+    priceNum: 499,
+    currency: "₹",
+    description: "For startup founders, co-founders, and entrepreneurs seeking capital, collaboration, and enterprise pilots.",
+    features: [
+      "VIP entry to exclusive Founder Meets & Circles",
+      "Chatham House closed-door founder roundtables",
+      "1-on-1 Investor & Angel Syndicate matchmaking",
+      "Enterprise POC & customer discovery breakouts",
+      "Access to NexziByte Founder Alumni Lounge",
+      "Digital Verified Founder VIP Pass & Directory"
+    ],
+    buttonText: "Get Founder Pass — ₹499",
+    subtext: "High-signal circle. Strictly no vanity pitches.",
+    highlight: true,
+    color: "amber"
+  },
+  {
+    id: "delegation-pass",
+    type: "DELEGATION PASS",
+    badge: "CORPORATE DELEGATE",
     price: "₹250",
     priceNum: 250,
     currency: "₹",
-    description: "For delegates looking for deeper technical access, closed-door Founder Meets and speaker networking.",
+    description: "For corporate delegates, software architects, engineering managers, and tech leaders.",
     features: [
-      "Full delegate event entry",
-      "All expert & architecture sessions",
-      "Closed-door Founder Meets",
-      "Speaker Q&A and networking lounges",
+      "Full corporate delegate event accreditation",
+      "All expert, architecture & teardown sessions",
+      "Speaker Q&A & corporate networking lounges",
+      "Official Event Kit & Digital Masterclass Notes",
       "Digital Certificate of Participation",
-      "Full delegate community benefits"
+      "Full delegate community & priority seating"
     ],
-    buttonText: "Buy Delegate Pass — ₹250",
-    subtext: "Complete all-access accreditation.",
-    highlight: true,
+    buttonText: "Get Delegation Pass — ₹250",
+    subtext: "Complete all-access corporate accreditation.",
+    highlight: false,
     color: "coral"
   }
 ];
+
+export const SAMPLE_PASS = {
+  org: "NEXZIBYTE",
+  event: "TECHTALK 2026",
+  passType: "DELEGATE PASS",
+  price: "₹250",
+  holder: "LALITHA",
+  passId: "TT26-000107",
+  validation: "VALID FOR EVENT ENTRY",
+  status: "Verified",
+  checkedIn: false,
+  checkInTime: null,
+  tags: ["Secure", "Unique", "Contactless"],
+  qrData: "TECHTALK:TT26-000107:LALITHA:DELEGATE:250:VERIFIED"
+};
 
 export const HOW_IT_WORKS_STEPS = [
   {
@@ -1237,9 +1294,9 @@ export const TESTIMONIALS = [
   },
   {
     id: "t2",
-    name: "Community member",
+    name: "Lalitha Mindhi",
     role: "Staff Cloud Architect",
-    company: "Technology community",
+    company: "NexziByte Ecosystem",
     image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&auto=format&fit=crop&q=80",
     quote: "The digital pass experience, the high-density technical sessions, and the founder circles made TechTalk the most rewarding conference I've attended in years."
   },
@@ -1365,7 +1422,7 @@ export const DEDICATED_UPCOMING_EVENTS = [
       { time: "03:30 PM", title: "Open Q&A, Certificate Distribution & Closing Remarks", speaker: "NexziByte Team" }
     ],
     speakers: [
-      { name: "Nagunoori Durga Prasad", role: "Founder & Managing Director", org: "NexziByte Solutions", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop&q=80" },
+      { name: "Nagunoori Durga Prasad", role: "Founder & Managing Director", org: "NexziByte Solutions", image: "/images/founder-md-durga-prasad.png" },
       { name: "Dr. Arvind Ramesh", role: "Chief AI Scientist", org: "NeuralCognition Labs", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80" },
       { name: "Sanya Roy", role: "VP of Engineering", org: "HyperScale Cloud", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80" }
     ],
@@ -1615,7 +1672,7 @@ export const FEATURED_EVENT_DETAILS = {
     { time: "Day 2 - 04:00 PM", title: "Innovation Awards & Grand Community Gala", speaker: "NexziByte Team" }
   ],
   speakersList: [
-    { name: "Nagunoori Durga Prasad", role: "Founder & MD", org: "NexziByte Solutions", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop&q=80" },
+    { name: "Nagunoori Durga Prasad", role: "Founder & MD", org: "NexziByte Solutions", image: "/images/founder-md-durga-prasad.png" },
     { name: "Priya Sundaram", role: "Director of AI Research", org: "Cognitive Next", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80" },
     { name: "Rajesh Kannan", role: "Head of Cloud Architecture", org: "Enterprise Cloudways", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80" }
   ],

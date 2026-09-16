@@ -93,7 +93,7 @@ Featuring keynotes by industry visionaries, architectural teardowns of real-worl
             type: "Keynote",
             room: "Main Auditorium Hall A",
             track: "Main Keynote Stage",
-            speaker: { name: "Nagunoori Durga Prasad", gender: "male", role: "Founder & Managing Director", company: "NexziByte Solutions", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop&q=80" },
+            speaker: { name: "Nagunoori Durga Prasad", gender: "male", role: "Founder & Managing Director", company: "NexziByte Solutions", image: "/images/founder-md-durga-prasad.png" },
             description: "How modern enterprises are transitioning from exploratory proof-of-concepts to revenue-generating autonomous AI ecosystems."
           },
           {
@@ -222,7 +222,7 @@ Featuring keynotes by industry visionaries, architectural teardowns of real-worl
         role: "Founder & Managing Director",
         company: "NexziByte Solutions",
         topic: "Architecting Enterprise AI & Scalable Digital Platforms",
-        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+        image: "/images/founder-md-durga-prasad.png",
         bio: "Pioneering technology executive championing AI-powered products, developer communities, and enterprise digital transformation globally.",
         linkedin: "https://linkedin.com",
         featured: true
@@ -513,7 +513,7 @@ For Nexzibyte Solutions, GPACTS provided an invaluable opportunity to understand
         role: "Founder & Managing Director",
         company: "NexziByte Solutions",
         topic: "Bridging Enterprise AI with Healthcare & Pharma Workflows",
-        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+        image: "/images/founder-md-durga-prasad.png",
         bio: "Founder and Managing Director leading digital product engineering and enterprise AI solutions across healthcare and technology verticals.",
         linkedin: "https://linkedin.com",
         featured: true
@@ -682,7 +682,7 @@ NexziByte Solutions engages with GCC leaders to showcase enterprise software fra
             type: "Keynote",
             room: "Kohinoor Grand Ballroom",
             track: "Main Ballroom Stage",
-            speaker: { name: "Nagunoori Durga Prasad", gender: "male", role: "Founder & MD", company: "NexziByte Solutions", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop&q=80" },
+            speaker: { name: "Nagunoori Durga Prasad", gender: "male", role: "Founder & MD", company: "NexziByte Solutions", image: "/images/founder-md-durga-prasad.png" },
             description: "How NexziByte architects AI-powered products and scalable enterprise software that help global organizations transform and grow."
           },
           {
@@ -714,7 +714,7 @@ NexziByte Solutions engages with GCC leaders to showcase enterprise software fra
         role: "Founder & Managing Director",
         company: "NexziByte Solutions",
         topic: "Enterprise AI, Cloud & Intelligent Digital Products for Global GCCs",
-        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+        image: "/images/founder-md-durga-prasad.png",
         bio: "Founder and MD of NexziByte Solutions, leading enterprise digital transformation, AI initiatives, and tech ecosystem development.",
         linkedin: "https://linkedin.com",
         featured: true
@@ -907,7 +907,7 @@ We extend our deepest gratitude to Shri Ponnam Prabhakar garu for his generous s
         role: "Founder & Managing Director",
         company: "NexziByte Solutions",
         topic: "The NexziByte Vision: Building Impactful Technology Products",
-        image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80",
+        image: "/images/founder-md-durga-prasad.png",
         bio: "Founder and Managing Director leading digital product engineering and enterprise software innovation.",
         linkedin: "https://linkedin.com",
         featured: true

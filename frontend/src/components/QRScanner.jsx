@@ -7,20 +7,7 @@ import { useApp } from "../context/AppContext.jsx";
 
 export default function QRScanner() {
   const { activePass, checkInPass, resetCheckIn, showToast } = useApp();
-  if (!activePass) {
-    return (
-      <section className="scanner-section" id="scanner">
-        <div className="container">
-          <div className="events-empty-state">
-            <QrCode size={40} style={{ opacity: 0.55, marginBottom: "12px" }} />
-            <h2>No issued pass to scan</h2>
-            <p>QR check-in becomes available after the backend issues a pass for your event registration.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
+  
   const [scannerOpen, setScannerOpen] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
   const [scanResult, setScanResult] = useState({
@@ -75,7 +62,7 @@ export default function QRScanner() {
     }
   };
 
-  // Check an issued pass returned by the backend.
+  // Simulate scanning a Valid Pass (Lalitha TT26-000125)
   const handleScanValid = () => {
     setScanResult({
       status: "valid",

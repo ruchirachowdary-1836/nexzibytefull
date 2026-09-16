@@ -3,19 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
+  "scripts": {"dev": "vite", "build": "vite build", "preview": "vite preview"},
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.9",
-    "@neondatabase/neon-js": "^0.7.0-beta",
     "@vitejs/plugin-react": "latest",
-    "lucide-react": "latest",
+    "vite": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "latest",
-    "vite": "latest"
-  }
+    "lucide-react": "latest"
+  },
+  "devDependencies": {}
 }

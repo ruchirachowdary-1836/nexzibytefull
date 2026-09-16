@@ -1,13 +1,15 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Sparkles, Rocket, Users, Shield, TrendingUp, Building2, Calendar, 
   MapPin, Clock, ArrowRight, CheckCircle2, ChevronRight, 
   Ticket, Coffee, Award, Lock, Star, MessageSquare
 } from "lucide-react";
-import { FOUNDER_NETWORKING_OPPORTUNITIES } from "../data/founderMeetsData.js";
+import { 
+  FOUNDER_NETWORKING_OPPORTUNITIES, 
+  FOUNDER_MEETS_LIST 
+} from "../data/founderMeetsData.js";
 import { useApp } from "../context/AppContext.jsx";
-import { api } from "../lib/api.js";
 
 const OPPORTUNITY_ICONS = {
   Shield: Shield,
@@ -19,48 +21,17 @@ const OPPORTUNITY_ICONS = {
 export default function FounderMeetsPage() {
   const navigate = useNavigate();
   const { openPassModal, showToast } = useApp();
-  const [founderMeets, setFounderMeets] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const [activeFilter, setActiveFilter] = useState("all"); // "all", "upcoming", "past"
 
-  useEffect(() => {
-    let active = true;
-    api.getFounderMeets()
-      .then((items) => {
-        if (active) {
-          setFounderMeets(items.map((meet) => ({
-            ...meet,
-            name: meet.title,
-            date: new Date(`${meet.date}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-            time: meet.time ? new Date(`1970-01-01T${meet.time}`).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "Time to be announced",
-            badge: meet.founder_information || "FOUNDER MEET",
-            shortDescription: meet.description || "Details will be announced by the TechTalk team.",
-            location: meet.location || "Location to be announced",
-            spotsTotal: null,
-            spotsRemaining: null,
-          })));
-        }
-      })
-      .catch(() => {
-        if (active) showToast("Unable to load founder meets from the database.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [showToast]);
-
   // Filtered Meets
   const filteredMeets = useMemo(() => {
-    if (activeFilter === "all") return founderMeets;
-    return founderMeets.filter((m) => m.status === activeFilter);
-  }, [activeFilter, founderMeets]);
+    if (activeFilter === "all") return FOUNDER_MEETS_LIST;
+    return FOUNDER_MEETS_LIST.filter((m) => m.status === activeFilter);
+  }, [activeFilter]);
 
-  const upcomingCount = founderMeets.filter(m => m.status === "upcoming").length;
-  const pastCount = founderMeets.filter(m => m.status === "past").length;
+  const upcomingCount = FOUNDER_MEETS_LIST.filter(m => m.status === "upcoming").length;
+  const pastCount = FOUNDER_MEETS_LIST.filter(m => m.status === "past").length;
 
   return (
     <div className="founder-meets-page-luxury">
@@ -174,9 +145,16 @@ export default function FounderMeetsPage() {
                     <p className="landmark-quote-text">
                       We are proud and excited to announce the official launch of our product by K. T. Rama Rao garu. This launch is a major milestone in our journey toward innovation, technology, and digital transformation. Our platform connects verified tech talent with enterprise opportunities.
                     </p>
-                    <div className="landmark-quote-author">
-                      <strong>Nagunoori Durga Prasad</strong>
-                      <span>Founder &amp; Managing Director, NexziByte Solutions</span>
+                    <div className="landmark-quote-author" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <img 
+                        src="/images/founder-md-durga-prasad.png" 
+                        alt="Nagunoori Durga Prasad - Founder & Managing Director, NexziByte Solutions"
+                        style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover", objectPosition: "center 15%", border: "2px solid #D97706", boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)", flexShrink: 0 }}
+                      />
+                      <div>
+                        <strong>Nagunoori Durga Prasad</strong>
+                        <span>Founder &amp; Managing Director, NexziByte Solutions</span>
+                      </div>
                     </div>
                   </div>
 
@@ -249,24 +227,24 @@ export default function FounderMeetsPage() {
       {/* ── 3. FOUNDER MEETS DIRECTORY (UPCOMING & PAST) ── */}
       <section className="section-padding founder-meets-directory-section" id="meets-directory">
         <div className="container">
-          {/* Section Header with Tabs */}
-          <div className="directory-header-row">
-            <div>
-              <span className="section-label coral">
+          {/* Section Header with Tabs - Center Aligned */}
+          <div className="directory-header-row" style={{ textAlign: "center", margin: "0 auto 36px auto", maxWidth: "780px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <span className="section-label coral" style={{ margin: "0 auto 12px auto", display: "inline-flex" }}>
                 <Calendar size={13} />
                 VENTURE SESSIONS
               </span>
-              <h2 className="section-heading">
+              <h2 className="section-heading" style={{ textAlign: "center", margin: "0 auto 12px auto" }}>
                 Founder Meets Schedule
               </h2>
-              <p className="section-subtitle">
+              <p className="section-subtitle" style={{ textAlign: "center", margin: "0 auto 16px auto" }}>
                 Browse upcoming closed-door roundtables and recaps from past investor mixers.
               </p>
             </div>
 
             {/* Filter Tabs / Landmark Badge */}
             {pastCount > 0 ? (
-              <div className="meets-filter-tabs">
+              <div className="meets-filter-tabs" style={{ justifyContent: "center", margin: "8px auto 0 auto" }}>
                 <button
                   type="button"
                   className={`filter-tab-btn ${activeFilter === "all" ? "active" : ""}`}
@@ -290,24 +268,26 @@ export default function FounderMeetsPage() {
                 </button>
               </div>
             ) : (
-              <div className="single-meet-status-pill">
-                <Sparkles size={14} style={{ color: "#6C2BD9" }} />
-                <span>OFFICIAL LANDMARK FOUNDER MEET</span>
+              <div style={{ display: "flex", justifyContent: "center", width: "100%", marginTop: "8px" }}>
+                <div className="single-meet-status-pill">
+                  <Sparkles size={14} style={{ color: "#6C2BD9" }} />
+                  <span>OFFICIAL LANDMARK FOUNDER MEET</span>
+                </div>
               </div>
             )}
           </div>
 
           {/* Cards Grid */}
-          <div className={`founder-meets-cards-grid ${filteredMeets.length === 1 ? "single-meet-container" : ""}`}>
+          <div className="founder-meets-cards-grid">
             {filteredMeets.map((meet) => (
               <div 
                 key={meet.id} 
-                className={`founder-meet-card ${filteredMeets.length === 1 ? "single-meet-spotlight" : ""} ${meet.status === "past" ? "past-meet-card" : ""}`}
+                className={`founder-meet-card single-meet-spotlight ${meet.status === "past" ? "past-meet-card" : ""}`}
               >
                 {/* Event Image Banner */}
                 <div className="meet-card-img-wrap">
                   <img 
-                    src={meet.banner || undefined}
+                    src={meet.image} 
                     alt={meet.name} 
                     className="meet-card-img"
                     loading="lazy"
@@ -356,7 +336,7 @@ export default function FounderMeetsPage() {
 
 
                   {/* Spots indicator */}
-                  {meet.status === "upcoming" && meet.spotsTotal && meet.spotsRemaining !== null && (
+                  {meet.status === "upcoming" && (
                     <div className="meet-spots-indicator">
                       <div className="spots-bar-bg">
                         <div 
@@ -384,11 +364,11 @@ export default function FounderMeetsPage() {
                     {meet.status === "upcoming" ? (
                       <button
                         type="button"
-                        className="btn btn-coral btn-sm"
-                        onClick={() => openPassModal("delegate-pass")}
+                        className="btn btn-amber btn-sm"
+                        onClick={() => openPassModal(meet.registration?.passTypeId || "founder-pass")}
                       >
                         <Ticket size={14} />
-                        <span>Apply / Register</span>
+                        <span>Get Founder Pass</span>
                       </button>
                     ) : (
                       <button

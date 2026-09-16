@@ -1,11 +1,9 @@
 import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { 
   X, Calendar, MapPin, Sparkles, Share2, Bookmark, CheckCircle2, 
   Users, Tag, ArrowRight, ExternalLink 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { api } from "../lib/api.js";
 
 export default function SummitModal() {
   const { 
@@ -15,7 +13,6 @@ export default function SummitModal() {
     openPassModal, 
     showToast 
   } = useApp();
-  const [registering, setRegistering] = React.useState(false);
 
   // Close on Escape key press
   useEffect(() => {
@@ -27,13 +24,6 @@ export default function SummitModal() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [summitModalOpen, setSummitModalOpen]);
-
-  useEffect(() => {
-    if (!summitModalOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [summitModalOpen]);
 
   if (!summitModalOpen || !selectedSummit) return null;
 
@@ -53,20 +43,7 @@ export default function SummitModal() {
     }
   };
 
-  const handleRegister = async () => {
-    if (!selectedSummit?.id) return;
-    setRegistering(true);
-    try {
-      await api.registerForEvent(selectedSummit.eventType || "founder_meet", Number(selectedSummit.id));
-      showToast("Your event registration was submitted.");
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      setRegistering(false);
-    }
-  };
-
-  return createPortal((
+  return (
     <div 
       className="modal-backdrop-overlay" 
       onClick={() => setSummitModalOpen(false)}
@@ -200,15 +177,14 @@ export default function SummitModal() {
               <button 
                 type="button" 
                 className="btn btn-primary btn-sm"
-                onClick={handleRegister}
-                disabled={registering}
+                onClick={() => setSummitModalOpen(false)}
               >
-                {registering ? "Registering..." : "Apply / Register"}
+                Done Reading
               </button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  ), document.body);
+  );
 }
