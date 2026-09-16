@@ -36,10 +36,11 @@ export const authService = {
     if (neonAuthEnabled) {
       const result = await neonClient.auth.signIn.email({ email, password });
       if (result?.error) {
-        throw new Error(result.error.message || "Unable to sign in. Verify your email first.");
+        throw new Error(result.error.message || "Unable to sign in. Verify your account if this is your first login.");
       }
       const session = await getNeonSession();
-      return normalizeNeonUser(session?.user || result?.data?.user || result?.user);
+      const neonUser = normalizeNeonUser(session?.user || result?.data?.user || result?.user);
+      return hydrateNeonProfile(neonUser);
     }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
@@ -55,7 +56,9 @@ export const authService = {
 
   me() {
     if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled) {
-      return getNeonSession().then((session) => normalizeNeonUser(session?.user));
+      return getNeonSession()
+        .then((session) => normalizeNeonUser(session?.user))
+        .then(hydrateNeonProfile);
     }
     return apiRequest("/auth/session");
   },
@@ -87,4 +90,13 @@ export const authService = {
 function normalizeNeonUser(user) {
   if (!user) throw new Error("No active Neon Auth session.");
   return { id: user.id, email: user.email, name: user.name || user.email, profile_image: user.image || null };
+}
+
+async function hydrateNeonProfile(neonUser) {
+  try {
+    const profile = await apiRequest("/auth/session");
+    return { ...neonUser, ...profile, profile_image: profile.profile_image || neonUser.profile_image };
+  } catch (error) {
+    throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);
+  }
 }
