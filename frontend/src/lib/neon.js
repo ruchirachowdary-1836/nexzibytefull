@@ -3,13 +3,27 @@ import { createClient } from "@neondatabase/neon-js";
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
 
+function deriveDataApiUrl(url) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    parsed.hostname = parsed.hostname.replace(".neonauth.", ".apirest.");
+    parsed.pathname = parsed.pathname.replace(/\/auth\/?$/, "/rest/v1");
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+const resolvedDataApiUrl = dataApiUrl || deriveDataApiUrl(authUrl);
+
 export const neonAuthEnabled =
-  import.meta.env.VITE_AUTH_PROVIDER === "neon" && Boolean(authUrl);
+  import.meta.env.VITE_AUTH_PROVIDER === "neon" && Boolean(authUrl && resolvedDataApiUrl);
 
 export const neonClient = neonAuthEnabled
   ? createClient({
       auth: { url: authUrl },
-      ...(dataApiUrl ? { dataApi: { url: dataApiUrl } } : {}),
+      dataApi: { url: resolvedDataApiUrl },
     })
   : null;
 
