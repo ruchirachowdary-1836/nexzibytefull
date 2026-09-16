@@ -134,7 +134,8 @@ class RegisterIn(BaseModel):
 
 class VerificationCodeIn(BaseModel):
     code: str = Field(min_length=6, max_length=128)
-    profile_image: str | None = None
+
+
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
 class PostIn(BaseModel): title: str = Field(min_length=1, max_length=200); content: str = Field(min_length=1); category_id: int; tags: str | None = None; cover_image: str | None = None
 class CommentIn(BaseModel): content: str = Field(min_length=1, max_length=5000)
