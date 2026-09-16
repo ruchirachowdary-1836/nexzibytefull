@@ -4,24 +4,24 @@ import { X, Sparkles, User, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } f
 import { useApp } from "../context/AppContext.jsx";
 
 export default function LoginModal() {
-  const { loginModalOpen, setLoginModalOpen, user, setUser, showToast } = useApp();
+  const { loginModalOpen, setLoginModalOpen, user, login, showToast } = useApp();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(user?.email || "aiswarya.mlsv@nexzibyte.com");
-  const [password, setPassword] = useState("••••••••••••");
+  const [email, setEmail] = useState(user?.email || "");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   if (!loginModalOpen) return null;
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setUser((prev) => ({
-      ...prev,
-      email,
-      isLoggedIn: true
-    }));
-    setLoginModalOpen(false);
-    showToast(`Welcome back, ${user?.name || "Member"}! Signed in to NexziByte TechTalk.`);
+    try {
+      const authenticated = await login({ email, password });
+      setLoginModalOpen(false);
+      showToast(`Welcome back, ${authenticated.name || "Member"}! Signed in to NexziByte TechTalk.`);
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    }
   };
 
   const handleRegisterClick = () => {

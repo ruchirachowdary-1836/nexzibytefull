@@ -1154,21 +1154,6 @@ export const PASSES = [
   }
 ];
 
-export const SAMPLE_PASS = {
-  org: "NEXZIBYTE",
-  event: "TECHTALK 2026",
-  passType: "DELEGATE PASS",
-  price: "₹250",
-  holder: "LALITHA",
-  passId: "TT26-000107",
-  validation: "VALID FOR EVENT ENTRY",
-  status: "Verified",
-  checkedIn: false,
-  checkInTime: null,
-  tags: ["Secure", "Unique", "Contactless"],
-  qrData: "TECHTALK:TT26-000107:LALITHA:DELEGATE:250:VERIFIED"
-};
-
 export const HOW_IT_WORKS_STEPS = [
   {
     step: "01",

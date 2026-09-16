@@ -10,14 +10,15 @@ export default function PassRegistrationModal() {
     setPassModalOpen, 
     selectedPassType, 
     setSelectedPassType, 
-    registerPass 
+    registerPass,
+    showToast
   } = useApp();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("Lalitha Mindhi");
-  const [email, setEmail] = useState("lalitha@nexzibyte.com");
-  const [organization, setOrganization] = useState("NexziByte Ecosystem");
-  const [role, setRole] = useState("Senior Systems Architect");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [role, setRole] = useState("");
   const [additionalField, setAdditionalField] = useState("");
   const [notes, setNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -93,8 +94,7 @@ export default function PassRegistrationModal() {
     if (!name || !email) return;
 
     setIsProcessing(true);
-    setTimeout(() => {
-      registerPass({
+    registerPass({
         attendeeName: name,
         email,
         passType: activeType,
@@ -102,14 +102,8 @@ export default function PassRegistrationModal() {
         organization,
         role: isStudent ? `${role} (${additionalField || "Student"})` : role,
         notes: notes || additionalField
-      });
-      setIsProcessing(false);
-      // Smoothly jump down to the generated ticket
-      const ticketEl = document.getElementById("digital-pass");
-      if (ticketEl) {
-        ticketEl.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 600);
+      }).catch((error) => showToast(`⚠️ ${error.message}`))
+      .finally(() => setIsProcessing(false));
   };
 
   return (

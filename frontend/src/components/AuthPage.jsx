@@ -21,7 +21,7 @@ const ROLE_OPTIONS = [
 export default function AuthPage({ defaultMode = "login" }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, setUser, isLoggedIn, logout, showToast } = useApp();
+  const { user, isLoggedIn, logout, login, register, showToast } = useApp();
 
   // Mode: "login" or "register"
   const [mode, setMode] = useState(
@@ -38,8 +38,8 @@ export default function AuthPage({ defaultMode = "login" }) {
   }, [location.pathname]);
 
   // Login Form States
-  const [loginEmail, setLoginEmail] = useState(user?.email || "aiswarya.mlsv@nexzibyte.com");
-  const [loginPassword, setLoginPassword] = useState("••••••••••••");
+  const [loginEmail, setLoginEmail] = useState(user?.email || "");
+  const [loginPassword, setLoginPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
@@ -49,30 +49,29 @@ export default function AuthPage({ defaultMode = "login" }) {
   const [regRole, setRegRole] = useState(ROLE_OPTIONS[0]);
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(true);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [referralContact, setReferralContact] = useState("");
   const [showRegPassword, setShowRegPassword] = useState(false);
 
   // Handle Login Submit
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!loginEmail.trim()) {
       showToast("⚠️ Please enter your email address.");
       return;
     }
 
-    // Authenticate user in-session
-    setUser((prev) => ({
-      ...prev,
-      email: loginEmail.trim(),
-      isLoggedIn: true
-    }));
-
-    showToast(`✓ Welcome back, ${user?.name || "Member"}! You are signed in.`);
-    navigate("/profile");
+    try {
+      const authenticated = await login({ email: loginEmail.trim(), password: loginPassword });
+      showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
+      navigate("/profile");
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    }
   };
 
   // Handle Register Submit
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
       showToast("⚠️ Please complete all required registration fields.");
@@ -89,21 +88,13 @@ export default function AuthPage({ defaultMode = "login" }) {
       return;
     }
 
-    // Set registered user
-    const initials = regName.split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
-    setUser((prev) => ({
-      ...prev,
-      name: regName.trim(),
-      fullName: regName.trim(),
-      email: regEmail.trim(),
-      role: regRole,
-      title: regRole,
-      avatarInitials: initials,
-      isLoggedIn: true
-    }));
-
-    showToast(`🎉 Account created! Welcome to NexziByte TechTalk, ${regName}!`);
-    navigate("/profile");
+    try {
+      const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
+      showToast(`📧 ${result.detail || "Account created. Check your email to verify your account."}`);
+      navigate("/login");
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -391,6 +382,17 @@ export default function AuthPage({ defaultMode = "login" }) {
                       <option key={i} value={r}>{r}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="form-field-group">
+                  <label className="form-label">Referral Contact Number (optional)</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    placeholder="+91 98765 43210"
+                    value={referralContact}
+                    onChange={(e) => setReferralContact(e.target.value)}
+                  />
                 </div>
 
                 {/* Password & Confirm Password Row */}
