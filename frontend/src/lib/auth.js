@@ -36,7 +36,11 @@ export const authService = {
     if (neonAuthEnabled) {
       const result = await neonClient.auth.signIn.email({ email, password });
       if (result?.error) {
-        throw new Error(result.error.message || "Unable to sign in. Verify your account if this is your first login.");
+        const message = result.error.message || "Unable to sign in.";
+        const error = new Error(message);
+        error.code = /verification|verify|verified/i.test(message) ? "EMAIL_VERIFICATION_REQUIRED" : "AUTHENTICATION_FAILED";
+        error.email = email;
+        throw error;
       }
       const session = await getNeonSession();
       const neonUser = normalizeNeonUser(session?.user || result?.data?.user || result?.user);

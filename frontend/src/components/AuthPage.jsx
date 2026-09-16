@@ -6,6 +6,7 @@ import {
   ArrowLeft, Check, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { neonAuthEnabled } from "../lib/neon.js";
 
 const ROLE_OPTIONS = [
   "Senior Full Stack Developer",
@@ -66,6 +67,11 @@ export default function AuthPage({ defaultMode = "login" }) {
       showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
       navigate("/profile");
     } catch (error) {
+      if (neonAuthEnabled && error.code === "EMAIL_VERIFICATION_REQUIRED") {
+        showToast("📧 Verify your email with the code we sent, then sign in again.");
+        navigate(`/verify-email?email=${encodeURIComponent(loginEmail.trim())}&provider=neon`);
+        return;
+      }
       showToast(`⚠️ ${error.message}`);
     }
   };
