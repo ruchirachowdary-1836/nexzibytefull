@@ -456,13 +456,22 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link 
-                to="/login"
-                className="nav-login-btn-dark"
-                id="nav-login-btn"
-              >
-                Login
-              </Link>
+              <>
+                <Link
+                  to="/login"
+                  className="nav-login-btn-dark"
+                  id="nav-login-btn"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/profile"
+                  className="nav-login-btn-dark"
+                  id="nav-profile-btn"
+                >
+                  Profile
+                </Link>
+              </>
             )}
 
             <button 

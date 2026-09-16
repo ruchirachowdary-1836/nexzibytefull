@@ -38,6 +38,12 @@ export default function AuthPage({ defaultMode = "login" }) {
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (isLoggedIn && location.pathname !== "/profile") {
+      navigate("/profile", { replace: true });
+    }
+  }, [isLoggedIn, location.pathname, navigate]);
+
   // Login Form States
   const [loginEmail, setLoginEmail] = useState(user?.email || "");
   const [loginPassword, setLoginPassword] = useState("");
