@@ -16,6 +16,24 @@ services:
         value: https://techtalk-frontend-acvb.onrender.com
       - key: FRONTEND_URL
         value: https://techtalk-frontend-acvb.onrender.com
+      - key: VISITOR_PROMOTION_DATE
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth/jwks
+      - key: NEON_AUTH_ISSUER
+        value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth
+      - key: NEON_AUTH_AUDIENCE
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
   - type: web
     name: techtalk-frontend
     runtime: static
@@ -30,4 +48,8 @@ services:
       - key: VITE_API_URL
         value: https://techtalk-backend-shob.onrender.com
       - key: VITE_AUTH_PROVIDER
-        value: fastapi
+        value: neon
+      - key: VITE_NEON_DATA_API_URL
+        value: https://ep-mute-resonance-ay0g7clj.apirest.c-5.us-east-2.aws.neon.tech/neondb/rest/v1
+      - key: VITE_NEON_AUTH_URL
+        value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth

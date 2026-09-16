@@ -62,7 +62,7 @@ export default function QRScanner() {
     }
   };
 
-  // Simulate scanning a Valid Pass (Lalitha TT26-000125)
+  // Scan an issued pass identifier from the backend.
   const handleScanValid = () => {
     setScanResult({
       status: "valid",

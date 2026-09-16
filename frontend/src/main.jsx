@@ -47,6 +47,8 @@ import CheckoutPage from "./components/CheckoutPage.jsx";
 import CreatePostPage from "./components/CreatePostPage.jsx";
 import AuthPage from "./components/AuthPage.jsx";
 import VerifyEmail from "./components/VerifyEmail.jsx";
+import MemberDashboard from "./components/MemberDashboard.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 
 // Modals
 import PassRegistrationModal from "./components/PassRegistrationModal.jsx";
@@ -311,6 +313,8 @@ function App() {
         <Route path="/login" element={<AuthPage defaultMode="login" />} />
         <Route path="/register" element={<AuthPage defaultMode="register" />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/dashboard" element={<MemberDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/summits" element={<SummitsPage />} />
         <Route path="/summits/:id" element={<SummitDetailsPage />} />
         <Route path="/summit-details" element={<SummitDetailsPage />} />

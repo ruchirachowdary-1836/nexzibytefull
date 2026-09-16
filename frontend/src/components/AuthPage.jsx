@@ -21,7 +21,7 @@ const ROLE_OPTIONS = [
 export default function AuthPage({ defaultMode = "login" }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isLoggedIn, logout, login, register, showToast } = useApp();
+  const { user, isLoggedIn, logout, login, register, loginWithGoogle, showToast } = useApp();
 
   // Mode: "login" or "register"
   const [mode, setMode] = useState(
@@ -99,6 +99,14 @@ export default function AuthPage({ defaultMode = "login" }) {
 
   const handleForgotPassword = () => {
     showToast(`📧 Password reset instructions sent to ${loginEmail || "your email"}.`);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    }
   };
 
   return (
@@ -312,6 +320,9 @@ export default function AuthPage({ defaultMode = "login" }) {
                   <span>Sign In to TechTalk</span>
                   <ArrowRight size={16} />
                 </button>
+                <button type="button" className="btn btn-secondary btn-auth-submit" onClick={handleGoogleLogin}>
+                  Continue with Google
+                </button>
 
                 {/* Switch to Register */}
                 <div className="auth-footer-switcher">
@@ -345,7 +356,7 @@ export default function AuthPage({ defaultMode = "login" }) {
                     type="text"
                     required
                     className="form-input"
-                    placeholder="e.g. M. L. S. V. Aiswarya"
+                    placeholder="Your full name"
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
                   />

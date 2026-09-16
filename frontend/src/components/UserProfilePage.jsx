@@ -161,7 +161,6 @@ export default function UserProfilePage() {
     setEditModalOpen(false);
   };
 
-  // Quick reset back to Aiswarya defaults
   const handleResetToDefault = () => {
     resetUserProfile();
     setFormData({
@@ -226,7 +225,7 @@ export default function UserProfilePage() {
               <div className="profile-avatar-wrapper">
                 <img 
                   src={user?.avatar || DEFAULT_PROFILE.avatar} 
-                  alt={user?.name || "M. L. S. V. Aiswarya"} 
+                  alt={user?.name || "Authenticated member"}
                   className="profile-avatar-img"
                   onError={(e) => {
                     // Fallback to stylized initials if image link breaks
@@ -331,7 +330,7 @@ export default function UserProfilePage() {
                   title="Restore original profile details"
                 >
                   <RefreshCw size={12} />
-                  <span>Reset to M. L. S. V. Aiswarya</span>
+                  <span>Reset unsaved changes</span>
                 </button>
               </div>
             )}
@@ -351,7 +350,7 @@ export default function UserProfilePage() {
                 >
                   <Edit3 size={16} />
                 </button>
-                <span className="profile-handle">{user?.handle || "@aiswarya_mlsv"}</span>
+                <span className="profile-handle">{user?.handle || user?.email || "Member profile"}</span>
                 <span className="profile-verified-badge" title="Verified Engineering Fellow">
                   <CheckCircle2 size={16} />
                 </span>
@@ -1773,7 +1772,7 @@ export default function UserProfilePage() {
                   className="form-input"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. M. L. S. V. Aiswarya"
+                  placeholder="Your full name"
                   id="input-profile-name"
                 />
               </div>

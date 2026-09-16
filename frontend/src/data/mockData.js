@@ -1279,7 +1279,7 @@ export const TESTIMONIALS = [
   },
   {
     id: "t2",
-    name: "Lalitha Mindhi",
+    name: "TechTalk Editorial",
     role: "Staff Cloud Architect",
     company: "NexziByte Ecosystem",
     image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&auto=format&fit=crop&q=80",

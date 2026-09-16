@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     mail_from: str | None = None
     frontend_url: str = "https://techtalk-frontend-acvb.onrender.com"
+    visitor_promotion_date: str | None = None
+    neon_auth_jwks_url: str | None = None
+    neon_auth_issuer: str | None = None
+    neon_auth_audience: str | None = None
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

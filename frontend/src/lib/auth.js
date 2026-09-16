@@ -1,9 +1,15 @@
 import { apiRequest } from "./api.js";
+import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
+    if (neonAuthEnabled) {
+      const result = await neonClient.auth.signUp.email({ name, email, password });
+      if (result?.error) throw new Error(result.error.message || "Unable to create your account.");
+      return { detail: "Account created. Check your email to verify your account.", email_verification_required: true };
+    }
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
@@ -12,6 +18,12 @@ export const authService = {
   },
 
   async login({ email, password }) {
+    if (neonAuthEnabled) {
+      const result = await neonClient.auth.signIn.email({ email, password });
+      if (result?.error) throw new Error(result.error.message || "Unable to sign in.");
+      const session = await getNeonSession();
+      return normalizeNeonUser(session?.user || result?.data?.user || result?.user);
+    }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
       method: "POST",
@@ -25,18 +37,37 @@ export const authService = {
   },
 
   me() {
+    if (neonAuthEnabled) {
+      return getNeonSession().then((session) => normalizeNeonUser(session?.user));
+    }
     return apiRequest("/auth/session");
   },
 
   updateProfile(payload) {
+    if (neonAuthEnabled) {
+      return neonClient.auth.updateUser({ name: payload.name, image: payload.profile_image }).then((result) => {
+        if (result?.error) throw new Error(result.error.message || "Unable to update your profile.");
+        return normalizeNeonUser(result?.data?.user || result?.user);
+      });
+    }
     return apiRequest("/users/me", { method: "PUT", body: JSON.stringify(payload) });
   },
 
   logout() {
+    if (neonAuthEnabled) neonClient.auth.signOut().catch(() => {});
     localStorage.removeItem(TOKEN_KEY);
   },
 
   hasToken() {
-    return Boolean(localStorage.getItem(TOKEN_KEY));
+    return neonAuthEnabled || Boolean(localStorage.getItem(TOKEN_KEY));
+  },
+
+  loginWithGoogle() {
+    return signInWithGoogle();
   },
 };
+
+function normalizeNeonUser(user) {
+  if (!user) throw new Error("No active Neon Auth session.");
+  return { id: user.id, email: user.email, name: user.name || user.email, profile_image: user.image || null };
+}

@@ -305,6 +305,11 @@ def create_course_application(body: CourseApplicationIn, db: Session = Depends(g
 
 @app.post('/pass-requests', status_code=201)
 def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
+    if body.pass_type.lower() == 'visitor-pass':
+        if not settings.visitor_promotion_date:
+            raise HTTPException(503, detail='Visitor pass promotion is not currently active.')
+        if date.today().isoformat() != settings.visitor_promotion_date:
+            raise HTTPException(400, detail='Visitor passes are available only on the promotion date.')
     first_name, *last_name = body.name.strip().split()
     request = PassRequest(
         user_id=user.id if user else None,
@@ -332,8 +337,25 @@ def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User
     request.pass_id = request.pass_id or f"TT26-{request.id:06d}"
     request.qr_data = request.qr_data or f"techtalk:pass:{secrets.token_urlsafe(24)}"
     request.issued_at = datetime.utcnow()
-    request.expires_at = datetime.utcnow() + timedelta(minutes=10) if request.pass_type.lower() == 'visitor-pass' else None
+    if request.pass_type.lower() == 'visitor-pass':
+        if not settings.visitor_promotion_date or date.today().isoformat() != settings.visitor_promotion_date:
+            raise HTTPException(400, detail='Visitor passes can only be approved on the promotion date.')
+        request.expires_at = datetime.utcnow() + timedelta(minutes=10)
+    else:
+        request.expires_at = None
     request.status = 'approved'
+    db.commit()
+    db.refresh(request)
+    return pass_request_response(request)
+
+@app.patch('/admin/pass-requests/{request_id}/reject')
+def reject_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    request = one(db, PassRequest, request_id)
+    request.status = 'rejected'
+    request.pass_id = None
+    request.qr_data = None
+    request.issued_at = None
+    request.expires_at = None
     db.commit()
     db.refresh(request)
     return pass_request_response(request)
@@ -345,6 +367,14 @@ def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_cur
 @app.get('/admin/pass-requests')
 def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return [item(request) for request in db.query(PassRequest).order_by(PassRequest.created_at.desc()).all()]
+
+@app.get('/dashboard/member')
+def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return {
+        'user': user_item(user),
+        'activity': user_profile_payload(user, db)['activity'],
+        'pass_requests': [pass_request_response(row) for row in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()],
+    }
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):

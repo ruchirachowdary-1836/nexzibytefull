@@ -96,7 +96,7 @@ export default function PostDetailsPage() {
 
     const newComment = {
       id: `c-${Date.now()}`,
-      author: user?.name || "M. L. S. V. Aiswarya",
+      author: user?.name || "Authenticated member",
       role: user?.role || "Senior Full Stack Developer",
       avatar: user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80",
       time: "Just now",
@@ -406,7 +406,7 @@ export class DistributedTokenBucket {
                       className="comment-user-avatar"
                     />
                     <div className="comment-user-meta">
-                      <span className="comment-user-name">{user?.name || "M. L. S. V. Aiswarya"}</span>
+                      <span className="comment-user-name">{user?.name || "Authenticated member"}</span>
                       <span className="comment-user-role">Commenting as Verified Member</span>
                     </div>
                   </div>

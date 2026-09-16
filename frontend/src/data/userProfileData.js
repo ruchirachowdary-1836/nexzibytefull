@@ -1,4 +1,22 @@
-export const DEFAULT_PROFILE = {};
+export const DEFAULT_PROFILE = {
+  name: "",
+  handle: "",
+  email: "",
+  timezone: "",
+  title: "",
+  bio: "",
+  location: "",
+  role: "",
+  company: "",
+  avatar: "",
+  socials: {
+    github: "",
+    linkedin: "",
+    twitter: "",
+    portfolio: "",
+    devto: ""
+  }
+};
 export const PROFILE_METRICS = [];
 export const SKILL_CATEGORIES = [];
 export const PUBLISHED_POSTS = [];

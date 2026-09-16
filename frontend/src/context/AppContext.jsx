@@ -63,6 +63,12 @@ export function AppProvider({ children }) {
     return authenticatedUser;
   };
 
+  const loginWithGoogle = async () => {
+    const authenticatedUser = await authService.loginWithGoogle();
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  };
+
   const register = async (credentials) => {
     return authService.register(credentials);
   };
@@ -146,7 +152,7 @@ export function AppProvider({ children }) {
   const markAllNotificationsRead = () => setNotifications((items) => items.map((item) => ({ ...item, read: true })));
 
   const value = {
-    user, setUser, isLoggedIn, backendOnline, login, register, logout, updateUserProfile,
+    user, setUser, isLoggedIn, backendOnline, login, loginWithGoogle, register, logout, updateUserProfile,
     resetUserProfile: logout, userPosts, setUserPosts, userDrafts, setUserDrafts, createPost,
     deletePost: (id, draft) => draft ? setUserDrafts((items) => items.filter((item) => item.id !== id)) : setUserPosts((items) => items.filter((item) => item.id !== id)),
     notifications, setNotifications, markNotificationRead, markAllNotificationsRead,

@@ -21,6 +21,8 @@ export default function PassRegistrationModal() {
   const [role, setRole] = useState("");
   const [additionalField, setAdditionalField] = useState("");
   const [notes, setNotes] = useState("");
+  const [phone, setPhone] = useState("");
+  const [referralContact, setReferralContact] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Normalize active pass type
@@ -102,6 +104,7 @@ export default function PassRegistrationModal() {
         organization,
         role: isStudent ? `${role} (${additionalField || "Student"})` : role,
         notes: notes || additionalField
+        , phone, referralContact
       }).catch((error) => showToast(`⚠️ ${error.message}`))
       .finally(() => setIsProcessing(false));
   };
@@ -200,7 +203,7 @@ export default function PassRegistrationModal() {
                 className="form-input" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Lalitha Mindhi"
+                placeholder="Your full name"
               />
             </div>
 
@@ -212,7 +215,7 @@ export default function PassRegistrationModal() {
                 className="form-input" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. lalitha@company.com"
+                placeholder="you@company.com"
               />
             </div>
           </div>
@@ -337,6 +340,18 @@ export default function PassRegistrationModal() {
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="Developer / Enthusiast"
                 />
+              </div>
+            </div>
+          )}
+          {isVisitor && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-field-group">
+                <label className="form-label">Contact Number *</label>
+                <input type="tel" required className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              <div className="form-field-group">
+                <label className="form-label">Referral Contact (optional)</label>
+                <input type="tel" className="form-input" value={referralContact} onChange={(e) => setReferralContact(e.target.value)} />
               </div>
             </div>
           )}
