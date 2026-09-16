@@ -33,6 +33,8 @@ class User(Base):
     github_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     twitter_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     devto_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    leetcode_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    instagram_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     posts = relationship('Post', back_populates='author')

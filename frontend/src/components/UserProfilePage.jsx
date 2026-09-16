@@ -35,6 +35,7 @@ function XTwitterIcon({ size = 15 }) {
 }
 
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 import {
   DEFAULT_PROFILE,
   PROFILE_METRICS,
@@ -112,6 +113,8 @@ export default function UserProfilePage() {
     newPass: "",
     confirmPass: ""
   });
+  const [newLink, setNewLink] = useState({ label: "", url: "" });
+  const [savingLink, setSavingLink] = useState(false);
 
   // In-session Profile Editor Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -182,6 +185,32 @@ export default function UserProfilePage() {
       showToast("✓ Profile link copied to clipboard!");
     } else {
       showToast("Profile URL: " + window.location.href);
+    }
+  };
+
+  const handleAddProfileLink = async (event) => {
+    event.preventDefault();
+    if (!newLink.label.trim() || !newLink.url.trim()) return;
+    setSavingLink(true);
+    try {
+      const link = await api.createProfileLink({ label: newLink.label.trim(), url: newLink.url.trim() });
+      updateUserProfile({ links: [...(user?.links || []), link] });
+      setNewLink({ label: "", url: "" });
+      showToast("Profile link added.");
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    } finally {
+      setSavingLink(false);
+    }
+  };
+
+  const handleDeleteProfileLink = async (linkId) => {
+    try {
+      await api.deleteProfileLink(linkId);
+      updateUserProfile({ links: (user?.links || []).filter((link) => link.id !== linkId) });
+      showToast("Profile link removed.");
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
     }
   };
 
@@ -448,6 +477,23 @@ export default function UserProfilePage() {
                   <Mail size={15} />
                   <span>Email</span>
                 </a>
+              </div>
+              <div style={{ marginTop: "18px" }}>
+                <h3 style={{ marginBottom: "10px" }}>Profile Links</h3>
+                {(user?.links || []).map((link) => (
+                  <div key={link.id} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                    <a href={link.url} target="_blank" rel="noreferrer" className="profile-social-pill">
+                      <ExternalLink size={13} />
+                      <span>{link.label}</span>
+                    </a>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleDeleteProfileLink(link.id)}>Delete</button>
+                  </div>
+                ))}
+                <form onSubmit={handleAddProfileLink} style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px" }}>
+                  <input value={newLink.label} onChange={(event) => setNewLink({ ...newLink, label: event.target.value })} placeholder="Platform name" aria-label="Profile platform name" />
+                  <input value={newLink.url} onChange={(event) => setNewLink({ ...newLink, url: event.target.value })} placeholder="https://example.com/username" aria-label="Profile URL" />
+                  <button type="submit" className="btn btn-primary" disabled={savingLink}>{savingLink ? "Saving..." : "+ Add Profile"}</button>
+                </form>
               </div>
             </div>
           </div>

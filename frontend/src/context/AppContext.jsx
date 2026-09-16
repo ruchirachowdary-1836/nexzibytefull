@@ -112,8 +112,10 @@ export function AppProvider({ children }) {
       github_url: fields.github_url,
       twitter_url: fields.twitter_url,
       devto_url: fields.devto_url,
+      leetcode_url: fields.leetcode_url,
+      instagram_url: fields.instagram_url,
     });
-    setUser(updated);
+    setUser((current) => ({ ...updated, links: fields.links ?? updated.links ?? current?.links ?? [] }));
     showToast("Profile saved to your account.");
     return updated;
   };

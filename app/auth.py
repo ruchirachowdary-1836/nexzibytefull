@@ -25,7 +25,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         email = decode_neon_email(token)
     user = db.query(User).filter(User.email == email.lower()).first() if email else None
     if not user and email and settings.neon_auth_jwks_url:
-        user = User(name=email.split('@')[0], email=email.lower(), email_verified=True, password_hash=None)
+        claims = decode_neon_claims(token)
+        user = User(
+            name=(claims or {}).get('name') or (claims or {}).get('user_metadata', {}).get('name') or email.split('@')[0],
+            email=email.lower(),
+            email_verified=True,
+            password_hash=None,
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -50,6 +56,10 @@ def decode_local_email(token: str):
         return None
 
 def decode_neon_email(token: str):
+    claims = decode_neon_claims(token)
+    return (claims or {}).get('email') or (claims or {}).get('sub')
+
+def decode_neon_claims(token: str):
     try:
         header = jwt.get_unverified_header(token)
         claims = jwt.get_unverified_claims(token)
@@ -67,6 +77,6 @@ def decode_neon_email(token: str):
         if not key_data:
             return None
         verified = jwt.decode(token, jwk.construct(key_data), algorithms=[header.get('alg', 'RS256')], options={'verify_aud': False})
-        return verified.get('email') or verified.get('sub')
+        return verified
     except (JWTError, OSError, ValueError, KeyError, TypeError):
         return None

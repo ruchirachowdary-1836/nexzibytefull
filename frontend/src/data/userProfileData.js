@@ -14,7 +14,9 @@ export const DEFAULT_PROFILE = {
     linkedin: "",
     twitter: "",
     portfolio: "",
-    devto: ""
+    devto: "",
+    leetcode: "",
+    instagram: ""
   }
 };
 export const PROFILE_METRICS = [];

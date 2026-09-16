@@ -33,4 +33,8 @@ export const api = {
   createPost: (payload) => apiRequest("/posts", { method: "POST", body: JSON.stringify(payload) }),
   getMyPosts: () => apiRequest("/users/me/posts"),
   updateProfile: (payload) => apiRequest("/users/me", { method: "PUT", body: JSON.stringify(payload) }),
+  getProfileLinks: () => apiRequest("/profile/links"),
+  createProfileLink: (payload) => apiRequest("/profile/links", { method: "POST", body: JSON.stringify(payload) }),
+  updateProfileLink: (id, payload) => apiRequest(`/profile/links/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteProfileLink: (id) => apiRequest(`/profile/links/${id}`, { method: "DELETE" }),
 };

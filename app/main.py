@@ -78,6 +78,8 @@ def ensure_user_profile_columns():
         'github_url': 'VARCHAR(500)',
         'twitter_url': 'VARCHAR(500)',
         'devto_url': 'VARCHAR(500)',
+        'leetcode_url': 'VARCHAR(500)',
+        'instagram_url': 'VARCHAR(500)',
     }
     missing = [(name, column_type) for name, column_type in additions.items() if name not in columns]
     if not missing:
@@ -173,6 +175,13 @@ class ProfileUpdateIn(BaseModel):
     github_url: str | None = None
     twitter_url: str | None = None
     devto_url: str | None = None
+    leetcode_url: str | None = None
+    instagram_url: str | None = None
+
+
+class ProfileLinkIn(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    url: HttpUrl
 
 class ChangePasswordIn(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
@@ -427,8 +436,6 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
     if not user or not user.password_hash or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
-    if user.email_verified is False:
-        raise HTTPException(403, detail='Verify your email before signing in.')
     return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
 
 @app.get('/auth/verify-email')
@@ -465,6 +472,37 @@ def auth_session(user: User = Depends(get_current_user)):
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
+@app.get('/profile/links')
+def profile_links(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [item(link) for link in db.query(UserLink).filter_by(user_id=user.id).order_by(UserLink.created_at.asc()).all()]
+
+@app.post('/profile/links', status_code=201)
+def create_profile_link(body: ProfileLinkIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    link = UserLink(user_id=user.id, label=body.label.strip(), url=str(body.url))
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+    return item(link)
+
+@app.put('/profile/links/{link_id}')
+def update_profile_link(link_id: int, body: ProfileLinkIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    link = one(db, UserLink, link_id)
+    if link.user_id != user.id:
+        raise HTTPException(403, detail='You can only edit your own profile links.')
+    link.label = body.label.strip()
+    link.url = str(body.url)
+    db.commit()
+    db.refresh(link)
+    return item(link)
+
+@app.delete('/profile/links/{link_id}', status_code=204)
+def delete_profile_link(link_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    link = one(db, UserLink, link_id)
+    if link.user_id != user.id:
+        raise HTTPException(403, detail='You can only delete your own profile links.')
+    db.delete(link)
+    db.commit()
+
 @app.put('/auth/profile')
 def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     normalized_email = body.email.lower().strip() if body.email else None
@@ -484,6 +522,10 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         'github_url': body.github_url,
         'twitter_url': body.twitter_url,
         'devto_url': body.devto_url,
+        'leetcode_url': body.leetcode_url,
+        'instagram_url': body.instagram_url,
+        'leetcode_url': body.leetcode_url,
+        'instagram_url': body.instagram_url,
     }
     for key, value in fields.items():
         if value is not None:
