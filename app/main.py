@@ -414,14 +414,11 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         verification_token=create_verification_code(db),
         verification_expires_at=datetime.utcnow() + time_delta(hours=24),
     )
-    db.add(user); db.commit(); db.refresh(user)
+    send_verification_email(user)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     ensure_user_settings(db, user)
-    try:
-        send_verification_email(user)
-    except Exception:
-        db.delete(user)
-        db.commit()
-        raise
     return {'detail': 'Account created. Check your email to verify your account.', 'email_verification_required': True}
 
 @app.post('/auth/login')
