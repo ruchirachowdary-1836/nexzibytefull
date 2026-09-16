@@ -19,7 +19,10 @@ from .auth import create_access_token, get_current_user, get_optional_user, hash
 
 def send_verification_email(user: User):
     if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
-        return
+        raise HTTPException(
+            503,
+            detail='Email delivery is not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and MAIL_FROM in Render before creating accounts.',
+        )
     message = EmailMessage()
     message['Subject'] = 'Verify your NexziByte TechTalk account'
     message['From'] = settings.mail_from
@@ -30,10 +33,13 @@ def send_verification_email(user: User):
         f'You can also verify directly by opening this link:\n{link}\n\n'
         'This code and link expire in 24 hours.'
     )
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-        server.starttls()
-        server.login(settings.smtp_user, settings.smtp_password)
-        server.send_message(message)
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(message)
+    except (OSError, smtplib.SMTPException) as exc:
+        raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP credentials.') from exc
 
 
 def create_verification_code(db: Session) -> str:
@@ -410,7 +416,12 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     )
     db.add(user); db.commit(); db.refresh(user)
     ensure_user_settings(db, user)
-    send_verification_email(user)
+    try:
+        send_verification_email(user)
+    except Exception:
+        db.delete(user)
+        db.commit()
+        raise
     return {'detail': 'Account created. Check your email to verify your account.', 'email_verification_required': True}
 
 @app.post('/auth/login')

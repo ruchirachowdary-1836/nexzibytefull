@@ -3,7 +3,8 @@ const TOKEN_KEY = "techtalk-token";
 import { getNeonToken, neonAuthEnabled } from "./neon.js";
 
 export async function apiRequest(path, options = {}) {
-  const token = neonAuthEnabled ? await getNeonToken() : localStorage.getItem(TOKEN_KEY);
+  const localToken = localStorage.getItem(TOKEN_KEY);
+  const token = localToken || (neonAuthEnabled ? await getNeonToken() : null);
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {

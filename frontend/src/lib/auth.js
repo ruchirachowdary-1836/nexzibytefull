@@ -5,25 +5,6 @@ const TOKEN_KEY = "techtalk-token";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
-    if (neonAuthEnabled) {
-      const result = await neonClient.auth.signUp.email({
-        name,
-        email,
-        password,
-        callbackURL: `${window.location.origin}/#/login`,
-      });
-      if (result?.error) throw new Error(result.error.message || "Unable to create your account.");
-      if (result?.data?.user?.emailVerified === false && neonClient.auth.sendVerificationEmail) {
-        const verification = await neonClient.auth.sendVerificationEmail({
-          email,
-          callbackURL: `${window.location.origin}/#/login`,
-        });
-        if (verification?.error) {
-          throw new Error(verification.error.message || "Unable to send the verification email.");
-        }
-      }
-      return { detail: "Account created. Check your email to verify your account.", email_verification_required: true };
-    }
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
@@ -32,12 +13,6 @@ export const authService = {
   },
 
   async login({ email, password }) {
-    if (neonAuthEnabled) {
-      const result = await neonClient.auth.signIn.email({ email, password });
-      if (result?.error) throw new Error(result.error.message || "Unable to sign in.");
-      const session = await getNeonSession();
-      return normalizeNeonUser(session?.user || result?.data?.user || result?.user);
-    }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
       method: "POST",
@@ -51,14 +26,14 @@ export const authService = {
   },
 
   me() {
-    if (neonAuthEnabled) {
+    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled) {
       return getNeonSession().then((session) => normalizeNeonUser(session?.user));
     }
     return apiRequest("/auth/session");
   },
 
   updateProfile(payload) {
-    if (neonAuthEnabled) {
+    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled) {
       return neonClient.auth.updateUser({ name: payload.name, image: payload.profile_image }).then((result) => {
         if (result?.error) throw new Error(result.error.message || "Unable to update your profile.");
         return normalizeNeonUser(result?.data?.user || result?.user);
@@ -73,7 +48,7 @@ export const authService = {
   },
 
   hasToken() {
-    return neonAuthEnabled || Boolean(localStorage.getItem(TOKEN_KEY));
+    return Boolean(localStorage.getItem(TOKEN_KEY)) || neonAuthEnabled;
   },
 
   loginWithGoogle() {
