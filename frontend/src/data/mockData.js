@@ -803,7 +803,7 @@ A valuable day of learning, conversations, networking, and new perspectives.
 
 We look forward to continuing these conversations and exploring opportunities to contribute to the evolving Pharma + AI + IT ecosystem.
 
-📍 Hyderabad
+📍 Hyderabad 
 🗓️ 3 September 2026`,
     hashtags: [
       "#NexzibyteSolutions", "#GPACTS2026", "#PharmaAI", "#ArtificialIntelligence",
@@ -969,7 +969,7 @@ We’re proud to announce the successful completion of a new Client collaboratio
 
 At NexziByte Solutions, we believe in creating long-term collaborations built on trust, innovation, technology, expertise, and shared growth.
 
-Looking forward to a successful journey ahead, creating new opportunities and achieving many more milestones together!
+Looking forward to a successful journey ahead, creating new opportunities and achieving many more milestones together! 
 
 Building partnerships. Creating opportunities. Driving growth.`,
     hashtags: [

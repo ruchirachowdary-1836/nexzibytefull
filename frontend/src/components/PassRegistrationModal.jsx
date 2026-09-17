@@ -5,12 +5,12 @@ import { useApp } from "../context/AppContext.jsx";
 import { PASSES } from "../data/mockData.js";
 
 export default function PassRegistrationModal() {
-  const {
-    passModalOpen,
-    setPassModalOpen,
-    selectedPassType,
-    setSelectedPassType,
-    registerPass
+  const { 
+    passModalOpen, 
+    setPassModalOpen, 
+    selectedPassType, 
+    setSelectedPassType, 
+    registerPass 
   } = useApp();
   const navigate = useNavigate();
 
@@ -126,9 +126,9 @@ export default function PassRegistrationModal() {
   return (
     <div className="modal-backdrop-overlay" onClick={() => setPassModalOpen(false)}>
       <div className="modal-content-card modal-pass-card-wide" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className="modal-close-btn"
+        <button 
+          type="button" 
+          className="modal-close-btn" 
           onClick={() => setPassModalOpen(false)}
           aria-label="Close dialog"
         >
@@ -211,11 +211,11 @@ export default function PassRegistrationModal() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div className="form-field-group">
               <label className="form-label">Full Name *</label>
-              <input
-                type="text"
+              <input 
+                type="text" 
                 required
-                className="form-input"
-                value={name}
+                className="form-input" 
+                value={name} 
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Lalitha Mindhi"
               />
@@ -223,11 +223,11 @@ export default function PassRegistrationModal() {
 
             <div className="form-field-group">
               <label className="form-label">Email Address *</label>
-              <input
-                type="email"
+              <input 
+                type="email" 
                 required
-                className="form-input"
-                value={email}
+                className="form-input" 
+                value={email} 
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. lalitha@company.com"
               />
@@ -236,11 +236,11 @@ export default function PassRegistrationModal() {
 
           <div className="form-field-group">
             <label className="form-label">Contact Number *</label>
-            <input
-              type="tel"
+            <input 
+              type="tel" 
               required
-              className="form-input"
-              value={phone}
+              className="form-input" 
+              value={phone} 
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. +91 98765 43210"
             />
@@ -251,22 +251,22 @@ export default function PassRegistrationModal() {
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
               <div className="form-field-group">
                 <label className="form-label">College / University Name *</label>
-                <input
-                  type="text"
+                <input 
+                  type="text" 
                   required
-                  className="form-input"
-                  value={organization}
+                  className="form-input" 
+                  value={organization} 
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="e.g. JNTU Hyderabad / Osmania University"
                 />
               </div>
               <div className="form-field-group">
                 <label className="form-label">Degree &amp; Graduation Year *</label>
-                <input
-                  type="text"
+                <input 
+                  type="text" 
                   required
-                  className="form-input"
-                  value={role}
+                  className="form-input" 
+                  value={role} 
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="e.g. B.Tech CSE (2026)"
                 />
@@ -279,22 +279,22 @@ export default function PassRegistrationModal() {
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
                 <div className="form-field-group">
                   <label className="form-label">Startup / Company Name *</label>
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     required
-                    className="form-input"
-                    value={organization}
+                    className="form-input" 
+                    value={organization} 
                     onChange={(e) => setOrganization(e.target.value)}
                     placeholder="e.g. AgenticIQ / MyStartup.ai"
                   />
                 </div>
                 <div className="form-field-group">
                   <label className="form-label">Role in Startup *</label>
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     required
-                    className="form-input"
-                    value={role}
+                    className="form-input" 
+                    value={role} 
                     onChange={(e) => setRole(e.target.value)}
                     placeholder="e.g. Co-Founder &amp; CTO"
                   />
@@ -302,7 +302,7 @@ export default function PassRegistrationModal() {
               </div>
               <div className="form-field-group">
                 <label className="form-label">Funding &amp; Venture Stage</label>
-                <select
+                <select 
                   className="form-input"
                   value={additionalField}
                   onChange={(e) => setAdditionalField(e.target.value)}
@@ -332,20 +332,20 @@ export default function PassRegistrationModal() {
                   <div>
                     <strong style={{ fontSize: "0.9rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
                       <span>Delegation Attendees</span>
-                      <span style={{
-                        fontSize: "0.725rem",
-                        padding: "2px 8px",
-                        borderRadius: "12px",
+                      <span style={{ 
+                        fontSize: "0.725rem", 
+                        padding: "2px 8px", 
+                        borderRadius: "12px", 
                         background: delegationMembers >= 2 ? "#10B981" : "rgba(244, 63, 94, 0.2)",
                         color: "#FFFFFF",
-                        fontWeight: 700
+                        fontWeight: 700 
                       }}>
                         {delegationMembers >= 2 ? "Group Rate: ₹200 / member" : "Single: ₹250"}
                       </span>
                     </strong>
                     <p style={{ margin: "3px 0 0", fontSize: "0.775rem", color: "var(--text-secondary)" }}>
-                      {delegationMembers === 1
-                        ? "1 Member = ₹250. Add 2+ members to unlock the ₹200 per member group discount!"
+                      {delegationMembers === 1 
+                        ? "1 Member = ₹250. Add 2+ members to unlock the ₹200 per member group discount!" 
                         : `🎉 Group Discount Applied: ₹200 × ${delegationMembers} members = ₹${delegationMembers * 200} (You save ₹${delegationMembers * 50})`}
                     </p>
                   </div>
@@ -407,22 +407,22 @@ export default function PassRegistrationModal() {
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
                 <div className="form-field-group">
                   <label className="form-label">Corporate Enterprise / Firm *</label>
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     required
-                    className="form-input"
-                    value={organization}
+                    className="form-input" 
+                    value={organization} 
                     onChange={(e) => setOrganization(e.target.value)}
                     placeholder="e.g. NexziByte / Tech Enterprise"
                   />
                 </div>
                 <div className="form-field-group">
                   <label className="form-label">Lead Delegate Role *</label>
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     required
-                    className="form-input"
-                    value={role}
+                    className="form-input" 
+                    value={role} 
                     onChange={(e) => setRole(e.target.value)}
                     placeholder="e.g. Principal Cloud Architect"
                   />
@@ -435,20 +435,20 @@ export default function PassRegistrationModal() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div className="form-field-group">
                 <label className="form-label">Affiliation / College (Optional)</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={organization}
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={organization} 
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="NexziByte / University"
                 />
               </div>
               <div className="form-field-group">
                 <label className="form-label">Current Role / Interest</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={role}
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={role} 
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="Developer / Enthusiast"
                 />
@@ -461,10 +461,10 @@ export default function PassRegistrationModal() {
               <label className="form-label">
                 {isFounder ? "What are you looking for from the Founder Circle?" : "Delegation Focus / Objectives"}
               </label>
-              <textarea
-                className="form-input"
+              <textarea 
+                className="form-input" 
                 rows="2"
-                value={notes}
+                value={notes} 
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={isFounder ? "e.g. Looking for enterprise pilot design partners and seed angel syndicates..." : "e.g. Scalable microservices architecture, AI infrastructure, team upskilling..."}
               />
@@ -507,8 +507,8 @@ export default function PassRegistrationModal() {
             </div>
           </div>
 
-          <button
-            type="submit"
+          <button 
+            type="submit" 
             className={`btn ${currentDetails.btnColor}`}
             style={{ width: "100%", padding: "12px 20px" }}
             disabled={isProcessing}
@@ -539,7 +539,7 @@ export default function PassRegistrationModal() {
               }}
               onClick={() => {
                 setPassModalOpen(false);
-                const queryStr = isDelegation
+                const queryStr = isDelegation 
                   ? `/checkout?pass=${activeType}&members=${delegationMembers}`
                   : `/checkout?pass=${activeType}`;
                 navigate(queryStr);

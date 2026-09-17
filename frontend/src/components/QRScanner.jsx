@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  Camera, CheckCircle, XCircle, RefreshCw, QrCode, Sparkles,
-  Check, ShieldAlert, ArrowRight, UserCheck, AlertTriangle
+import { 
+  Camera, CheckCircle, XCircle, RefreshCw, QrCode, Sparkles, 
+  Check, ShieldAlert, ArrowRight, UserCheck, AlertTriangle 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function QRScanner() {
   const { activePass, checkInPass, resetCheckIn, showToast } = useApp();
-
+  
   const [scannerOpen, setScannerOpen] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
   const [scanResult, setScanResult] = useState({
@@ -117,12 +117,12 @@ export default function QRScanner() {
             <div className="scanner-viewport-box">
               {/* If camera is active, render real video */}
               {cameraActive ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="scanner-video-preview"
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="scanner-video-preview" 
                 />
               ) : (
                 /* High-tech simulated camera preview */
@@ -162,8 +162,8 @@ export default function QRScanner() {
 
             {/* Quick Actions for Testing */}
             <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "18px", flexWrap: "wrap" }}>
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn btn-secondary btn-sm"
                 onClick={toggleCamera}
               >
@@ -171,8 +171,8 @@ export default function QRScanner() {
                 <span>{cameraActive ? "Stop Camera" : "Open QR Scanner (Camera)"}</span>
               </button>
 
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn btn-secondary btn-sm"
                 onClick={handleScanValid}
               >
@@ -180,8 +180,8 @@ export default function QRScanner() {
                 <span>Scan Valid Pass ({activePass.holder})</span>
               </button>
 
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn btn-secondary btn-sm"
                 onClick={handleScanInvalid}
               >
@@ -237,7 +237,7 @@ export default function QRScanner() {
                       {scanResult.checkedIn ? "✓ Checked In (Venue Entry Verified)" : "Not Checked In"}
                     </div>
                     {scanResult.checkedIn && (
-                      <button
+                      <button 
                         type="button"
                         onClick={() => resetCheckIn(scanResult.passId)}
                         style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textDecoration: "underline" }}
@@ -273,7 +273,7 @@ export default function QRScanner() {
                     This QR code could not be verified.
                   </p>
                   <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-                    The cryptographic signature was not recognized in the NexziByte TechTalk 2026 database.
+                    The cryptographic signature was not recognized in the NexziByte TechTalk 2026 database. 
                     Please direct the attendee to the accreditation desk.
                   </p>
                 </div>

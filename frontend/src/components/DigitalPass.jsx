@@ -1,18 +1,18 @@
 import React from "react";
-import {
-  Sparkles, ShieldCheck, QrCode, Copy, Check, Download,
-  Smartphone, ExternalLink, Calendar, MapPin, Phone
+import { 
+  Sparkles, ShieldCheck, QrCode, Copy, Check, Download, 
+  Smartphone, ExternalLink, Calendar, MapPin, Phone 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 // Minimal SVG QR Code generator for the pass
 export function PassQRCodeSVG({ value, size = 130 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       aria-label={`QR Code: ${value}`}
     >
@@ -145,9 +145,9 @@ export default function DigitalPass() {
                   <div className="ticket-field-label">PASS ID NO.</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span className="ticket-id-value">{activePass.passId}</span>
-                    <button
+                    <button 
                       type="button"
-                      onClick={handleCopyId}
+                      onClick={handleCopyId} 
                       style={{ color: "var(--text-secondary)", padding: "4px" }}
                       title="Copy Pass ID"
                     >
@@ -201,8 +201,8 @@ export default function DigitalPass() {
 
         {/* Supporting Actions */}
         <div className="ticket-actions-bar">
-          <button
-            type="button"
+          <button 
+            type="button" 
             className="btn btn-secondary btn-sm"
             onClick={handleDownload}
           >

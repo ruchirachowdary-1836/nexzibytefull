@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate, useParams } from "react-router-dom";
-import {
-  Check, CheckCircle2, ShieldCheck, Lock, CreditCard, ArrowLeft,
-  ChevronDown, ChevronUp, Sparkles, GraduationCap, Briefcase, Building,
-  Ticket, QrCode, Download, Copy, Tag, HelpCircle, Info, Smartphone,
+import { 
+  Check, CheckCircle2, ShieldCheck, Lock, CreditCard, ArrowLeft, 
+  ChevronDown, ChevronUp, Sparkles, GraduationCap, Briefcase, Building, 
+  Ticket, QrCode, Download, Copy, Tag, HelpCircle, Info, Smartphone, 
   Landmark, AlertCircle, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
@@ -211,10 +211,10 @@ export default function CheckoutPage() {
 
   // Determine initial selected pass
   const queryPass = searchParams.get("pass") || routePassId || "student-pass";
-  const normalizedPass = (queryPass === "founder-pass" || queryPass === "founder")
-    ? "founder-pass"
+  const normalizedPass = (queryPass === "founder-pass" || queryPass === "founder") 
+    ? "founder-pass" 
     : (queryPass === "delegation-pass" || queryPass === "delegate-pass" || queryPass === "delegation")
-    ? "delegation-pass"
+    ? "delegation-pass" 
     : "student-pass";
 
   const [selectedPass, setSelectedPass] = useState(normalizedPass);
@@ -290,12 +290,12 @@ export default function CheckoutPage() {
 
   // Dynamic pricing calculations (in INR ₹)
   // Delegate Pass: 1 member = ₹250; 2+ members = ₹200 per member
-  const effectivePricePerMember = isDelegation
-    ? (delegationMembers === 1 ? 250 : 200)
+  const effectivePricePerMember = isDelegation 
+    ? (delegationMembers === 1 ? 250 : 200) 
     : activePassConfig.basePrice;
 
-  const baseAmount = isDelegation
-    ? (delegationMembers === 1 ? 250 : delegationMembers * 200)
+  const baseAmount = isDelegation 
+    ? (delegationMembers === 1 ? 250 : delegationMembers * 200) 
     : activePassConfig.basePrice;
 
   let discountAmount = 0;
@@ -381,12 +381,12 @@ export default function CheckoutPage() {
         methodLabel = `Card (RuPay / Visa ending in ${cardNumber.slice(-4) || "4410"})`;
       }
 
-      const orgField = selectedPass === "student-pass"
-        ? organization
+      const orgField = selectedPass === "student-pass" 
+        ? organization 
         : (selectedPass === "founder-pass" ? organization : organization);
 
-      const roleField = selectedPass === "student-pass"
-        ? `${studentDegree} • Student`
+      const roleField = selectedPass === "student-pass" 
+        ? `${studentDegree} • Student` 
         : (selectedPass === "founder-pass" ? `${role} (${ventureStage})` : role);
 
       const passCreated = registerPass({
@@ -457,7 +457,7 @@ export default function CheckoutPage() {
               <span className="success-tag">PAYMENT CONFIRMED • OFFICIAL PASS ISSUED</span>
               <h1 className="success-title">Welcome to TechTalk 2026!</h1>
               <p className="success-subtitle">
-                Your payment of <strong>₹{completedPassData?.totalPaid} INR</strong> was processed successfully.
+                Your payment of <strong>₹{completedPassData?.totalPaid} INR</strong> was processed successfully. 
                 Your digital badge and cryptographic pass are ready.
               </p>
 
@@ -512,8 +512,8 @@ export default function CheckoutPage() {
               </div>
 
               <div className="success-actions-row">
-                <button
-                  type="button"
+                <button 
+                  type="button" 
                   className="btn btn-primary btn-lg"
                   onClick={() => {
                     showToast(`Downloading digital ticket for ${completedPassData?.holder}...`);
@@ -658,8 +658,8 @@ export default function CheckoutPage() {
                           </span>
                         </strong>
                         <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                          {delegationMembers === 1
-                            ? "Single Member: ₹250. Register 2+ members to unlock ₹200 per member group pricing!"
+                          {delegationMembers === 1 
+                            ? "Single Member: ₹250. Register 2+ members to unlock ₹200 per member group pricing!" 
                             : `🎉 Group Discount: ₹200 × ${delegationMembers} members = ₹${delegationMembers * 200} (Save ₹${delegationMembers * 50}!)`}
                         </p>
                       </div>
@@ -729,8 +729,8 @@ export default function CheckoutPage() {
                         <span className="inr-tag">INR</span>
                       </div>
                       <div className="checkout-price-period">
-                        {isDelegation
-                          ? `${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"} • ₹${effectivePricePerMember}/member`
+                        {isDelegation 
+                          ? `${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"} • ₹${effectivePricePerMember}/member` 
                           : `One-time fee • ${activePassConfig.discountTag}`}
                       </div>
                     </div>
@@ -752,8 +752,8 @@ export default function CheckoutPage() {
                       />
                     </div>
                     {appliedCoupon ? (
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         className="btn-coupon-remove"
                         onClick={handleRemoveCoupon}
                       >

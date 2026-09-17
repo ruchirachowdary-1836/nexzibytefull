@@ -42,8 +42,8 @@ export default function Passes() {
 
         <div className="passes-grid-4">
           {PASSES.map((pass) => (
-            <div
-              key={pass.id}
+            <div 
+              key={pass.id} 
               className={`pass-card pass-theme-${pass.color || "purple"} ${pass.highlight ? "pass-highlighted" : ""}`}
             >
               {pass.highlight && (
@@ -98,14 +98,14 @@ export default function Passes() {
                 </button>
 
                 {pass.id !== "visitor-pass" && (
-                  <div style={{
-                    fontSize: "0.725rem",
-                    color: "var(--text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "4px",
-                    marginTop: "6px"
+                  <div style={{ 
+                    fontSize: "0.725rem", 
+                    color: "var(--text-muted)", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    gap: "4px", 
+                    marginTop: "6px" 
                   }}>
                     <Landmark size={12} style={{ color: "#004c8f" }} />
                     <span>Indian Banks (SBI, HDFC, ICICI), UPI &amp; Cards</span>

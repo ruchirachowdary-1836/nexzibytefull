@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  Sparkles, ArrowLeft, Send, Save, Eye, Edit3, Image as ImageIcon,
-  Tag, Clock, CheckCircle2, AlertCircle, Layers, Code, Bold, Italic,
+import { 
+  Sparkles, ArrowLeft, Send, Save, Eye, Edit3, Image as ImageIcon, 
+  Tag, Clock, CheckCircle2, AlertCircle, Layers, Code, Bold, Italic, 
   List, Quote, Link2, Terminal, Info, BookOpen
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
@@ -19,7 +19,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 const SUGGESTED_TAGS = [
-  "React 19", "Node.js", "Redis", "TypeScript", "Microservices",
+  "React 19", "Node.js", "Redis", "TypeScript", "Microservices", 
   "System Design", "PostgreSQL", "Docker", "AWS", "Next.js", "Kafka"
 ];
 
@@ -33,7 +33,7 @@ export default function CreatePostPage() {
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&auto=format&fit=crop&q=80");
-
+  
   // Tags State
   const [tags, setTags] = useState(["React 19", "System Design"]);
   const [tagInput, setTagInput] = useState("");
@@ -173,8 +173,8 @@ export default function CreatePostPage() {
               </div>
 
               {/* Save Draft Button */}
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn btn-secondary btn-sm"
                 onClick={handleSaveDraft}
               >
@@ -183,8 +183,8 @@ export default function CreatePostPage() {
               </button>
 
               {/* Publish Button */}
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn btn-primary btn-sm"
                 onClick={handlePublish}
                 disabled={isSubmitting}
@@ -211,7 +211,7 @@ export default function CreatePostPage() {
                   <div className="meta-row-two-col">
                     <div className="form-field-group">
                       <label className="form-label">Category / Domain</label>
-                      <select
+                      <select 
                         className="form-input form-select"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -237,8 +237,8 @@ export default function CreatePostPage() {
                       <ImageIcon size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
                       Cover Image URL
                     </label>
-                    <input
-                      type="url"
+                    <input 
+                      type="url" 
                       className="form-input"
                       placeholder="https://images.unsplash.com/..."
                       value={coverImage}
@@ -249,7 +249,7 @@ export default function CreatePostPage() {
 
                 {/* Article Headline Input */}
                 <div className="editor-title-container">
-                  <input
+                  <input 
                     type="text"
                     className="editor-headline-input"
                     placeholder="Article Headline (e.g., Scaling Microservices with Node.js & Redis...)"
@@ -312,14 +312,14 @@ export default function CreatePostPage() {
                     <Tag size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
                     Architecture Tags &amp; Tech Stack (Max 6)
                   </label>
-
+                  
                   {/* Current Active Tags */}
                   <div className="editor-tags-active-list">
                     {tags.map((tag, idx) => (
                       <span key={idx} className="editor-tag-chip">
                         #{tag}
-                        <button
-                          type="button"
+                        <button 
+                          type="button" 
                           className="tag-remove-x"
                           onClick={() => handleRemoveTag(tag)}
                         >
@@ -329,7 +329,7 @@ export default function CreatePostPage() {
                     ))}
 
                     {/* Tag input field */}
-                    <input
+                    <input 
                       type="text"
                       placeholder="Add tag + Enter..."
                       className="tag-inline-input"
@@ -348,9 +348,9 @@ export default function CreatePostPage() {
                   <div className="editor-tags-suggestions">
                     <span className="suggestion-label">Suggestions:</span>
                     {SUGGESTED_TAGS.filter(t => !tags.includes(t)).slice(0, 7).map((sugg, i) => (
-                      <button
-                        key={i}
-                        type="button"
+                      <button 
+                        key={i} 
+                        type="button" 
                         className="suggestion-chip"
                         onClick={() => handleAddTag(sugg)}
                       >
@@ -401,9 +401,9 @@ export default function CreatePostPage() {
 
                     {/* Author Byline */}
                     <div className="preview-author-byline">
-                      <img
-                        src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"}
-                        alt="Author"
+                      <img 
+                        src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80"} 
+                        alt="Author" 
                         className="preview-author-avatar"
                       />
                       <div>
