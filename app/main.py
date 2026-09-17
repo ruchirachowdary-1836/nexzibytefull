@@ -570,6 +570,7 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         'detail': 'Account created and signed in.',
         'email_verification_required': False,
         'email': user.email,
+        'user': user_item(user),
         'access_token': create_access_token(user.email),
         'refresh_token': refresh,
         'token_type': 'bearer',

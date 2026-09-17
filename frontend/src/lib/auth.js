@@ -11,7 +11,13 @@ export const authService = {
     });
     if (!result.access_token) throw new Error("Account was created but could not be signed in.");
     localStorage.setItem(TOKEN_KEY, result.access_token);
-    return { ...result, email, user: await this.me() };
+    let user = result.user;
+    try {
+      user = await this.me();
+    } catch (error) {
+      if (!String(error.message).includes("HTTP 404")) throw error;
+    }
+    return { ...result, email, user };
   },
 
   async login({ email, password }) {
