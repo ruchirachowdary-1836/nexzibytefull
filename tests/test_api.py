@@ -77,11 +77,11 @@ def test_auth_profile_routes_and_home_data():
 
 def test_cors_preflight_for_frontend():
     response = client.options('/posts', headers={
-        'Origin': 'https://frontend.example',
+        'Origin': 'https://techtalk-frontend-acvb.onrender.com',
         'Access-Control-Request-Method': 'GET',
     })
     assert response.status_code == 200
-    assert response.headers['access-control-allow-origin'] == '*'
+    assert response.headers['access-control-allow-origin'] == 'https://techtalk-frontend-acvb.onrender.com'
 
 
 def test_post_and_community_lifecycle():

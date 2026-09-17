@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
-    cors_origins: str = "*"
+    cors_origins: str = (
+        "https://techtalk-frontend-acvb.onrender.com,"
+        "http://localhost:5173,http://127.0.0.1:5173"
+    )
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
@@ -35,7 +38,11 @@ settings = Settings()
 def allowed_origins() -> list[str]:
     raw_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
     if "*" in raw_origins:
-        return ["*"]
+        raw_origins = [
+            "https://techtalk-frontend-acvb.onrender.com",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
     configured = raw_origins
     production_origin = "https://techtalk-frontend-acvb.onrender.com"
     if production_origin not in configured:
