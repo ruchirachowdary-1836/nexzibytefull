@@ -420,16 +420,15 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         professional_role=getattr(body, 'professional_role', None),
         profile_image=getattr(body, 'profile_image', None),
         referral_contact=body.referral_contact,
-        email_verified=False,
-        verification_token=create_verification_code(db),
-        verification_expires_at=datetime.utcnow() + time_delta(hours=24),
+        email_verified=True,
+        verification_token=None,
+        verification_expires_at=None,
     )
-    send_verification_email(user)
     db.add(user)
     db.commit()
     db.refresh(user)
     ensure_user_settings(db, user)
-    return {'detail': 'Account created. Check your email to verify your account.', 'email_verification_required': True}
+    return {'detail': 'Account created. You can sign in now.', 'email_verification_required': False, 'email': user.email}
 
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

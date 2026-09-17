@@ -138,12 +138,6 @@ export default function UserProfilePage() {
   const heatmapData = useMemo(() => generateContributionGrid(), []);
   const [hoveredDay, setHoveredDay] = useState(null);
 
-  // Check if current user details deviate from default (indicating active session edits)
-  const isModified = user?.name !== DEFAULT_PROFILE.name ||
-                     user?.bio !== DEFAULT_PROFILE.bio ||
-                     user?.location !== DEFAULT_PROFILE.location ||
-                     user?.title !== DEFAULT_PROFILE.title;
-
   // Open Edit Modal with current values
   const handleOpenEdit = () => {
     setFormData({
@@ -167,15 +161,14 @@ export default function UserProfilePage() {
   };
 
   const handleResetToDefault = () => {
-    resetUserProfile();
     setFormData({
-      name: DEFAULT_PROFILE.name,
-      title: DEFAULT_PROFILE.title,
-      bio: DEFAULT_PROFILE.bio,
-      location: DEFAULT_PROFILE.location,
-      role: DEFAULT_PROFILE.role,
-      company: DEFAULT_PROFILE.company,
-      avatar: DEFAULT_PROFILE.avatar
+      name: user?.name || "",
+      title: user?.title || user?.professional_role || "",
+      bio: user?.bio || "",
+      location: user?.location || "",
+      role: user?.role || "",
+      company: user?.company || "",
+      avatar: user?.avatar || user?.profile_image || ""
     });
     setEditModalOpen(false);
   };
@@ -364,25 +357,6 @@ export default function UserProfilePage() {
               </div>
             )}
 
-            {/* In-Session Edit Indicator Banner */}
-            {isModified && (
-              <div className="session-active-indicator-bar">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span className="session-pulse-dot" />
-                  <span><strong>Active Session Mode:</strong> Profile is currently customized for this session (not permanently saved to database).</span>
-                </div>
-                <button
-                  type="button"
-                  className="session-reset-btn"
-                  onClick={handleResetToDefault}
-                  title="Restore original profile details"
-                >
-                  <RefreshCw size={12} />
-                  <span>Reset unsaved changes</span>
-                </button>
-              </div>
-            )}
-
             {/* Profile Core Information */}
             <div className="profile-info-block">
               <div className="profile-name-row">
@@ -393,7 +367,7 @@ export default function UserProfilePage() {
                   type="button"
                   className="profile-quick-edit-pencil"
                   onClick={handleOpenEdit}
-                  title="Quick change display name (session only)"
+                  title="Edit your saved profile"
                   aria-label="Edit name"
                 >
                   <Edit3 size={16} />
@@ -1500,7 +1474,7 @@ export default function UserProfilePage() {
                           onClick={handleResetToDefault}
                         >
                           <RefreshCw size={14} />
-                          <span>Reset to Default</span>
+                          <span>Cancel</span>
                         </button>
                       </div>
                     </form>
@@ -1821,7 +1795,7 @@ export default function UserProfilePage() {
             <div className="modal-header-block">
               <span className="section-label">
                 <Sparkles size={13} />
-                IN-MEMORY SESSION EDIT
+                EDIT PROFILE
               </span>
               <h3 id="modal-title-profile-edit" style={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "6px" }}>
                 Customize Technology Profile
@@ -1830,7 +1804,7 @@ export default function UserProfilePage() {
                 <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
                   <Sparkles size={16} style={{ color: "#F97316", flexShrink: 0, marginTop: "2px" }} />
                   <div>
-                    <strong>Temporary In-Session Mode:</strong> You can freely change your name, title, bio, and location for testing. Changes update everywhere across the platform immediately, and will not permanently overwrite any remote database.
+                    Changes are saved to your authenticated TechTalk profile.
                   </div>
                 </div>
               </div>
@@ -1841,7 +1815,7 @@ export default function UserProfilePage() {
               <div className="form-field-group">
                 <label className="form-label">
                   <span>Display Name <span style={{ color: "#EF4444" }}>*</span></span>
-                  <span className="field-hint">Access to change name in session</span>
+                  <span className="field-hint">Saved to your profile</span>
                 </label>
                 <input
                   type="text"
@@ -1936,7 +1910,7 @@ export default function UserProfilePage() {
                   onClick={handleResetToDefault}
                 >
                   <RefreshCw size={13} />
-                  <span>Reset to Default</span>
+                  <span>Cancel</span>
                 </button>
 
                 <div style={{ display: "flex", gap: "10px" }}>
