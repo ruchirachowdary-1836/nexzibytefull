@@ -5,13 +5,14 @@ from jose import JWTError, jwt
 from jose import jwk
 import json
 from urllib.request import urlopen
+from functools import lru_cache
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from .config import settings
 from .database import get_db
 from .models import User
 
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+pwd_context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=12, deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login', auto_error=False)
 def hash_password(password: str): return pwd_context.hash(password)
@@ -45,9 +46,15 @@ def get_optional_user(token: str | None = Depends(optional_oauth2_scheme), db: S
         email = decode_neon_email(token)
     user = db.query(User).filter(User.email == email.lower()).first() if email else None
     return user if user and user.is_active else None
-def require_admin(user: User = Depends(get_current_user)):
-    if user.role not in {'admin', 'staff', 'hr'}: raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Staff or HR access required')
-    return user
+def require_roles(*roles: str):
+    allowed = set(roles)
+    def dependency(user: User = Depends(get_current_user)):
+        if user.role not in allowed:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
+        return user
+    return dependency
+
+require_admin = require_roles('staff', 'hr', 'admin', 'super_admin')
 
 def decode_local_email(token: str):
     try:
@@ -58,6 +65,11 @@ def decode_local_email(token: str):
 def decode_neon_email(token: str):
     claims = decode_neon_claims(token)
     return (claims or {}).get('email') or (claims or {}).get('sub')
+
+@lru_cache(maxsize=1)
+def _neon_keys(url: str):
+    with urlopen(url, timeout=5) as response:
+        return json.load(response).get('keys', [])
 
 def decode_neon_claims(token: str):
     try:
@@ -71,8 +83,7 @@ def decode_neon_claims(token: str):
             else settings.neon_auth_audience != audience
         ):
             return None
-        with urlopen(settings.neon_auth_jwks_url, timeout=5) as response:
-            keys = json.load(response).get('keys', [])
+        keys = _neon_keys(settings.neon_auth_jwks_url)
         key_data = next((key for key in keys if key.get('kid') == header.get('kid')), None)
         if not key_data:
             return None

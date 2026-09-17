@@ -1,6 +1,8 @@
 # NexziByte TechTalk System Architecture
 
-**Architecture status:** Deployed state through commit `1dbecc4`  
+**Architecture status:** Deployed state through commit `1dbecc4`; security and
+quality checks are documented in `SECURITY.md` and
+`.github/workflows/backend-quality.yml`.
 **Frontend:** `https://techtalk-frontend-acvb.onrender.com`  
 **Backend:** `https://techtalk-backend-shob.onrender.com`  
 **Repository:** `ruchirachowdary-1836/nexzibytefull`  
@@ -396,3 +398,23 @@ flowchart TB
 - Render backend health endpoint returned HTTP 200.
 - Render frontend returned HTTP 200.
 
+## 12. Security and delivery checks
+
+`SECURITY.md` is the operational security checklist and reporting guide. The
+backend workflow in `.github/workflows/backend-quality.yml` runs on pushes to
+`main` and pull requests with read-only repository permissions. It installs the
+declared Python dependencies and CI-only tooling, then runs:
+
+- Ruff for linting;
+- mypy with missing third-party stubs ignored;
+- pytest with coverage reporting (without imposing a repository-wide threshold
+  until a baseline is agreed);
+- pip-audit against the declared requirements; and
+- an Alembic offline SQL render. The step is explicitly non-blocking because
+  some legacy migrations use live-table reflection and cannot render offline;
+  production migration execution still requires a staged database rehearsal.
+
+Coverage and the rendered migration SQL are retained as workflow artifacts when
+available. The workflow uses only non-production CI environment values; real
+database, SMTP, identity-provider, and signing secrets must be supplied by the
+deployment platform.

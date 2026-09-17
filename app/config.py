@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     db_url: str = "sqlite:///./techtalk.db"
     jwt_secret: str = "change-this-in-production"
+    pass_qr_secret: str | None = None
     access_token_expire_minutes: int = 60
     # Comma-separated browser-client origins. Use specific production URLs when
     # the API is consumed by a browser-based client.
@@ -18,6 +19,13 @@ class Settings(BaseSettings):
     neon_auth_jwks_url: str | None = None
     neon_auth_issuer: str | None = None
     neon_auth_audience: str | None = None
+    bcrypt_rounds: int = 12
+    password_min_length: int = 12
+    hibp_enabled: bool = True
+    hibp_timeout_seconds: float = 2.0
+    refresh_token_expire_days: int = 30
+    cleanup_interval_seconds: int = 3600
+    stale_account_days: int = 30
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

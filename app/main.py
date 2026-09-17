@@ -1,21 +1,36 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timedelta
+import asyncio
+import logging
 import datetime as datetime_module
 from contextlib import asynccontextmanager
 from typing import Literal
 import secrets
+import hashlib
+import json
 import smtplib
 from email.message import EmailMessage
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 from .config import allowed_origins, settings
-from .database import Base, engine, get_db
+from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
+from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
+from .observability import (
+    ObservabilityMiddleware,
+    SecurityHeadersMiddleware,
+    configure_logging,
+    metrics_text,
+    run_cleanup,
+)
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 def send_verification_email(user: User):
     if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
@@ -48,6 +63,11 @@ def create_verification_code(db: Session) -> str:
         code = f'{secrets.randbelow(1_000_000):06d}'
     return code
 
+def audit(db: Session, actor: User | None, action: str, resource: str | None = None, metadata: dict | None = None):
+    """Best-effort audit primitive for privileged handlers."""
+    db.add(AuditLog(actor_user_id=actor.id if actor else None, action=action,
+                    resource=resource, metadata_json=json.dumps(metadata or {})))
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Migrations own schema changes; this only bootstraps a brand-new database.
@@ -55,10 +75,20 @@ async def lifespan(_: FastAPI):
     ensure_user_profile_columns()
     ensure_pass_issue_columns()
     ensure_auth_columns()
-    yield
+    ensure_check_ins_table()
+    stop_event = asyncio.Event()
+    cleanup_task = asyncio.create_task(run_cleanup(stop_event, cleanup_expired_records, settings.cleanup_interval_seconds))
+    try:
+        yield
+    finally:
+        stop_event.set()
+        await cleanup_task
+        engine.dispose()
 
 
 app = FastAPI(title='NexziByte TechTalk API', version='1.0.0', lifespan=lifespan)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
@@ -66,6 +96,34 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+
+def cleanup_expired_records() -> None:
+    """Remove revocable credentials and mark only clearly expired records."""
+    now = datetime.utcnow()
+    db = SessionLocal()
+    try:
+        db.query(RefreshToken).filter(
+            or_(RefreshToken.expires_at < now, RefreshToken.revoked_at.is_not(None))
+        ).delete(synchronize_session=False)
+        db.query(PassRequest).filter(
+            PassRequest.expires_at.is_not(None),
+            PassRequest.expires_at < now,
+            PassRequest.status.in_(['approved', 'issued']),
+        ).update({'status': 'expired'}, synchronize_session=False)
+        stale_cutoff = now - timedelta(days=settings.stale_account_days)
+        db.query(User).filter(
+            User.email_verified.is_(False),
+            User.verification_expires_at.is_not(None),
+            User.verification_expires_at < stale_cutoff,
+            User.is_active.is_(True),
+        ).update({'is_active': False}, synchronize_session=False)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 def ensure_user_profile_columns():
@@ -87,6 +145,10 @@ def ensure_user_profile_columns():
     with engine.begin() as connection:
         for name, column_type in missing:
             connection.execute(text(f'ALTER TABLE users ADD COLUMN {name} {column_type}'))
+
+def ensure_check_ins_table():
+    if 'check_ins' not in inspect(engine).get_table_names():
+        CheckIn.__table__.create(bind=engine, checkfirst=True)
 
 def ensure_pass_issue_columns():
     columns = {column['name'] for column in inspect(engine).get_columns('pass_requests')}
@@ -112,6 +174,8 @@ def ensure_auth_columns():
         'email_verified': 'BOOLEAN DEFAULT FALSE',
         'verification_token': 'VARCHAR(128)',
         'verification_expires_at': 'TIMESTAMP',
+        'failed_login_attempts': 'INTEGER DEFAULT 0',
+        'locked_until': 'TIMESTAMP',
     }
     with engine.begin() as connection:
         for name, column_type in additions.items():
@@ -121,6 +185,21 @@ def ensure_auth_columns():
 @app.get('/', tags=['System'])
 def root():
     return {'name': 'NexziByte TechTalk API', 'docs': '/docs', 'health': '/health'}
+
+
+@app.get('/ready', tags=['System'])
+def readiness(db: Session = Depends(get_db)):
+    try:
+        db.execute(text('SELECT 1'))
+    except Exception as exc:
+        logger.exception('readiness_check_failed')
+        raise HTTPException(status_code=503, detail='database unavailable') from exc
+    return {'status': 'ready'}
+
+
+@app.get('/metrics', tags=['System'], response_class=PlainTextResponse)
+def metrics():
+    return metrics_text()
 
 @app.exception_handler(HTTPException)
 async def http_error(_, exc): return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
@@ -133,9 +212,18 @@ class RegisterIn(BaseModel):
     referral_contact: str | None = Field(default=None, max_length=40)
     accept_terms: bool = False
 
+class PassRejectionIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+class CheckInIn(BaseModel):
+    qr_data: str = Field(min_length=20, max_length=1000)
+
 
 class VerificationCodeIn(BaseModel):
     code: str = Field(min_length=6, max_length=128)
+
+class RefreshTokenIn(BaseModel):
+    refresh_token: str
 
 
 class CategoryIn(BaseModel): name: str = Field(min_length=1, max_length=100); slug: str = Field(min_length=1, max_length=120); description: str | None = None
@@ -341,6 +429,16 @@ def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user
             raise HTTPException(503, detail='Visitor pass promotion is not currently active.')
         if date.today().isoformat() != settings.visitor_promotion_date:
             raise HTTPException(400, detail='Visitor passes are available only on the promotion date.')
+        if not user:
+            raise HTTPException(401, detail='Sign in to use the visitor pass promotion.')
+        if not body.referral_contact:
+            raise HTTPException(400, detail='A referral contact is required for visitor passes.')
+        existing = db.query(PassRequest).filter(
+            PassRequest.user_id == user.id, PassRequest.pass_type.ilike('visitor-pass'),
+            PassRequest.status.in_(['pending_approval', 'approved', 'issued']),
+        ).first()
+        if existing:
+            raise HTTPException(409, detail='You have already used the visitor pass promotion.')
     first_name, *last_name = body.name.strip().split()
     request = PassRequest(
         user_id=user.id if user else None,
@@ -366,7 +464,6 @@ def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user
 def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     request = one(db, PassRequest, request_id)
     request.pass_id = request.pass_id or f"TT26-{request.id:06d}"
-    request.qr_data = request.qr_data or f"techtalk:pass:{secrets.token_urlsafe(24)}"
     request.issued_at = datetime.utcnow()
     if request.pass_type.lower() == 'visitor-pass':
         if not settings.visitor_promotion_date or date.today().isoformat() != settings.visitor_promotion_date:
@@ -374,13 +471,14 @@ def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User
         request.expires_at = datetime.utcnow() + timedelta(minutes=10)
     else:
         request.expires_at = None
+    request.qr_data = sign_pass_payload(request.pass_id, request.expires_at)
     request.status = 'approved'
     db.commit()
     db.refresh(request)
     return pass_request_response(request)
 
 @app.patch('/admin/pass-requests/{request_id}/reject')
-def reject_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def reject_pass_request(request_id: int, body: PassRejectionIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     request = one(db, PassRequest, request_id)
     request.status = 'rejected'
     request.pass_id = None
@@ -388,8 +486,35 @@ def reject_pass_request(request_id: int, db: Session = Depends(get_db), _: User 
     request.issued_at = None
     request.expires_at = None
     db.commit()
+    if request.user_id:
+        add_notification(db, request.user_id, 'pass_rejected', 'Pass request rejected', body.reason)
     db.refresh(request)
     return pass_request_response(request)
+
+
+@app.post('/admin/check-ins', status_code=201)
+def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User = Depends(require_admin)):
+    try:
+        payload = validate_pass_payload(body.qr_data)
+    except ValueError as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+    request = db.query(PassRequest).filter_by(pass_id=payload['pid']).first()
+    if not request or request.qr_data != body.qr_data:
+        raise HTTPException(400, detail='Pass is invalid.')
+    if request.status not in ('approved', 'issued'):
+        raise HTTPException(400, detail='Pass is not active.')
+    if request.expires_at and request.expires_at <= datetime.utcnow():
+        request.status = 'expired'
+        db.commit()
+        raise HTTPException(400, detail='Pass has expired.')
+    if db.query(CheckIn).filter_by(pass_request_id=request.id).first():
+        raise HTTPException(409, detail='Pass has already been checked in.')
+    check_in = CheckIn(pass_request_id=request.id, pass_id=request.pass_id,
+                       nonce=payload['nonce'], operator_user_id=operator.id)
+    db.add(check_in)
+    db.commit()
+    db.refresh(check_in)
+    return {'id': check_in.id, 'pass_id': check_in.pass_id, 'checked_in_at': check_in.checked_in_at}
 
 @app.get('/users/me/pass-requests')
 def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -409,9 +534,15 @@ def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_cur
 
 @app.post('/auth/register', status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
+    if not rate_limit(f'register:{body.email.lower()}', 5):
+        raise HTTPException(429, detail='Too many registration attempts. Try again later.')
     if not body.accept_terms:
         raise HTTPException(400, detail='You must accept the Terms and Conditions.')
     normalized_email = body.email.lower().strip()
+    try:
+        password_policy(body.password)
+    except ValueError as exc:
+        raise HTTPException(422, detail=str(exc)) from exc
     if db.query(User).filter_by(email=normalized_email).first(): raise HTTPException(409, detail='Email already registered')
     user = User(
         name=body.name.strip(),
@@ -432,13 +563,56 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
 
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    if not rate_limit(f'login:{form.username.lower().strip()}', 10):
+        raise HTTPException(429, detail='Too many login attempts. Try again later.')
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
-    if not user or not user.password_hash or not verify_password(form.password, user.password_hash): raise HTTPException(401, detail='Incorrect email or password')
-    return {'access_token': create_access_token(user.email), 'token_type': 'bearer'}
+    now = datetime.utcnow()
+    if user and user.locked_until and user.locked_until > now:
+        raise HTTPException(423, detail='Account temporarily locked. Try again later.')
+    if not user or not user.password_hash or not verify_password(form.password, user.password_hash):
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= 5:
+                user.locked_until = now + timedelta(minutes=min(60, 2 ** min(user.failed_login_attempts - 5, 5)))
+            db.commit()
+        raise HTTPException(401, detail='Incorrect email or password')
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    refresh = secrets.token_urlsafe(48)
+    db.add(RefreshToken(user_id=user.id, token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
+                        expires_at=now + timedelta(days=settings.refresh_token_expire_days)))
+    db.commit()
+    return {'access_token': create_access_token(user.email), 'refresh_token': refresh, 'token_type': 'bearer'}
+
+@app.post('/auth/refresh')
+def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):
+    digest = hashlib.sha256(body.refresh_token.encode()).hexdigest()
+    token = db.query(RefreshToken).filter_by(token_hash=digest).first()
+    if not token or token.revoked_at or token.expires_at < datetime.utcnow():
+        raise HTTPException(401, detail='Invalid refresh token')
+    replacement = secrets.token_urlsafe(48)
+    replacement_hash = hashlib.sha256(replacement.encode()).hexdigest()
+    token.revoked_at = datetime.utcnow()
+    token.replaced_by_hash = replacement_hash
+    db.add(RefreshToken(user_id=token.user_id, token_hash=replacement_hash,
+                        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)))
+    db.commit()
+    user = db.get(User, token.user_id)
+    return {'access_token': create_access_token(user.email), 'refresh_token': replacement, 'token_type': 'bearer'}
+
+@app.post('/auth/logout')
+def logout(body: RefreshTokenIn, db: Session = Depends(get_db)):
+    token = db.query(RefreshToken).filter_by(token_hash=hashlib.sha256(body.refresh_token.encode()).hexdigest()).first()
+    if token and not token.revoked_at:
+        token.revoked_at = datetime.utcnow()
+        db.commit()
+    return {'detail': 'Signed out'}
 
 @app.get('/auth/verify-email')
 def verify_email(token: str, db: Session = Depends(get_db)):
+    if not rate_limit('verify-email:link', 20):
+        raise HTTPException(429, detail='Too many verification attempts. Try again later.')
     user = db.query(User).filter_by(verification_token=token).first()
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
         raise HTTPException(400, detail='Verification link is invalid or expired.')
@@ -451,6 +625,8 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @app.post('/auth/verify-email')
 def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
+    if not rate_limit('verify-email:code', 20):
+        raise HTTPException(429, detail='Too many verification attempts. Try again later.')
     code = body.code.strip()
     user = db.query(User).filter_by(verification_token=code).first()
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():

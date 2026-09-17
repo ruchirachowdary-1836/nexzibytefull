@@ -37,9 +37,32 @@ class User(Base):
     instagram_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     posts = relationship('Post', back_populates='author')
     settings = relationship('UserSettings', back_populates='user', uselist=False)
     notifications = relationship('Notification', back_populates='user')
+
+
+class RefreshToken(Base):
+    __tablename__ = 'refresh_tokens'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    replaced_by_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AuditLog(Base):
+    __tablename__ = 'audit_logs'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    resource: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class UserSkill(Base):
@@ -121,6 +144,16 @@ class PassRequest(Base):
     issued_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class CheckIn(Base):
+    __tablename__ = 'check_ins'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pass_request_id: Mapped[int] = mapped_column(ForeignKey('pass_requests.id'), unique=True, index=True)
+    pass_id: Mapped[str] = mapped_column(String(40), index=True)
+    nonce: Mapped[str] = mapped_column(String(64), unique=True)
+    checked_in_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    operator_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
 
 
 class NewsletterSubscriber(Base):

@@ -1,0 +1,62 @@
+name: Backend quality and security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      DB_URL: sqlite:///./ci_techtalk.db
+      JWT_SECRET: ci-only-not-a-production-secret
+      CORS_ORIGINS: http://localhost
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Install CI tools
+        run: python -m pip install ruff mypy pytest-cov pip-audit
+
+      - name: Ruff
+        run: ruff check app alembic tests
+
+      - name: Mypy
+        run: mypy app --ignore-missing-imports
+
+      - name: Tests with coverage
+        run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=0
+
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+
+      - name: Alembic offline dry-run
+        continue-on-error: true
+        env:
+          # Offline rendering needs a dialect that supports ALTER TABLE
+          # directly; SQLite migrations use live-table reflection for batches.
+          DB_URL: postgresql+psycopg2://ci:ci@localhost/ci
+        run: python -m alembic upgrade head --sql > alembic-dry-run.sql
+
+      - name: Upload coverage and migration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-check-artifacts
+          path: |
+            coverage.xml
+            alembic-dry-run.sql
+          if-no-files-found: ignore

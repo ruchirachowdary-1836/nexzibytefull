@@ -9,13 +9,16 @@ from app.main import app
 from app.models import User
 
 client = TestClient(app)
+STRONG_ADMIN_PASSWORD = 'NexziByte!Adm1n#2026'
+STRONG_USER_PASSWORD = 'Violet!Q7zM2#rT9xL4'
+UPDATED_USER_PASSWORD = 'Mango!River#Pass7X'
 
 
 def setup_module():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     db = SessionLocal()
-    db.add(User(name='Admin', email='admin@example.com', password_hash=hash_password('AdminPass123'), role='admin'))
+    db.add(User(name='Admin', email='admin@example.com', password_hash=hash_password(STRONG_ADMIN_PASSWORD), role='admin'))
     db.commit()
     db.close()
 
@@ -29,18 +32,18 @@ def token(email, password):
 def test_auth_and_user_profile():
     assert client.get('/').json()['docs'] == '/docs'
     assert client.get('/health').json() == {'status': 'ok'}
-    response = client.post('/auth/register', json={'name': 'Test User', 'email': 'test@example.com', 'password': 'Password123'})
+    response = client.post('/auth/register', json={'name': 'Test User', 'email': 'test@example.com', 'password': STRONG_USER_PASSWORD, 'accept_terms': True})
     assert response.status_code == 201
     assert 'password_hash' not in response.json()
-    profile = client.get('/users/me', headers=token('test@example.com', 'Password123'))
+    profile = client.get('/users/me', headers=token('test@example.com', STRONG_USER_PASSWORD))
     assert profile.status_code == 200
     assert 'password_hash' not in profile.json()
 
 
 def test_auth_profile_routes_and_home_data():
     profile_email = 'profile-user@example.com'
-    client.post('/auth/register', json={'name': 'Profile User', 'email': profile_email, 'password': 'Password123'})
-    auth = token(profile_email, 'Password123')
+    client.post('/auth/register', json={'name': 'Profile User', 'email': profile_email, 'password': STRONG_USER_PASSWORD, 'accept_terms': True})
+    auth = token(profile_email, STRONG_USER_PASSWORD)
     me = client.get('/auth/me', headers=auth)
     assert me.status_code == 200
     assert me.json()['email'] == profile_email
@@ -57,8 +60,8 @@ def test_auth_profile_routes_and_home_data():
     assert updated.json()['profile_image'] == 'https://example.com/avatar.png'
 
     password_change = client.put('/auth/change-password', json={
-        'current_password': 'Password123',
-        'new_password': 'NewPassword456',
+        'current_password': STRONG_USER_PASSWORD,
+        'new_password': UPDATED_USER_PASSWORD,
     }, headers=auth)
     assert password_change.status_code == 200
 
@@ -69,7 +72,7 @@ def test_auth_profile_routes_and_home_data():
     assert 'upcoming_events' in home.json()
     assert 'featured_speakers' in home.json()
 
-    assert client.post('/auth/login', data={'username': profile_email, 'password': 'NewPassword456'}).status_code == 200
+    assert client.post('/auth/login', data={'username': profile_email, 'password': UPDATED_USER_PASSWORD}).status_code == 200
 
 
 def test_cors_preflight_for_frontend():
@@ -82,8 +85,8 @@ def test_cors_preflight_for_frontend():
 
 
 def test_post_and_community_lifecycle():
-    admin = token('admin@example.com', 'AdminPass123')
-    user = token('test@example.com', 'Password123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
+    user = token('test@example.com', STRONG_USER_PASSWORD)
     category = client.post('/categories', json={'name': 'AI', 'slug': 'ai'}, headers=admin)
     assert category.status_code == 201
     post = client.post('/posts', json={'title': 'Building with FastAPI', 'content': 'A useful article.', 'category_id': category.json()['id']}, headers=user)
@@ -101,8 +104,8 @@ def test_post_and_community_lifecycle():
 
 
 def test_event_publish_and_duplicate_registration_prevention():
-    admin = token('admin@example.com', 'AdminPass123')
-    user = token('test@example.com', 'Password123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
+    user = token('test@example.com', STRONG_USER_PASSWORD)
     speaker = client.post('/speakers', json={'name': 'Asha Rao', 'designation': 'Founder'}, headers=admin)
     assert speaker.status_code == 201
     summit = client.post('/summits', json={'title': 'AI Summit', 'date': '2030-01-10', 'location': 'Hyderabad', 'speaker_ids': [speaker.json()['id']]}, headers=admin)
@@ -118,7 +121,7 @@ def test_event_publish_and_duplicate_registration_prevention():
 
 
 def test_summit_management_fields_unpublish_and_status_filtering():
-    admin = token('admin@example.com', 'AdminPass123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
     speaker = client.post('/speakers', json={'name': 'Summit Speaker', 'designation': 'CTO'}, headers=admin)
     assert speaker.status_code == 201
     summit = client.post('/summits', json={
@@ -160,7 +163,7 @@ def test_summit_management_fields_unpublish_and_status_filtering():
 
 
 def test_founder_meet_management_fields_unpublish_and_archive():
-    admin = token('admin@example.com', 'AdminPass123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
     speaker = client.post('/speakers', json={'name': 'Founder Speaker', 'designation': 'Founder'}, headers=admin)
     assert speaker.status_code == 201
     meet = client.post('/founder-meets', json={
@@ -204,7 +207,7 @@ def test_founder_meet_management_fields_unpublish_and_archive():
 
 
 def test_user_and_speaker_validation():
-    admin = token('admin@example.com', 'AdminPass123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
     users = client.get('/users', headers=admin)
     assert users.status_code == 200
     assert all('password_hash' not in user for user in users.json()['items'])
@@ -219,15 +222,15 @@ def test_extended_profile_notification_and_admin_routes():
     db = SessionLocal()
     admin_user = db.query(User).filter_by(email='admin@example.com').first()
     if not admin_user:
-        admin_user = User(name='Admin', email='admin@example.com', password_hash=hash_password('AdminPass123'), role='admin', is_active=True)
+        admin_user = User(name='Admin', email='admin@example.com', password_hash=hash_password(STRONG_ADMIN_PASSWORD), role='admin', is_active=True)
         db.add(admin_user)
     else:
         admin_user.is_active = True
         admin_user.role = 'admin'
     db.commit(); db.close()
 
-    admin = token('admin@example.com', 'AdminPass123')
-    user = token('test@example.com', 'Password123')
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
+    user = token('test@example.com', STRONG_USER_PASSWORD)
 
     tag = client.post('/tags', json={'name': 'AI'}, headers=admin)
     assert tag.status_code == 201
