@@ -1,4 +1,5 @@
 import { createClient } from "@neondatabase/neon-js";
+import { BetterAuthVanillaAdapter } from "@neondatabase/neon-js/auth/vanilla/adapters";
 
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
@@ -22,7 +23,7 @@ export const neonAuthEnabled =
 
 export const neonClient = neonAuthEnabled
   ? createClient({
-      auth: { url: authUrl },
+      auth: { url: authUrl, adapter: BetterAuthVanillaAdapter() },
       dataApi: { url: resolvedDataApiUrl },
     })
   : null;
@@ -35,6 +36,20 @@ export async function getNeonSession() {
   if (!neonClient) return null;
   const result = await neonClient.auth.getSession();
   return result?.data || result || null;
+}
+
+export async function signUpWithEmail({ email, password, name }) {
+  if (!neonClient) throw new Error("Neon Auth is not configured.");
+  const result = await neonClient.auth.signUp.email({ email, password, name });
+  if (result?.error) throw new Error(result.error.message || "Unable to create your account.");
+  return result?.data || result;
+}
+
+export async function signInWithEmail({ email, password }) {
+  if (!neonClient) throw new Error("Neon Auth is not configured.");
+  const result = await neonClient.auth.signIn.email({ email, password });
+  if (result?.error) throw new Error(result.error.message || "Unable to sign in.");
+  return result?.data || result;
 }
 
 export async function signInWithGoogle() {

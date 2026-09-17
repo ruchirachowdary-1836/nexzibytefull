@@ -1,10 +1,14 @@
 import { apiRequest } from "./api.js";
-import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
+import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWithGoogle, signUpWithEmail } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
+    if (neonAuthEnabled) {
+      await signUpWithEmail({ name, email, password });
+      return { detail: "Account created. Check your email for the verification code.", email, user: await hydrateNeonProfile({ email, name }) };
+    }
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
@@ -21,6 +25,10 @@ export const authService = {
   },
 
   async login({ email, password }) {
+    if (neonAuthEnabled) {
+      await signInWithEmail({ email, password });
+      return hydrateNeonProfile();
+    }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
       method: "POST",
@@ -73,8 +81,11 @@ function normalizeNeonUser(user) {
 
 async function hydrateNeonProfile(neonUser) {
   try {
+    const session = neonUser || (await getNeonSession());
+    const sessionUser = session?.user || session;
+    const normalized = normalizeNeonUser(sessionUser);
     const profile = await apiRequest("/auth/session");
-    return { ...neonUser, ...profile, profile_image: profile.profile_image || neonUser.profile_image };
+    return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);
   }
