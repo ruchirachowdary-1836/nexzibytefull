@@ -61,9 +61,16 @@ export async function signInWithGoogle() {
   if (!neonClient.auth?.signIn?.social) {
     throw new Error("Google sign-in is unavailable in the configured Neon Auth client.");
   }
+  // Managed Better Auth validates the callback origin before redirecting.
+  // Keep the callback URL origin-only; hash fragments are client-side and
+  // can be rejected as an untrusted origin by the auth service.
+  const callbackURL =
+    import.meta.env.VITE_NEON_AUTH_CALLBACK_URL ||
+    `${window.location.origin}/`;
+  localStorage.setItem("techtalk-google-pending", "1");
   const result = await neonClient.auth.signIn.social({
     provider: "google",
-    callbackURL: `${window.location.origin}/#/profile`,
+    callbackURL,
   });
   if (result?.error) throw new Error(result.error.message || "Google sign-in failed.");
   const redirectUrl = result?.data?.url || result?.url;

@@ -43,7 +43,13 @@ export function AppProvider({ children }) {
   useEffect(() => {
     checkBackendHealth().then(setBackendOnline);
     if (authService.hasToken()) {
-      authService.me().then(setUser).catch(() => authService.logout());
+      authService.me().then((authenticatedUser) => {
+        setUser(authenticatedUser);
+        if (localStorage.getItem("techtalk-google-pending") === "1") {
+          localStorage.removeItem("techtalk-google-pending");
+          window.location.hash = "/profile";
+        }
+      }).catch(() => authService.logout());
     }
   }, []);
 
