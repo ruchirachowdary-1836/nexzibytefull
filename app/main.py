@@ -350,7 +350,8 @@ def pass_request_response(request):
         'role': request.role,
     }
 def user_item(user):
-    return {c.name: getattr(user, c.name) for c in user.__table__.columns if c.name != 'password_hash'}
+    private_fields = {'password_hash', 'verification_token', 'verification_expires_at'}
+    return {c.name: getattr(user, c.name) for c in user.__table__.columns if c.name not in private_fields}
 def one(db, cls, ident):
     obj = db.get(cls, ident)
     if not obj: raise HTTPException(404, detail=f'{cls.__name__} not found')
