@@ -72,7 +72,15 @@ export async function signInWithGoogle() {
     provider: "google",
     callbackURL,
   });
-  if (result?.error) throw new Error(result.error.message || "Google sign-in failed.");
+  if (result?.error) {
+    const message = result.error.message || "";
+    if (/origin/i.test(message)) {
+      throw new Error(
+        "Google sign-in is blocked by Neon Auth origin settings. Add https://techtalk-frontend-acvb.onrender.com to Neon Auth trusted origins, then retry."
+      );
+    }
+    throw new Error(message || "Google sign-in failed.");
+  }
   const redirectUrl = result?.data?.url || result?.url;
   if (redirectUrl) {
     window.location.assign(redirectUrl);

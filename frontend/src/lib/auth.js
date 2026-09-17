@@ -1,14 +1,10 @@
 import { apiRequest } from "./api.js";
-import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWithGoogle, signUpWithEmail } from "./neon.js";
+import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
-    if (neonAuthEnabled) {
-      await signUpWithEmail({ name, email, password });
-      return { detail: "Account created. Check your email for the verification code.", email, user: await hydrateNeonProfile({ email, name }) };
-    }
     const result = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
@@ -25,10 +21,6 @@ export const authService = {
   },
 
   async login({ email, password }) {
-    if (neonAuthEnabled) {
-      await signInWithEmail({ email, password });
-      return hydrateNeonProfile();
-    }
     const body = new URLSearchParams({ username: email, password });
     const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
       method: "POST",
@@ -66,7 +58,10 @@ export const authService = {
   },
 
   hasToken() {
-    return Boolean(localStorage.getItem(TOKEN_KEY)) || neonAuthEnabled;
+    return Boolean(
+      localStorage.getItem(TOKEN_KEY) ||
+      localStorage.getItem("techtalk-google-pending") === "1"
+    );
   },
 
   loginWithGoogle() {
