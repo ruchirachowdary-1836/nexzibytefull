@@ -490,6 +490,9 @@ export default function AuthPage({ defaultMode = "login" }) {
                   <span>Register for TechTalk</span>
                   <ArrowRight size={16} />
                 </button>
+                <button type="button" className="btn btn-secondary btn-auth-submit" onClick={handleGoogleLogin}>
+                  Continue with Google
+                </button>
 
                 {/* Switch to Login */}
                 <div className="auth-footer-switcher">

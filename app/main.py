@@ -9,7 +9,7 @@ import hashlib
 import json
 import smtplib
 from email.message import EmailMessage
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -59,6 +59,18 @@ def send_verification_email(user: User):
             server.send_message(message)
     except (OSError, smtplib.SMTPException) as exc:
         raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP credentials.') from exc
+
+
+def send_verification_email_background(user_id: int) -> None:
+    db = SessionLocal()
+    try:
+        user = db.get(User, user_id)
+        if user:
+            send_verification_email(user)
+    except HTTPException as exc:
+        logger.error("verification_email_failed", extra={"user_id": user_id, "detail": exc.detail})
+    finally:
+        db.close()
 
 
 def create_verification_code(db: Session) -> str:
@@ -537,7 +549,7 @@ def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_cur
     }
 
 @app.post('/auth/register', status_code=201)
-def register(body: RegisterIn, db: Session = Depends(get_db)):
+def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     if not rate_limit(f'register:{body.email.lower()}', 5):
         raise HTTPException(429, detail='Too many registration attempts. Try again later.')
     if not body.accept_terms:
@@ -555,9 +567,9 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         professional_role=getattr(body, 'professional_role', None),
         profile_image=getattr(body, 'profile_image', None),
         referral_contact=body.referral_contact,
-        email_verified=True,
-        verification_token=None,
-        verification_expires_at=None,
+        email_verified=False,
+        verification_token=create_verification_code(db),
+        verification_expires_at=datetime.utcnow() + timedelta(hours=24),
     )
     db.add(user)
     db.commit()
@@ -570,9 +582,19 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
     ))
     db.commit()
+    email_verification_sent = bool(
+        settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from
+    )
+    if email_verification_sent:
+        background_tasks.add_task(send_verification_email_background, user.id)
     return {
-        'detail': 'Account created and signed in.',
-        'email_verification_required': False,
+        'detail': (
+            'Account created and signed in. Check your email for the verification code.'
+            if email_verification_sent
+            else 'Account created and signed in. Email verification is unavailable until SMTP is configured.'
+        ),
+        'email_verification_required': email_verification_sent,
+        'email_verification_sent': email_verification_sent,
         'email': user.email,
         'user': user_item(user),
         'access_token': create_access_token(user.email),
