@@ -238,6 +238,9 @@ class CheckInIn(BaseModel):
 class VerificationCodeIn(BaseModel):
     code: str = Field(min_length=6, max_length=128)
 
+class VerificationResendIn(BaseModel):
+    email: EmailStr
+
 class RefreshTokenIn(BaseModel):
     refresh_token: str
 
@@ -679,6 +682,26 @@ def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
     user.verification_expires_at = None
     db.commit()
     return {'detail': 'Email verified. You can now sign in.'}
+
+
+@app.post('/auth/resend-verification')
+def resend_verification(
+    body: VerificationResendIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    if not rate_limit(f'verify-email:resend:{body.email.lower()}', 3):
+        raise HTTPException(429, detail='Too many verification requests. Try again later.')
+    user = db.query(User).filter_by(email=body.email.lower().strip()).first()
+    if not user:
+        raise HTTPException(404, detail='No account exists for this email address.')
+    user.verification_token = create_verification_code(db)
+    user.verification_expires_at = datetime.utcnow() + timedelta(hours=24)
+    db.commit()
+    if not (settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from):
+        raise HTTPException(503, detail='Email delivery is not configured on the backend.')
+    background_tasks.add_task(send_verification_email_background, user.id)
+    return {'detail': 'A new verification code was sent to your email.'}
 
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)

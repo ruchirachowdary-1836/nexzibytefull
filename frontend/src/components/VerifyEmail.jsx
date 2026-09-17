@@ -9,7 +9,8 @@ export default function VerifyEmail() {
   const [state, setState] = useState({ loading: Boolean(params.get("token")), message: "" });
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);
-  const email = params.get("email") || "";
+  const [emailInput, setEmailInput] = useState(params.get("email") || "");
+  const email = params.get("email") || emailInput.trim();
   const isNeonCode = neonAuthEnabled && params.get("provider") === "neon";
 
   useEffect(() => {
@@ -44,10 +45,20 @@ export default function VerifyEmail() {
   };
 
   const resendCode = async () => {
-    if (!email || !isNeonCode) return;
+    if (!email) {
+      setState({ loading: false, message: "Enter the email address used to create your account.", error: true });
+      return;
+    }
     setResending(true);
     try {
-      await sendNeonVerificationCode(email);
+      if (isNeonCode) {
+        await sendNeonVerificationCode(email);
+      } else {
+        await apiRequest("/auth/resend-verification", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+      }
       setState({ loading: false, message: "A new verification code was sent to your email." });
     } catch (error) {
       setState({ loading: false, message: error.message, error: true });
@@ -66,6 +77,17 @@ export default function VerifyEmail() {
             <p className="section-subtitle">{state.message}</p>
             {!params.get("token") && !state.error && !state.message.startsWith("Email verified") && (
               <form onSubmit={verifyCode} style={{ display: "grid", gap: "12px", margin: "24px auto", maxWidth: "320px" }}>
+                {!params.get("email") && (
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(event) => setEmailInput(event.target.value)}
+                    placeholder="Email used for your account"
+                    autoComplete="email"
+                    required
+                    aria-label="Account email"
+                  />
+                )}
                 <input
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -75,11 +97,9 @@ export default function VerifyEmail() {
                   aria-label="Email verification code"
                 />
                 <button className="btn btn-primary" type="submit">Verify code</button>
-                {isNeonCode && (
-                  <button className="btn btn-secondary" type="button" onClick={resendCode} disabled={resending}>
-                    {resending ? "Sending..." : "Resend code"}
-                  </button>
-                )}
+                <button className="btn btn-secondary" type="button" onClick={resendCode} disabled={resending}>
+                  {resending ? "Sending..." : "Resend code"}
+                </button>
               </form>
             )}
             <Link className="btn btn-primary" to="/login">Continue to sign in</Link>
