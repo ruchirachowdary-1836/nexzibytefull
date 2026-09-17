@@ -118,8 +118,8 @@ export default function AuthPage({ defaultMode = "login" }) {
 
     try {
       const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
-      showToast(`✓ ${result.detail || "Account created. You can sign in now."}`);
-      navigate("/login");
+      showToast(`✓ ${result.detail || "Account created and signed in."}`);
+      navigate("/profile", { replace: true });
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

@@ -559,7 +559,21 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     ensure_user_settings(db, user)
-    return {'detail': 'Account created. You can sign in now.', 'email_verification_required': False, 'email': user.email}
+    refresh = secrets.token_urlsafe(48)
+    db.add(RefreshToken(
+        user_id=user.id,
+        token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
+        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
+    ))
+    db.commit()
+    return {
+        'detail': 'Account created and signed in.',
+        'email_verification_required': False,
+        'email': user.email,
+        'access_token': create_access_token(user.email),
+        'refresh_token': refresh,
+        'token_type': 'bearer',
+    }
 
 @app.post('/auth/login')
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

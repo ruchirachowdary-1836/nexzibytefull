@@ -70,7 +70,9 @@ export function AppProvider({ children }) {
   };
 
   const register = async (credentials) => {
-    return authService.register(credentials);
+    const result = await authService.register(credentials);
+    setUser(result.user);
+    return result;
   };
 
   const logout = () => {

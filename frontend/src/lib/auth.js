@@ -9,7 +9,9 @@ export const authService = {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
     });
-    return { ...result, email };
+    if (!result.access_token) throw new Error("Account was created but could not be signed in.");
+    localStorage.setItem(TOKEN_KEY, result.access_token);
+    return { ...result, email, user: await this.me() };
   },
 
   async login({ email, password }) {
