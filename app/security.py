@@ -51,7 +51,7 @@ def validate_pass_payload(value: str) -> dict:
 generate_pass_qr_payload = sign_pass_payload
 validate_pass_qr_payload = validate_pass_payload
 
-_attempts = defaultdict(deque)
+_attempts: defaultdict[str, deque[float]] = defaultdict(deque)
 _lock = threading.Lock()
 
 def rate_limit(key: str, limit: int, window: int = 60) -> bool:

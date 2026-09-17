@@ -49,9 +49,13 @@ def send_verification_email(user: User):
         'This code and link expire in 24 hours.'
     )
     try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+        smtp_host = settings.smtp_host
+        smtp_user = settings.smtp_user
+        smtp_password = settings.smtp_password
+        assert smtp_host is not None and smtp_user is not None and smtp_password is not None
+        with smtplib.SMTP(smtp_host, settings.smtp_port, timeout=15) as server:
             server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
+            server.login(smtp_user, smtp_password)
             server.send_message(message)
     except (OSError, smtplib.SMTPException) as exc:
         raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP credentials.') from exc
@@ -614,6 +618,8 @@ def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):
                         expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)))
     db.commit()
     user = db.get(User, token.user_id)
+    if user is None:
+        raise HTTPException(401, detail='Invalid refresh token')
     return {'access_token': create_access_token(user.email), 'refresh_token': replacement, 'token_type': 'bearer'}
 
 @app.post('/auth/logout')
