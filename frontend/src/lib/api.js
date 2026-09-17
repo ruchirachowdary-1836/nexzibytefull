@@ -4,7 +4,9 @@ import { getNeonToken, neonAuthEnabled } from "./neon.js";
 
 export async function apiRequest(path, options = {}) {
   const localToken = localStorage.getItem(TOKEN_KEY);
-  const token = localToken || (neonAuthEnabled ? await getNeonToken() : null);
+  const shouldHydrateNeonIdentity =
+    neonAuthEnabled && localStorage.getItem("techtalk-google-pending") === "1";
+  const token = localToken || (shouldHydrateNeonIdentity ? await getNeonToken() : null);
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
