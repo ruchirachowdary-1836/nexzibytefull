@@ -1,25 +1,45 @@
 const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
 const TOKEN_KEY = "techtalk-token";
-import { getNeonToken, neonAuthEnabled } from "./neon.js";
+const REFRESH_TOKEN_KEY = "techtalk-refresh-token";
+import { getNeonToken } from "./neon.js";
 
-export async function apiRequest(path, options = {}) {
+export async function apiRequest(path, options = {}, allowRefresh = true) {
+  const { useNeonToken = false, ...requestOptions } = options;
   const localToken = localStorage.getItem(TOKEN_KEY);
-  const shouldHydrateNeonIdentity =
-    neonAuthEnabled && localStorage.getItem("techtalk-google-pending") === "1";
-  const token = localToken || (shouldHydrateNeonIdentity ? await getNeonToken() : null);
+  const token = localToken || (useNeonToken ? await getNeonToken() : null);
   const response = await fetch(`${API_URL}${path}`, {
-    ...options,
+    ...requestOptions,
     headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(requestOptions.body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
+      ...(requestOptions.headers || {}),
     },
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.detail || `HTTP ${response.status}`);
+  if (response.status === 401 && allowRefresh && localStorage.getItem(REFRESH_TOKEN_KEY)) {
+    if (await refreshAccessToken()) return apiRequest(path, options, false);
   }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
   return data;
+}
+
+async function refreshAccessToken() {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) return false;
+  const response = await fetch(`${API_URL}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    return false;
+  }
+  const data = await response.json();
+  localStorage.setItem(TOKEN_KEY, data.access_token);
+  localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+  return true;
 }
 
 export const api = {

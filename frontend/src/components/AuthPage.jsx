@@ -6,6 +6,7 @@ import {
   ArrowLeft, Check, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { apiRequest } from "../lib/api.js";
 
 export function TechTalkMinimalLogo({ size = 1 }) {
   return (
@@ -125,8 +126,20 @@ export default function AuthPage({ defaultMode = "login" }) {
     }
   };
 
-  const handleForgotPassword = () => {
-    showToast(`📧 Password reset instructions sent to ${loginEmail || "your email"}.`);
+  const handleForgotPassword = async () => {
+    if (!loginEmail.trim()) {
+      showToast("Enter your email address first.");
+      return;
+    }
+    try {
+      const result = await apiRequest("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: loginEmail.trim() }),
+      });
+      showToast(`📧 ${result.detail}`);
+    } catch (error) {
+      showToast(`⚠️ ${error.message}`);
+    }
   };
 
   const handleGoogleLogin = async () => {

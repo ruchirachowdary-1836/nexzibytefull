@@ -8,11 +8,16 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column("pass_requests", sa.Column("pass_id", sa.String(length=40), nullable=True))
-    op.add_column("pass_requests", sa.Column("qr_data", sa.String(length=255), nullable=True))
-    op.add_column("pass_requests", sa.Column("issued_at", sa.DateTime(), nullable=True))
-    op.create_index("ix_pass_requests_pass_id", "pass_requests", ["pass_id"], unique=True)
-    op.create_unique_constraint("uq_pass_requests_qr_data", "pass_requests", ["qr_data"])
+    inspector = sa.inspect(op.get_bind())
+    columns = {column["name"] for column in inspector.get_columns("pass_requests")}
+    if "pass_id" not in columns:
+        op.add_column("pass_requests", sa.Column("pass_id", sa.String(length=40), nullable=True))
+    if "qr_data" not in columns:
+        op.add_column("pass_requests", sa.Column("qr_data", sa.String(length=255), nullable=True))
+    if "issued_at" not in columns:
+        op.add_column("pass_requests", sa.Column("issued_at", sa.DateTime(), nullable=True))
+    if "ix_pass_requests_pass_id" not in {index["name"] for index in inspector.get_indexes("pass_requests")}:
+        op.create_index("ix_pass_requests_pass_id", "pass_requests", ["pass_id"], unique=True)
 
 def downgrade():
     op.drop_constraint("uq_pass_requests_qr_data", "pass_requests", type_="unique")

@@ -2,6 +2,12 @@ import { apiRequest } from "./api.js";
 import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
+const REFRESH_TOKEN_KEY = "techtalk-refresh-token";
+
+function storeTokens(result) {
+  localStorage.setItem(TOKEN_KEY, result.access_token);
+  if (result.refresh_token) localStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
+}
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
@@ -10,7 +16,7 @@ export const authService = {
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
     });
     if (!result.access_token) throw new Error("Account was created but could not be signed in.");
-    localStorage.setItem(TOKEN_KEY, result.access_token);
+    storeTokens(result);
     let user = result.user;
     try {
       user = await this.me();
@@ -29,7 +35,7 @@ export const authService = {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.detail || "Unable to sign in.");
-    localStorage.setItem(TOKEN_KEY, data.access_token);
+    storeTokens(data);
     return this.me();
   },
 
@@ -53,8 +59,16 @@ export const authService = {
   },
 
   logout() {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (refreshToken) {
+      apiRequest("/auth/logout", {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
     if (neonAuthEnabled) neonClient.auth.signOut().catch(() => {});
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 
   hasToken() {
@@ -79,7 +93,7 @@ async function hydrateNeonProfile(neonUser) {
     const session = neonUser || (await getNeonSession());
     const sessionUser = session?.user || session;
     const normalized = normalizeNeonUser(sessionUser);
-    const profile = await apiRequest("/auth/session");
+    const profile = await apiRequest("/auth/session", { useNeonToken: true });
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);

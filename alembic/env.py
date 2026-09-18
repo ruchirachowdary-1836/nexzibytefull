@@ -6,13 +6,14 @@ from app.database import Base
 import app.models  # Registers all model metadata.
 
 config = context.config
-config.set_main_option('sqlalchemy.url', settings.db_url)
+database_url = settings.database_url or settings.db_url
+config.set_main_option('sqlalchemy.url', database_url)
 if config.config_file_name:
     fileConfig(config.config_file_name)
 target_metadata = Base.metadata
 
 def run_migrations_offline():
-    context.configure(url=settings.db_url, target_metadata=target_metadata, literal_binds=True, compare_type=True)
+    context.configure(url=database_url, target_metadata=target_metadata, literal_binds=True, compare_type=True)
     with context.begin_transaction():
         context.run_migrations()
 

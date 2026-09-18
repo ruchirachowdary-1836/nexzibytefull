@@ -12,7 +12,7 @@ from .config import settings
 from .database import get_db
 from .models import User
 
-pwd_context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=12, deprecated='auto')
+pwd_context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=settings.bcrypt_rounds, deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login', auto_error=False)
 def hash_password(password: str): return pwd_context.hash(password)

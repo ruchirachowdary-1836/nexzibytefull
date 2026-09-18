@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     db_url: str = "sqlite:///./techtalk.db"
+    database_url: str | None = None
+    direct_database_url: str | None = None
     jwt_secret: str = "change-this-in-production"
     pass_qr_secret: str | None = None
     access_token_expire_minutes: int = 60
@@ -29,7 +31,11 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     cleanup_interval_seconds: int = 3600
     stale_account_days: int = 30
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
 
 settings = Settings()

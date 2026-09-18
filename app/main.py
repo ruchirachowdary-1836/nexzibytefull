@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timedelta
+from datetime import date, datetime, time, timedelta
 import asyncio
 import logging
 import datetime as datetime_module
@@ -73,6 +73,43 @@ def send_verification_email_background(user_id: int) -> None:
         db.close()
 
 
+def send_password_reset_email_background(user_id: int, raw_token: str) -> None:
+    db = SessionLocal()
+    user = db.get(User, user_id)
+    if not user:
+        db.close()
+        return
+    log = EmailLog(user_id=user.id, email=user.email, email_type="password_reset", status="pending")
+    db.add(log)
+    db.commit()
+    try:
+        if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+            raise RuntimeError("Email delivery is not configured.")
+        message = EmailMessage()
+        message["Subject"] = "Reset your NexziByte TechTalk password"
+        message["From"] = settings.mail_from
+        message["To"] = user.email
+        link = f"{settings.frontend_url}/#/reset-password?token={raw_token}"
+        message.set_content(
+            f"Reset your password by opening this link:\n{link}\n\n"
+            "This link expires in one hour and can only be used once."
+        )
+        assert settings.smtp_host and settings.smtp_user and settings.smtp_password
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(message)
+        log.status = "sent"
+        log.sent_at = datetime.utcnow()
+    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
+        log.status = "failed"
+        log.error_message = str(exc)
+        logger.error("password_reset_email_failed", extra={"user_id": user.id})
+    finally:
+        db.commit()
+        db.close()
+
+
 def create_verification_code(db: Session) -> str:
     code = f'{secrets.randbelow(1_000_000):06d}'
     while db.query(User).filter_by(verification_token=code).first():
@@ -86,12 +123,18 @@ def audit(db: Session, actor: User | None, action: str, resource: str | None = N
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Migrations own schema changes; this only bootstraps a brand-new database.
-    Base.metadata.create_all(bind=engine)
-    ensure_user_profile_columns()
-    ensure_pass_issue_columns()
-    ensure_auth_columns()
-    ensure_check_ins_table()
+    database_url = str(engine.url)
+    if not database_url.startswith("sqlite"):
+        if settings.jwt_secret == "change-this-in-production" or len(settings.jwt_secret) < 32:
+            raise RuntimeError("JWT_SECRET must be a random value of at least 32 characters in production.")
+    else:
+        # Local development and the test suite may bootstrap SQLite. Production
+        # schema changes are owned exclusively by Alembic in the Render command.
+        Base.metadata.create_all(bind=engine)
+        ensure_user_profile_columns()
+        ensure_pass_issue_columns()
+        ensure_auth_columns()
+        ensure_check_ins_table()
     stop_event = asyncio.Event()
     cleanup_task = asyncio.create_task(run_cleanup(stop_event, cleanup_expired_records, settings.cleanup_interval_seconds))
     try:
@@ -240,6 +283,16 @@ class VerificationCodeIn(BaseModel):
 
 class VerificationResendIn(BaseModel):
     email: EmailStr
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+    new_password: str = Field(min_length=8, max_length=128)
+
 
 class RefreshTokenIn(BaseModel):
     refresh_token: str
@@ -410,6 +463,10 @@ def user_profile_payload(user: User, db: Session):
 
 @app.get('/health')
 def health(): return {'status': 'ok'}
+
+
+@app.get('/api/health')
+def api_health(): return {'success': True, 'status': 'healthy'}
 
 @app.post('/partnership-inquiries', status_code=201)
 def create_partnership_inquiry(body: PartnershipInquiryIn, db: Session = Depends(get_db)):
@@ -703,6 +760,59 @@ def resend_verification(
         raise HTTPException(503, detail='Email delivery is not configured on the backend.')
     background_tasks.add_task(send_verification_email_background, user.id)
     return {'detail': 'A new verification code was sent to your email.'}
+
+
+@app.post('/auth/forgot-password')
+def forgot_password(
+    body: ForgotPasswordIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    normalized_email = body.email.lower().strip()
+    if not rate_limit(f'forgot-password:{normalized_email}', 3):
+        raise HTTPException(429, detail='Too many password reset requests. Try again later.')
+    user = db.query(User).filter_by(email=normalized_email, is_active=True).first()
+    if user:
+        raw_token = secrets.token_urlsafe(48)
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        ).update({PasswordResetToken.used_at: datetime.utcnow()})
+        db.add(PasswordResetToken(
+            user_id=user.id,
+            token_hash=hashlib.sha256(raw_token.encode()).hexdigest(),
+            expires_at=datetime.utcnow() + timedelta(hours=1),
+        ))
+        db.commit()
+        background_tasks.add_task(send_password_reset_email_background, user.id, raw_token)
+    return {'detail': 'If an account exists for that email, password reset instructions have been sent.'}
+
+
+@app.post('/auth/reset-password')
+def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
+    if not rate_limit('reset-password', 20):
+        raise HTTPException(429, detail='Too many password reset attempts. Try again later.')
+    try:
+        password_policy(body.new_password)
+    except ValueError as exc:
+        raise HTTPException(422, detail=str(exc)) from exc
+    digest = hashlib.sha256(body.token.encode()).hexdigest()
+    reset = db.query(PasswordResetToken).filter_by(token_hash=digest).first()
+    now = datetime.utcnow()
+    if not reset or reset.used_at or reset.expires_at < now:
+        raise HTTPException(400, detail='Password reset link is invalid or expired.')
+    user = db.get(User, reset.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(400, detail='Password reset link is invalid or expired.')
+    user.password_hash = hash_password(body.new_password)
+    reset.used_at = now
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({RefreshToken.revoked_at: now})
+    db.commit()
+    return {'detail': 'Password reset successfully. You can now sign in.'}
+
 
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
