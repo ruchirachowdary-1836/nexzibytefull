@@ -174,6 +174,21 @@ def create_verification_code(db: Session) -> str:
         code = f'{secrets.randbelow(1_000_000):06d}'
     return code
 
+
+def create_session_tokens(db: Session, user: User) -> dict[str, str]:
+    refresh = secrets.token_urlsafe(48)
+    db.add(RefreshToken(
+        user_id=user.id,
+        token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
+        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
+    ))
+    db.commit()
+    return {
+        "access_token": create_access_token(user.email),
+        "refresh_token": refresh,
+        "token_type": "bearer",
+    }
+
 def audit(db: Session, actor: User | None, action: str, resource: str | None = None, metadata: dict | None = None):
     """Best-effort audit primitive for privileged handlers."""
     db.add(AuditLog(actor_user_id=actor.id if actor else None, action=action,
@@ -710,6 +725,7 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
         professional_role=getattr(body, 'professional_role', None),
         profile_image=getattr(body, 'profile_image', None),
         referral_contact=body.referral_contact,
+        is_active=False,
         email_verified=False,
         verification_token=create_verification_code(db),
         verification_expires_at=datetime.utcnow() + timedelta(hours=24),
@@ -718,30 +734,17 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
     db.commit()
     db.refresh(user)
     ensure_user_settings(db, user)
-    refresh = secrets.token_urlsafe(48)
-    db.add(RefreshToken(
-        user_id=user.id,
-        token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
-        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
-    ))
     db.commit()
     email_verification_configured = bool(
         settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from
     )
     background_tasks.add_task(send_verification_email_background, user.id)
     return {
-        'detail': (
-            'Account created and signed in. Check your email for the verification code.'
-            if email_verification_configured
-            else 'Account created and signed in. Verification email delivery is pending backend email configuration.'
-        ),
+        'detail': 'Account saved. Check your email for the verification code to activate and sign in.',
         'email_verification_required': True,
         'email_verification_sent': email_verification_configured,
         'email': user.email,
         'user': user_item(user),
-        'access_token': create_access_token(user.email),
-        'refresh_token': refresh,
-        'token_type': 'bearer',
     }
 
 @app.post('/auth/login')
@@ -751,6 +754,8 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
     now = datetime.utcnow()
+    if user and not user.is_active:
+        raise HTTPException(403, detail='Verify your email before signing in.')
     if user and user.locked_until and user.locked_until > now:
         raise HTTPException(423, detail='Account temporarily locked. Try again later.')
     if not user or not user.password_hash or not verify_password(form.password, user.password_hash):
@@ -802,10 +807,11 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
         raise HTTPException(400, detail='Verification link is invalid or expired.')
     user.email_verified = True
+    user.is_active = True
     user.verification_token = None
     user.verification_expires_at = None
-    db.commit()
-    return {'detail': 'Email verified. You can now sign in.'}
+    tokens = create_session_tokens(db, user)
+    return {'detail': 'Email verified. You are now signed in.', 'user': user_item(user), **tokens}
 
 
 @app.post('/auth/verify-email')
@@ -817,10 +823,11 @@ def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
         raise HTTPException(400, detail='Verification code is invalid or expired.')
     user.email_verified = True
+    user.is_active = True
     user.verification_token = None
     user.verification_expires_at = None
-    db.commit()
-    return {'detail': 'Email verified. You can now sign in.'}
+    tokens = create_session_tokens(db, user)
+    return {'detail': 'Email verified. You are now signed in.', 'user': user_item(user), **tokens}
 
 
 @app.post('/auth/resend-verification')

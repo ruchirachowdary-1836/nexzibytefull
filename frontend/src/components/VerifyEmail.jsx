@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { apiRequest } from "../lib/api.js";
 import { neonAuthEnabled, sendNeonVerificationCode, verifyNeonVerificationCode } from "../lib/neon.js";
 
 export default function VerifyEmail() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [state, setState] = useState({ loading: Boolean(params.get("token")), message: "" });
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);
@@ -20,7 +21,15 @@ export default function VerifyEmail() {
       return;
     }
     apiRequest(`/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then((response) => setState({ loading: false, message: response.detail }))
+      .then((response) => {
+        if (response.access_token) {
+          localStorage.setItem("techtalk-token", response.access_token);
+          localStorage.setItem("techtalk-refresh-token", response.refresh_token);
+          navigate("/profile", { replace: true });
+          return;
+        }
+        setState({ loading: false, message: response.detail });
+      })
       .catch((error) => setState({ loading: false, message: error.message, error: true }));
   }, [params]);
 
@@ -38,7 +47,13 @@ export default function VerifyEmail() {
             method: "POST",
             body: JSON.stringify({ code }),
           });
-      setState({ loading: false, message: response?.detail || "Email verified. You can now sign in." });
+      if (response?.access_token) {
+        localStorage.setItem("techtalk-token", response.access_token);
+        localStorage.setItem("techtalk-refresh-token", response.refresh_token);
+        navigate("/profile", { replace: true });
+      } else {
+        setState({ loading: false, message: response?.detail || "Email verified. You are now signed in." });
+      }
     } catch (error) {
       setState({ loading: false, message: error.message, error: true });
     }

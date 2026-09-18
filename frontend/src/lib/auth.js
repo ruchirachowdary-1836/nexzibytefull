@@ -15,15 +15,7 @@ export const authService = {
       method: "POST",
       body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
     });
-    if (!result.access_token) throw new Error("Account was created but could not be signed in.");
-    storeTokens(result);
-    let user = result.user;
-    try {
-      user = await this.me();
-    } catch (error) {
-      if (!String(error.message).includes("HTTP 404")) throw error;
-    }
-    return { ...result, email, user };
+    return { ...result, email, user: result.user };
   },
 
   async login({ email, password }) {

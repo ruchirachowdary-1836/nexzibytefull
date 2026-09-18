@@ -29,12 +29,35 @@ def token(email, password):
     return {'Authorization': f"Bearer {response.json()['access_token']}"}
 
 
+def register_and_verify(name, email, password):
+    response = client.post('/auth/register', json={
+        'name': name,
+        'email': email,
+        'password': password,
+        'accept_terms': True,
+    })
+    assert response.status_code == 201
+    assert response.json()['email_verification_required'] is True
+    assert 'access_token' not in response.json()
+    assert client.post('/auth/login', data={'username': email, 'password': password}).status_code == 403
+    db = SessionLocal()
+    pending_user = db.query(User).filter_by(email=email).one()
+    assert pending_user.is_active is False
+    assert pending_user.email_verified is False
+    code = pending_user.verification_token
+    db.close()
+    verification = client.post('/auth/verify-email', json={'email': email, 'code': code})
+    assert verification.status_code == 200
+    assert verification.json()['access_token']
+    assert verification.json()['refresh_token']
+    return verification.json()
+
+
 def test_auth_and_user_profile():
     assert client.get('/').json()['docs'] == '/docs'
     assert client.get('/health').json() == {'status': 'ok'}
-    response = client.post('/auth/register', json={'name': 'Test User', 'email': 'test@example.com', 'password': STRONG_USER_PASSWORD, 'accept_terms': True})
-    assert response.status_code == 201
-    assert 'password_hash' not in response.json()
+    response = register_and_verify('Test User', 'test@example.com', STRONG_USER_PASSWORD)
+    assert 'password_hash' not in response['user']
     profile = client.get('/users/me', headers=token('test@example.com', STRONG_USER_PASSWORD))
     assert profile.status_code == 200
     assert 'password_hash' not in profile.json()
@@ -42,7 +65,7 @@ def test_auth_and_user_profile():
 
 def test_auth_profile_routes_and_home_data():
     profile_email = 'profile-user@example.com'
-    client.post('/auth/register', json={'name': 'Profile User', 'email': profile_email, 'password': STRONG_USER_PASSWORD, 'accept_terms': True})
+    register_and_verify('Profile User', profile_email, STRONG_USER_PASSWORD)
     auth = token(profile_email, STRONG_USER_PASSWORD)
     me = client.get('/auth/me', headers=auth)
     assert me.status_code == 200
