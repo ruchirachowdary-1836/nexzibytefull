@@ -295,6 +295,9 @@ class Registration(Base):
     id: Mapped[int] = mapped_column(primary_key=True); user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     event_type: Mapped[str] = mapped_column(String(20)); event_id: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default='registered')
+    registration_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    pass_id: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    qr_data: Mapped[str] = mapped_column(String(1000), unique=True)
     registered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

@@ -197,7 +197,7 @@ function mapPass(pass) {
     role: pass.role,
     status: pass.status,
     expiresAt: pass.expires_at,
-    validation: pass.status === "approved" ? "Issued" : "Pending approval",
+    validation: ["approved", "issued"].includes(pass.status) ? "Issued" : "Pending approval",
   };
 }
 

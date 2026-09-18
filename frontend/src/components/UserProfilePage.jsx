@@ -135,7 +135,10 @@ export default function UserProfilePage() {
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("All");
 
   // Contribution Heatmap Data (Memoized 52 weeks)
-  const heatmapData = useMemo(() => generateContributionGrid(), []);
+  const heatmapData = useMemo(
+    () => generateContributionGrid(user?.activity?.contribution_days || []),
+    [user?.activity?.contribution_days]
+  );
   const [hoveredDay, setHoveredDay] = useState(null);
 
   // Open Edit Modal with current values
@@ -620,7 +623,9 @@ export default function UserProfilePage() {
                       <Terminal size={12} />
                       ANNUAL REPOSITORY CONTRIBUTIONS
                     </span>
-                    <h3 className="card-subheading">1,284 Contributions in 2026</h3>
+                    <h3 className="card-subheading">
+                      {user?.activity?.contributions_total || 0} Contributions in {new Date().getFullYear()}
+                    </h3>
                     <p className="card-desc">
                       Continuous delivery across distributed microservices, pull request reviews, and open-source contributions.
                     </p>
@@ -629,11 +634,11 @@ export default function UserProfilePage() {
                   <div className="heatmap-stats-pills">
                     <div className="stat-pill">
                       <span className="stat-pill-label">Longest Streak</span>
-                      <span className="stat-pill-val">34 Days</span>
+                      <span className="stat-pill-val">{user?.activity?.longest_streak || 0} Days</span>
                     </div>
                     <div className="stat-pill">
                       <span className="stat-pill-label">Current Streak</span>
-                      <span className="stat-pill-val">12 Days</span>
+                      <span className="stat-pill-val">{user?.activity?.current_streak || 0} Days</span>
                     </div>
                   </div>
                 </div>

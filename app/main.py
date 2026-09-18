@@ -8,6 +8,7 @@ import secrets
 import hashlib
 import json
 import smtplib
+from collections import Counter
 from email.message import EmailMessage
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,13 +64,70 @@ def send_verification_email(user: User):
 
 def send_verification_email_background(user_id: int) -> None:
     db = SessionLocal()
+    user = db.get(User, user_id)
+    log = EmailLog(
+        user_id=user_id,
+        email=user.email if user else "unknown",
+        email_type="verification",
+        status="pending",
+    )
+    db.add(log)
+    db.commit()
     try:
-        user = db.get(User, user_id)
         if user:
             send_verification_email(user)
+            log.status = "sent"
+            log.sent_at = datetime.utcnow()
+        else:
+            log.status = "failed"
+            log.error_message = "User no longer exists."
     except HTTPException as exc:
+        log.status = "failed"
+        log.error_message = str(exc.detail)
         logger.error("verification_email_failed", extra={"user_id": user_id, "detail": exc.detail})
     finally:
+        db.commit()
+        db.close()
+
+
+def send_registration_email_background(user_id: int, event_name: str, registration_number: str, pass_id: str) -> None:
+    db = SessionLocal()
+    user = db.get(User, user_id)
+    log = EmailLog(
+        user_id=user_id,
+        email=user.email if user else "unknown",
+        email_type="registration_confirmation",
+        status="pending",
+    )
+    db.add(log)
+    db.commit()
+    try:
+        if not user:
+            raise RuntimeError("User no longer exists.")
+        if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+            raise RuntimeError("Email delivery is not configured.")
+        message = EmailMessage()
+        message["Subject"] = f"Registration confirmed: {event_name}"
+        message["From"] = settings.mail_from
+        message["To"] = user.email
+        message.set_content(
+            f"Your registration for {event_name} was successful.\n"
+            f"Registration ID: {registration_number}\nPass ID: {pass_id}\n"
+            "Keep this email for event entry."
+        )
+        assert settings.smtp_host and settings.smtp_user and settings.smtp_password
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(message)
+        log.status = "sent"
+        log.sent_at = datetime.utcnow()
+    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
+        log.status = "failed"
+        log.error_message = str(exc)
+        logger.error("registration_email_failed", extra={"user_id": user_id})
+    finally:
+        db.commit()
         db.close()
 
 
@@ -397,6 +455,7 @@ def pass_request_response(request):
         'issued_at': request.issued_at,
         'expires_at': request.expires_at,
         'holder': f'{request.first_name} {request.last_name}'.strip(),
+        'email': request.email,
         'pass_type': request.pass_type,
         'amount': request.amount,
         'company': request.company,
@@ -441,12 +500,42 @@ def user_profile_payload(user: User, db: Session):
     skills = [row.skill for row in db.query(UserSkill).filter_by(user_id=user.id).all()]
     links = [item(row) for row in db.query(UserLink).filter_by(user_id=user.id).all()]
     posts = [make_post_payload(post, db, user) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]
+    contribution_dates: Counter[str] = Counter()
+    contribution_rows = (
+        db.query(Post.created_at).filter(Post.author_id == user.id).all()
+        + db.query(Comment.created_at).filter(Comment.user_id == user.id).all()
+        + db.query(Reaction.created_at).filter(Reaction.user_id == user.id).all()
+        + db.query(Registration.registered_at).filter(Registration.user_id == user.id).all()
+    )
+    for (created_at,) in contribution_rows:
+        if created_at:
+            contribution_dates[created_at.date().isoformat()] += 1
+    sorted_dates = sorted(contribution_dates)
+    current_streak = 0
+    cursor = date.today()
+    while cursor.isoformat() in contribution_dates:
+        current_streak += 1
+        cursor -= timedelta(days=1)
+    longest_streak = 0
+    streak = 0
+    previous = None
+    for value in sorted_dates:
+        current = date.fromisoformat(value)
+        streak = streak + 1 if previous and (current - previous).days == 1 else 1
+        longest_streak = max(longest_streak, streak)
+        previous = current
     activity = {
         'posts_count': len(posts),
         'comments_count': db.query(Comment).filter_by(user_id=user.id).count(),
         'reactions_count': db.query(Reaction).filter_by(user_id=user.id).count(),
         'saved_posts_count': db.query(SavedPost).filter_by(user_id=user.id).count(),
         'registrations_count': db.query(Registration).filter_by(user_id=user.id).count(),
+        'contributions_total': sum(contribution_dates.values()),
+        'current_streak': current_streak,
+        'longest_streak': longest_streak,
+        'contribution_days': [
+            {'date': day, 'count': count} for day, count in sorted(contribution_dates.items())
+        ],
     }
     pass_requests = [item(row) for row in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
     course_applications = [item(row) for row in db.query(CourseApplication).filter_by(user_id=user.id).order_by(CourseApplication.created_at.desc()).all()]
@@ -500,22 +589,12 @@ def create_course_application(body: CourseApplicationIn, db: Session = Depends(g
     return {'id': application.id, 'status': application.status, 'detail': 'Course application received'}
 
 @app.post('/pass-requests', status_code=201)
-def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
-    if body.pass_type.lower() == 'visitor-pass':
-        if not settings.visitor_promotion_date:
-            raise HTTPException(503, detail='Visitor pass promotion is not currently active.')
-        if date.today().isoformat() != settings.visitor_promotion_date:
-            raise HTTPException(400, detail='Visitor passes are available only on the promotion date.')
-        if not user:
-            raise HTTPException(401, detail='Sign in to use the visitor pass promotion.')
-        if not body.referral_contact:
-            raise HTTPException(400, detail='A referral contact is required for visitor passes.')
-        existing = db.query(PassRequest).filter(
-            PassRequest.user_id == user.id, PassRequest.pass_type.ilike('visitor-pass'),
-            PassRequest.status.in_(['pending_approval', 'approved', 'issued']),
-        ).first()
-        if existing:
-            raise HTTPException(409, detail='You have already used the visitor pass promotion.')
+def create_pass_request(
+    body: PassRequestIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     first_name, *last_name = body.name.strip().split()
     request = PassRequest(
         user_id=user.id if user else None,
@@ -532,10 +611,13 @@ def create_pass_request(body: PassRequestIn, db: Session = Depends(get_db), user
     )
     db.add(request)
     db.flush()
-    request.status = 'pending_approval'
+    request.status = 'issued'
+    request.pass_id = f"TT26-{request.id:06d}"
+    request.issued_at = datetime.utcnow()
+    request.qr_data = sign_pass_payload(request.pass_id, None)
     db.commit()
     db.refresh(request)
-    return {**pass_request_response(request), 'detail': 'Pass submitted for staff approval'}
+    return {**pass_request_response(request), 'detail': 'Pass generated successfully'}
 
 @app.patch('/admin/pass-requests/{request_id}/approve')
 def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
@@ -643,19 +725,18 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
         expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
     ))
     db.commit()
-    email_verification_sent = bool(
+    email_verification_configured = bool(
         settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from
     )
-    if email_verification_sent:
-        background_tasks.add_task(send_verification_email_background, user.id)
+    background_tasks.add_task(send_verification_email_background, user.id)
     return {
         'detail': (
             'Account created and signed in. Check your email for the verification code.'
-            if email_verification_sent
-            else 'Account created and signed in. Email verification is unavailable until SMTP is configured.'
+            if email_verification_configured
+            else 'Account created and signed in. Verification email delivery is pending backend email configuration.'
         ),
-        'email_verification_required': email_verification_sent,
-        'email_verification_sent': email_verification_sent,
+        'email_verification_required': True,
+        'email_verification_sent': email_verification_configured,
         'email': user.email,
         'user': user_item(user),
         'access_token': create_access_token(user.email),
@@ -1394,24 +1475,73 @@ def delete_founder_meet(event_id:int,db:Session=Depends(get_db),_:User=Depends(r
     x=one(db,FounderMeet,event_id);db.delete(x);db.commit();return {'detail':'Founder Meet deleted'}
 
 @app.post('/registrations', status_code=201)
-def create_registration(body:RegistrationIn,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    get_event(db,body.event_type,body.event_id)
+def create_registration(
+    body: RegistrationIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    event = get_event(db, body.event_type, body.event_id)
     if db.query(Registration).filter_by(user_id=user.id,**body.model_dump()).first(): raise HTTPException(409,detail='Already registered for this event')
-    x=Registration(user_id=user.id,**body.model_dump());db.add(x);db.commit();db.refresh(x)
+    x = Registration(
+        user_id=user.id,
+        registration_number=f"REG-{secrets.token_hex(5).upper()}",
+        pass_id=f"{body.event_type[:3].upper()}-{secrets.token_hex(4).upper()}",
+        qr_data="",
+        **body.model_dump(),
+    )
+    x.qr_data = sign_pass_payload(x.pass_id, None)
+    db.add(x)
+    db.commit()
+    db.refresh(x)
     add_notification(db, user.id, 'event_update', 'Event registration confirmed', f'You are registered for the {body.event_type.replace("_", " ")} event.')
+    background_tasks.add_task(send_registration_email_background, user.id, event.title, x.registration_number, x.pass_id)
     return item(x)
 
 @app.post('/summits/{event_id}/register', status_code=201)
-def register_for_summit(event_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    return create_registration(RegistrationIn(event_type='summit', event_id=event_id), db, user)
+def register_for_summit(event_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return create_registration(RegistrationIn(event_type='summit', event_id=event_id), background_tasks, db, user)
 
 @app.post('/founder-meets/{event_id}/register', status_code=201)
-def register_for_founder_meet(event_id:int, db:Session=Depends(get_db), user:User=Depends(get_current_user)):
-    return create_registration(RegistrationIn(event_type='founder_meet', event_id=event_id), db, user)
+def register_for_founder_meet(event_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return create_registration(RegistrationIn(event_type='founder_meet', event_id=event_id), background_tasks, db, user)
 
 @app.get('/users/me/registrations')
 def my_registrations(db:Session=Depends(get_db), user:User=Depends(get_current_user)):
     return [item(reg) for reg in db.query(Registration).filter_by(user_id=user.id).order_by(Registration.registered_at.desc()).all()]
+
+
+@app.get('/registrations/{registration_id}/pass')
+def registration_pass(registration_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    registration = one(db, Registration, registration_id)
+    admin_or_owner(user, registration.user_id)
+    return item(registration)
+
+
+@app.get('/registrations/{registration_id}/qr')
+def registration_qr(registration_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    registration = one(db, Registration, registration_id)
+    admin_or_owner(user, registration.user_id)
+    return {'registration_id': registration.id, 'pass_id': registration.pass_id, 'qr_data': registration.qr_data}
+
+
+class QRVerifyIn(BaseModel):
+    token: str = Field(min_length=20, max_length=1000)
+
+
+@app.post('/qr/verify')
+def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    try:
+        payload = validate_pass_payload(body.token)
+    except ValueError:
+        return {'status': 'INVALID'}
+    registration = db.query(Registration).filter_by(pass_id=payload['pid'], qr_data=body.token).first()
+    if not registration:
+        return {'status': 'INVALID'}
+    if registration.status == 'cancelled':
+        return {'status': 'CANCELLED'}
+    return {'status': 'VALID', 'registration_id': registration.id, 'pass_id': registration.pass_id}
+
 
 @app.patch('/registrations/{registration_id}/cancel')
 def cancel_registration(registration_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
