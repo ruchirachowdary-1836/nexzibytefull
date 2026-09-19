@@ -1544,24 +1544,46 @@ def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: U
         return {'status': 'INVALID'}
     registration = db.query(Registration).filter_by(pass_id=payload['pid'], qr_data=body.token).first()
     if registration:
+        attendee = db.get(User, registration.user_id)
+        event = get_event(db, registration.event_type, registration.event_id)
         if registration.status == 'cancelled':
-            return {'status': 'CANCELLED', 'pass_id': registration.pass_id}
+            return {
+                'status': 'CANCELLED',
+                'pass_id': registration.pass_id,
+                'attendee': attendee.name if attendee else 'Unknown attendee',
+                'event': event.title,
+                'event_type': registration.event_type,
+            }
         return {
             'status': 'VALID',
             'registration_id': registration.id,
             'pass_id': registration.pass_id,
+            'attendee': attendee.name if attendee else 'Unknown attendee',
+            'event': event.title,
             'event_type': registration.event_type,
+            'pass_type': f'{registration.event_type.replace("_", " ").title()} pass',
         }
     pass_request = db.query(PassRequest).filter_by(pass_id=payload['pid'], qr_data=body.token).first()
     if not pass_request:
         return {'status': 'INVALID'}
     if pass_request.status in ('cancelled', 'rejected'):
-        return {'status': 'CANCELLED', 'pass_id': pass_request.pass_id}
+        return {
+            'status': 'CANCELLED',
+            'pass_id': pass_request.pass_id,
+            'attendee': f'{pass_request.first_name} {pass_request.last_name}'.strip(),
+            'pass_type': pass_request.pass_type,
+        }
     if pass_request.expires_at and pass_request.expires_at <= datetime.utcnow():
-        return {'status': 'EXPIRED', 'pass_id': pass_request.pass_id}
+        return {
+            'status': 'EXPIRED',
+            'pass_id': pass_request.pass_id,
+            'attendee': f'{pass_request.first_name} {pass_request.last_name}'.strip(),
+            'pass_type': pass_request.pass_type,
+        }
     return {
         'status': 'VALID',
         'pass_id': pass_request.pass_id,
+        'attendee': f'{pass_request.first_name} {pass_request.last_name}'.strip(),
         'pass_type': pass_request.pass_type,
     }
 

@@ -138,6 +138,12 @@ def test_event_publish_and_duplicate_registration_prevention():
     body = {'event_type': 'summit', 'event_id': summit_id}
     registration = client.post('/registrations', json=body, headers=user)
     assert registration.status_code == 201
+    qr = client.post('/qr/verify', json={'token': registration.json()['qr_data']}, headers=user)
+    assert qr.status_code == 200
+    assert qr.json()['status'] == 'VALID'
+    assert qr.json()['attendee'] == 'Test User'
+    assert qr.json()['event'] == 'AI Summit'
+    assert qr.json()['pass_id'] == registration.json()['pass_id']
     assert client.post('/registrations', json=body, headers=user).status_code == 409
     assert client.patch(f"/registrations/{registration.json()['id']}/cancel", headers=user).json()['status'] == 'cancelled'
     assert client.patch(f'/summits/{summit_id}/archive', headers=admin).json()['status'] == 'past'

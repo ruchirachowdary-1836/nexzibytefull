@@ -15,6 +15,7 @@ export default function QRScanner() {
   const [scanResult, setScanResult] = useState({
     status: "idle",
     attendee: "No pass scanned",
+    event: "",
     pass: "",
     amount: "",
     payment: "",
@@ -58,12 +59,14 @@ export default function QRScanner() {
     try {
       const result = await apiRequest("/qr/verify", {
         method: "POST",
+        useNeonToken: true,
         body: JSON.stringify({ token }),
       });
       const valid = result.status === "VALID";
       setScanResult({
         status: valid ? "valid" : "invalid",
         attendee: result.attendee || "Unknown attendee",
+        event: result.event || "",
         pass: result.pass_type || result.event_type || "Digital pass",
         amount: result.amount || "",
         payment: valid ? "Verified" : result.status,
@@ -73,7 +76,13 @@ export default function QRScanner() {
       showToast(valid ? `✓ QR verified: ${result.pass_id || "valid pass"}` : `✕ ${result.status || "Invalid QR code"}`);
       stopScanner();
     } catch (error) {
-      setScanResult((previous) => ({ ...previous, status: "invalid", attendee: "Unknown attendee", payment: "Verification failed" }));
+      setScanResult((previous) => ({
+        ...previous,
+        status: "invalid",
+        attendee: "Unable to retrieve attendee",
+        payment: "Verification failed",
+        error: error.message,
+      }));
       showToast(`Unable to verify QR code: ${error.message}`);
       scanLockRef.current = false;
     }
@@ -230,10 +239,20 @@ export default function QRScanner() {
                   </div>
 
                   <div className="detail-item-box">
+                    <div className="detail-label">Event</div>
+                    <div className="detail-value">{scanResult.event || "TechTalk access"}</div>
+                  </div>
+
+                  <div className="detail-item-box">
                     <div className="detail-label">Pass</div>
                     <div className="detail-value" style={{ color: "var(--primary-purple)" }}>
                       {scanResult.pass}
                     </div>
+                  </div>
+
+                  <div className="detail-item-box">
+                    <div className="detail-label">Pass ID</div>
+                    <div className="detail-value">{scanResult.passId}</div>
                   </div>
 
                   <div className="detail-item-box">
@@ -293,7 +312,7 @@ export default function QRScanner() {
 
                 <div style={{ background: "#FFFFFF", padding: "24px", borderRadius: "12px", border: "1px solid #FECACA", marginBottom: "24px" }}>
                   <p style={{ color: "#B91C1C", fontWeight: 600, marginBottom: "8px" }}>
-                    This QR code could not be verified.
+                    {scanResult.error ? `Unable to verify QR code: ${scanResult.error}` : "This QR code could not be verified."}
                   </p>
                   <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
                     The cryptographic signature was not recognized in the NexziByte TechTalk 2026 database. 
