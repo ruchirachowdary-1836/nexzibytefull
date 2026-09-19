@@ -43,13 +43,31 @@ export function AppProvider({ children }) {
   useEffect(() => {
     checkBackendHealth().then(setBackendOnline);
     if (authService.hasToken()) {
-      authService.me().then((authenticatedUser) => {
-        setUser(authenticatedUser);
-        if (localStorage.getItem("techtalk-google-pending") === "1") {
-          localStorage.removeItem("techtalk-google-pending");
-          window.location.hash = "/profile";
+      const hydrateSession = async () => {
+        const googlePending = localStorage.getItem("techtalk-google-pending") === "1";
+        let lastError;
+        for (let attempt = 0; attempt < (googlePending ? 4 : 1); attempt += 1) {
+          try {
+            const authenticatedUser = await authService.me();
+            setUser(authenticatedUser);
+            if (googlePending) {
+              localStorage.removeItem("techtalk-google-pending");
+              window.location.hash = "/profile";
+            }
+            return;
+          } catch (error) {
+            lastError = error;
+            if (!googlePending || attempt === 3) break;
+            await new Promise((resolve) => window.setTimeout(resolve, 750));
+          }
         }
-      }).catch(() => authService.logout());
+        if (googlePending) {
+          showToast(`Google sign-in could not be completed: ${lastError?.message || "No active session was returned."}`);
+          localStorage.removeItem("techtalk-google-pending");
+        }
+        authService.logout();
+      };
+      hydrateSession();
     }
   }, []);
 

@@ -1,94 +1,117 @@
 import React, { useState, useRef, useEffect } from "react";
+import QrScanner from "qr-scanner";
 import { 
   Camera, CheckCircle, XCircle, RefreshCw, QrCode, Sparkles, 
   Check, ShieldAlert, ArrowRight, UserCheck, AlertTriangle 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { apiRequest } from "../lib/api.js";
 
 export default function QRScanner() {
-  const { activePass, checkInPass, resetCheckIn, showToast } = useApp();
+  const { activePass, checkInPass, showToast } = useApp();
   
   const [scannerOpen, setScannerOpen] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
   const [scanResult, setScanResult] = useState({
-    status: "valid", // "valid", "invalid", "idle"
-    attendee: activePass.holder,
-    pass: activePass.passType,
-    amount: activePass.price,
-    payment: "Verified",
-    checkedIn: activePass.checkedIn,
-    passId: activePass.passId
+    status: "idle",
+    attendee: "No pass scanned",
+    pass: "",
+    amount: "",
+    payment: "",
+    checkedIn: false,
+    passId: ""
   });
 
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const scannerRef = useRef(null);
+  const scanLockRef = useRef(false);
 
   // Sync with activePass
   useEffect(() => {
-    setScanResult({
-      status: "valid",
-      attendee: activePass.holder,
-      pass: activePass.passType,
-      amount: activePass.price,
-      payment: "Verified",
+    if (!activePass) return;
+    setScanResult((previous) => ({
+      ...previous,
+      attendee: previous.attendee || activePass.holder,
+      pass: previous.pass || activePass.passType,
+      amount: previous.amount || activePass.price,
       checkedIn: activePass.checkedIn,
-      passId: activePass.passId
-    });
+      passId: previous.passId || activePass.passId
+    }));
   }, [activePass]);
 
-  // Handle Browser Camera toggle
+  useEffect(() => () => {
+    scannerRef.current?.stop();
+    scannerRef.current?.destroy();
+  }, []);
+
+  const stopScanner = () => {
+    scannerRef.current?.stop();
+    scannerRef.current?.destroy();
+    scannerRef.current = null;
+    scanLockRef.current = false;
+    setCameraActive(false);
+  };
+
+  const verifyQr = async (token) => {
+    if (scanLockRef.current) return;
+    scanLockRef.current = true;
+    try {
+      const result = await apiRequest("/qr/verify", {
+        method: "POST",
+        body: JSON.stringify({ token }),
+      });
+      const valid = result.status === "VALID";
+      setScanResult({
+        status: valid ? "valid" : "invalid",
+        attendee: result.attendee || "Unknown attendee",
+        pass: result.pass_type || result.event_type || "Digital pass",
+        amount: result.amount || "",
+        payment: valid ? "Verified" : result.status,
+        checkedIn: result.checked_in || false,
+        passId: result.pass_id || "",
+      });
+      showToast(valid ? `✓ QR verified: ${result.pass_id || "valid pass"}` : `✕ ${result.status || "Invalid QR code"}`);
+      stopScanner();
+    } catch (error) {
+      setScanResult((previous) => ({ ...previous, status: "invalid", attendee: "Unknown attendee", payment: "Verification failed" }));
+      showToast(`Unable to verify QR code: ${error.message}`);
+      scanLockRef.current = false;
+    }
+  };
+
   const toggleCamera = async () => {
     if (cameraActive) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-      setCameraActive(false);
+      stopScanner();
       showToast("Camera stream stopped.");
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        if (!window.isSecureContext) throw new Error("Camera access requires HTTPS.");
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support camera access.");
+        if (!videoRef.current) throw new Error("Scanner video is not ready.");
+        const scanner = new QrScanner(
+          videoRef.current,
+          ({ data }) => verifyQr(data),
+          { preferredCamera: "environment", highlightScanRegion: false, returnDetailedScanResult: true }
+        );
+        scannerRef.current = scanner;
+        await scanner.start();
         setCameraActive(true);
-        showToast("Live camera stream activated!");
+        showToast("Camera ready. Align the QR code inside the frame.");
       } catch (err) {
-        setCameraActive(false);
-        showToast("Camera access unavailable. Using interactive scanner simulation.");
+        stopScanner();
+        showToast(`Camera unavailable: ${err.message}`);
       }
     }
   };
 
   // Simulate scanning a Valid Pass (Lalitha TT26-000125)
   const handleScanValid = () => {
-    setScanResult({
-      status: "valid",
-      attendee: activePass.holder,
-      pass: activePass.passType,
-      amount: activePass.price,
-      payment: "Verified",
-      checkedIn: activePass.checkedIn,
-      passId: activePass.passId
-    });
-    showToast(`✓ QR Scanned: Verified pass ${activePass.passId} for ${activePass.holder}`);
+    if (activePass?.qrData) verifyQr(activePass.qrData);
+    else showToast("No issued QR pass is available for testing.");
   };
 
   // Simulate scanning an Invalid Pass
-  const handleScanInvalid = () => {
-    setScanResult({
-      status: "invalid",
-      attendee: "Unknown",
-      pass: "N/A",
-      amount: "₹0",
-      payment: "Failed / Unrecognized",
-      checkedIn: false,
-      passId: "TT-INVALID-999"
-    });
-    showToast("✕ INVALID PASS: QR code hash signature mismatch.");
-  };
+  const handleScanInvalid = () => verifyQr("techtalk:pass:invalid.invalid");
 
   // Perform Check In
   const handleCheckInAttendee = () => {
@@ -116,15 +139,15 @@ export default function QRScanner() {
           <div>
             <div className="scanner-viewport-box">
               {/* If camera is active, render real video */}
-              {cameraActive ? (
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  className="scanner-video-preview" 
-                />
-              ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="scanner-video-preview"
+                style={{ display: cameraActive ? "block" : "none" }}
+              />
+              {!cameraActive && (
                 /* High-tech simulated camera preview */
                 <div style={{
                   position: "absolute",
@@ -177,7 +200,7 @@ export default function QRScanner() {
                 onClick={handleScanValid}
               >
                 <CheckCircle size={15} style={{ color: "#16A34A" }} />
-                <span>Scan Valid Pass ({activePass.holder})</span>
+                <span>Scan Current Pass ({activePass?.holder || "none issued"})</span>
               </button>
 
               <button 

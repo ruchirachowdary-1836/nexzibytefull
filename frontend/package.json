@@ -12,6 +12,7 @@
     "@neondatabase/neon-js": "^0.7.0-beta",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "latest",
+    "qr-scanner": "^1.4.2",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "latest",
