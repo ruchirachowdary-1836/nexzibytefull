@@ -1537,17 +1537,33 @@ class QRVerifyIn(BaseModel):
 
 
 @app.post('/qr/verify')
-def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     try:
         payload = validate_pass_payload(body.token)
     except ValueError:
         return {'status': 'INVALID'}
     registration = db.query(Registration).filter_by(pass_id=payload['pid'], qr_data=body.token).first()
-    if not registration:
+    if registration:
+        if registration.status == 'cancelled':
+            return {'status': 'CANCELLED', 'pass_id': registration.pass_id}
+        return {
+            'status': 'VALID',
+            'registration_id': registration.id,
+            'pass_id': registration.pass_id,
+            'event_type': registration.event_type,
+        }
+    pass_request = db.query(PassRequest).filter_by(pass_id=payload['pid'], qr_data=body.token).first()
+    if not pass_request:
         return {'status': 'INVALID'}
-    if registration.status == 'cancelled':
-        return {'status': 'CANCELLED'}
-    return {'status': 'VALID', 'registration_id': registration.id, 'pass_id': registration.pass_id}
+    if pass_request.status in ('cancelled', 'rejected'):
+        return {'status': 'CANCELLED', 'pass_id': pass_request.pass_id}
+    if pass_request.expires_at and pass_request.expires_at <= datetime.utcnow():
+        return {'status': 'EXPIRED', 'pass_id': pass_request.pass_id}
+    return {
+        'status': 'VALID',
+        'pass_id': pass_request.pass_id,
+        'pass_type': pass_request.pass_type,
+    }
 
 
 @app.patch('/registrations/{registration_id}/cancel')

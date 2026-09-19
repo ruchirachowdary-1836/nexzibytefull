@@ -85,7 +85,13 @@ async function hydrateNeonProfile(neonUser) {
     const session = neonUser || (await getNeonSession());
     const sessionUser = session?.user || session;
     const normalized = normalizeNeonUser(sessionUser);
-    const profile = await apiRequest("/auth/session", { useNeonToken: true });
+    let profile;
+    try {
+      profile = await apiRequest("/auth/session", { useNeonToken: true });
+    } catch (error) {
+      if (!/HTTP 404/.test(error.message)) throw error;
+      profile = await apiRequest("/auth/me", { useNeonToken: true });
+    }
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);
