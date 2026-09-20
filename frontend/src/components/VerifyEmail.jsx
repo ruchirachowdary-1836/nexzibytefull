@@ -17,7 +17,7 @@ export default function VerifyEmail() {
   useEffect(() => {
     const token = params.get("token");
     if (!token) {
-      setState({ loading: false, message: "Enter the six-digit code sent to your email." });
+      setState({ loading: false, message: "Enter the six-digit code sent to your email to finish signing in or creating your account." });
       return;
     }
     apiRequest(`/auth/verify-email?token=${encodeURIComponent(token)}`)

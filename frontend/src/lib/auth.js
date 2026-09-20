@@ -27,6 +27,7 @@ export const authService = {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.detail || "Unable to sign in.");
+    if (data.verification_required) return data;
     storeTokens(data);
     return this.me();
   },

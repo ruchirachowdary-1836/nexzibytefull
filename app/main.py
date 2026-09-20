@@ -780,7 +780,12 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
     }
 
 @app.post('/auth/login')
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(
+    form: OAuth2PasswordRequestForm = Depends(),
+    *,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     if not rate_limit(f'login:{form.username.lower().strip()}', 10):
         raise HTTPException(429, detail='Too many login attempts. Try again later.')
     username = form.username.lower().strip()
@@ -799,11 +804,15 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         raise HTTPException(401, detail='Incorrect email or password')
     user.failed_login_attempts = 0
     user.locked_until = None
-    refresh = secrets.token_urlsafe(48)
-    db.add(RefreshToken(user_id=user.id, token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
-                        expires_at=now + timedelta(days=settings.refresh_token_expire_days)))
+    user.verification_token = create_verification_code(db)
+    user.verification_expires_at = now + timedelta(minutes=15)
     db.commit()
-    return {'access_token': create_access_token(user.email), 'refresh_token': refresh, 'token_type': 'bearer'}
+    background_tasks.add_task(send_verification_email_background, user.id)
+    return {
+        'detail': 'Verification code sent. Enter the code from your email to sign in.',
+        'verification_required': True,
+        'email': user.email,
+    }
 
 @app.post('/auth/refresh')
 def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):

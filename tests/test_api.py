@@ -26,6 +26,14 @@ def setup_module():
 def token(email, password):
     response = client.post('/auth/login', data={'username': email, 'password': password})
     assert response.status_code == 200
+    if response.json().get('verification_required'):
+        db = SessionLocal()
+        user = db.query(User).filter_by(email=email).one()
+        code = user.verification_token
+        db.close()
+        verification = client.post('/auth/verify-email', json={'code': code})
+        assert verification.status_code == 200
+        return {'Authorization': 'Bearer ' + verification.json()['access_token']}
     return {'Authorization': f"Bearer {response.json()['access_token']}"}
 
 

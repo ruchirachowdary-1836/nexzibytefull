@@ -83,6 +83,7 @@ export function AppProvider({ children }) {
 
   const login = async (credentials) => {
     const authenticatedUser = await authService.login(credentials);
+    if (authenticatedUser.verification_required) return authenticatedUser;
     setUser(authenticatedUser);
     return authenticatedUser;
   };

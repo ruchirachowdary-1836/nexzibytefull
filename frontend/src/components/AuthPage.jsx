@@ -92,6 +92,11 @@ export default function AuthPage({ defaultMode = "login" }) {
 
     try {
       const authenticated = await login({ email: loginEmail.trim(), password: loginPassword });
+      if (authenticated.verification_required) {
+        showToast(`✓ ${authenticated.detail}`);
+        navigate(`/verify-email?email=${encodeURIComponent(authenticated.email || loginEmail.trim())}&purpose=signin`, { replace: true });
+        return;
+      }
       showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
       navigate("/profile");
     } catch (error) {
