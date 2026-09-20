@@ -8,6 +8,7 @@ import secrets
 import hashlib
 import json
 import smtplib
+from io import BytesIO
 from collections import Counter
 from email.message import EmailMessage
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
@@ -17,6 +18,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
+import qrcode
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
@@ -90,30 +92,46 @@ def send_verification_email_background(user_id: int) -> None:
         db.close()
 
 
-def send_registration_email_background(user_id: int, event_name: str, registration_number: str, pass_id: str) -> None:
+def send_pass_email_background(
+    user_id: int | None,
+    recipient_email: str,
+    email_type: str,
+    subject: str,
+    details: list[str],
+    pass_id: str,
+    qr_data: str,
+) -> None:
     db = SessionLocal()
-    user = db.get(User, user_id)
     log = EmailLog(
         user_id=user_id,
-        email=user.email if user else "unknown",
-        email_type="registration_confirmation",
+        email=recipient_email,
+        email_type=email_type,
         status="pending",
     )
     db.add(log)
     db.commit()
     try:
-        if not user:
-            raise RuntimeError("User no longer exists.")
         if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
             raise RuntimeError("Email delivery is not configured.")
         message = EmailMessage()
-        message["Subject"] = f"Registration confirmed: {event_name}"
+        message["Subject"] = subject
         message["From"] = settings.mail_from
-        message["To"] = user.email
+        message["To"] = recipient_email
         message.set_content(
-            f"Your registration for {event_name} was successful.\n"
-            f"Registration ID: {registration_number}\nPass ID: {pass_id}\n"
-            "Keep this email for event entry."
+            f"{subject}\n\n"
+            + "\n".join(details)
+            + f"\nPass ID: {pass_id}\n"
+            "The attached QR image is your entry pass. Keep this email available at accreditation.\n"
+            f"QR payload: {qr_data}\n"
+        )
+        qr_image = qrcode.make(qr_data)
+        qr_bytes = BytesIO()
+        qr_image.save(qr_bytes, format="PNG")
+        message.add_attachment(
+            qr_bytes.getvalue(),
+            maintype="image",
+            subtype="png",
+            filename=f"{pass_id}.png",
         )
         assert settings.smtp_host and settings.smtp_user and settings.smtp_password
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
@@ -125,7 +143,7 @@ def send_registration_email_background(user_id: int, event_name: str, registrati
     except (OSError, smtplib.SMTPException, RuntimeError) as exc:
         log.status = "failed"
         log.error_message = str(exc)
-        logger.error("registration_email_failed", extra={"user_id": user_id})
+        logger.error("pass_email_failed", extra={"user_id": user_id, "email_type": email_type})
     finally:
         db.commit()
         db.close()
@@ -632,6 +650,20 @@ def create_pass_request(
     request.qr_data = sign_pass_payload(request.pass_id, None)
     db.commit()
     db.refresh(request)
+    background_tasks.add_task(
+        send_pass_email_background,
+        request.user_id,
+        request.email,
+        "pass_confirmation",
+        f"Your {request.pass_type} is ready",
+        [
+            f"Pass holder: {request.first_name} {request.last_name}".strip(),
+            f"Pass type: {request.pass_type}",
+            "Status: Issued",
+        ],
+        request.pass_id,
+        request.qr_data,
+    )
     return {**pass_request_response(request), 'detail': 'Pass generated successfully'}
 
 @app.patch('/admin/pass-requests/{request_id}/approve')
@@ -1502,7 +1534,21 @@ def create_registration(
     db.commit()
     db.refresh(x)
     add_notification(db, user.id, 'event_update', 'Event registration confirmed', f'You are registered for the {body.event_type.replace("_", " ")} event.')
-    background_tasks.add_task(send_registration_email_background, user.id, event.title, x.registration_number, x.pass_id)
+    background_tasks.add_task(
+        send_pass_email_background,
+        user.id,
+        user.email,
+        "registration_confirmation",
+        f"Registration confirmed: {event.title}",
+        [
+            f"Event: {event.title}",
+            f"Pass holder: {user.name}",
+            f"Registration ID: {x.registration_number}",
+            f"Event type: {body.event_type.replace('_', ' ').title()}",
+        ],
+        x.pass_id,
+        x.qr_data,
+    )
     return item(x)
 
 @app.post('/summits/{event_id}/register', status_code=201)
