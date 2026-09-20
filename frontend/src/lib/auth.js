@@ -90,7 +90,12 @@ async function hydrateNeonProfile(neonUser) {
       profile = await apiRequest("/auth/session", { useNeonToken: true });
     } catch (error) {
       if (!/HTTP 404/.test(error.message)) throw error;
-      profile = await apiRequest("/auth/me", { useNeonToken: true });
+      try {
+        profile = await apiRequest("/auth/me", { useNeonToken: true });
+      } catch (fallbackError) {
+        if (!/HTTP 404/.test(fallbackError.message)) throw fallbackError;
+        profile = normalized;
+      }
     }
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
