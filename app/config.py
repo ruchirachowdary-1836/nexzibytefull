@@ -88,6 +88,17 @@ def smtp_configured() -> bool:
     return not smtp_missing_settings()
 
 
+def smtp_runtime_diagnostic() -> dict[str, bool]:
+    return {
+        "SMTP_HOST": bool(settings.smtp_host),
+        "SMTP_PORT": bool(settings.smtp_port and 1 <= settings.smtp_port <= 65535),
+        "SMTP_USER": bool(settings.smtp_user),
+        "SMTP_PASSWORD": bool(settings.smtp_password),
+        "MAIL_FROM": bool(settings.mail_from),
+        "smtp_configured": smtp_configured(),
+    }
+
+
 def allowed_origins() -> list[str]:
     raw_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
     if "*" in raw_origins:

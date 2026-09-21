@@ -19,7 +19,14 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 import qrcode
-from .config import allowed_origins, settings, smtp_configured, smtp_missing_settings, smtp_sender
+from .config import (
+    allowed_origins,
+    settings,
+    smtp_configured,
+    smtp_missing_settings,
+    smtp_runtime_diagnostic,
+    smtp_sender,
+)
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
@@ -249,6 +256,18 @@ def audit(db: Session, actor: User | None, action: str, resource: str | None = N
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    diagnostic = smtp_runtime_diagnostic()
+    logger.info(
+        "smtp_runtime_diagnostic SMTP_HOST present: %s; SMTP_PORT present: %s; "
+        "SMTP_USER present: %s; SMTP_PASSWORD present: %s; MAIL_FROM present: %s; "
+        "smtp_configured: %s",
+        diagnostic["SMTP_HOST"],
+        diagnostic["SMTP_PORT"],
+        diagnostic["SMTP_USER"],
+        diagnostic["SMTP_PASSWORD"],
+        diagnostic["MAIL_FROM"],
+        diagnostic["smtp_configured"],
+    )
     database_url = str(engine.url)
     if not database_url.startswith("sqlite"):
         if settings.jwt_secret == "change-this-in-production" or len(settings.jwt_secret) < 32:

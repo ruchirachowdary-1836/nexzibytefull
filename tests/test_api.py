@@ -8,7 +8,7 @@ from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.main import app
 from app.models import User
-from app.config import settings
+from app.config import Settings, settings, smtp_configured, smtp_runtime_diagnostic, smtp_sender
 main_module = importlib.import_module("app.main")
 
 client = TestClient(app)
@@ -30,6 +30,40 @@ def setup_module():
     db.add(User(name='Admin', email='admin@example.com', password_hash=hash_password(STRONG_ADMIN_PASSWORD), role='admin'))
     db.commit()
     db.close()
+
+
+def test_smtp_configuration_accepts_trimmed_values_and_sender_display_name():
+    normalized = Settings(
+        SMTP_HOST=" smtp.gmail.com ",
+        SMTP_PORT="587",
+        SMTP_USER=" user@example.com ",
+        SMTP_PASSWORD=" app-password ",
+        MAIL_FROM=" TechTalk <user@example.com> ",
+    )
+    assert normalized.smtp_host == "smtp.gmail.com"
+    assert normalized.smtp_user == "user@example.com"
+    assert normalized.smtp_password == "app-password"
+    assert normalized.mail_from == "TechTalk <user@example.com>"
+
+    original = (settings.smtp_host, settings.smtp_port, settings.smtp_user, settings.smtp_password, settings.mail_from)
+    try:
+        settings.smtp_host = "smtp.gmail.com"
+        settings.smtp_port = 587
+        settings.smtp_user = "user@example.com"
+        settings.smtp_password = "app-password"
+        settings.mail_from = "TechTalk <user@example.com>"
+        assert smtp_configured()
+        assert smtp_sender() == "TechTalk <user@example.com>"
+        assert smtp_runtime_diagnostic() == {
+            "SMTP_HOST": True,
+            "SMTP_PORT": True,
+            "SMTP_USER": True,
+            "SMTP_PASSWORD": True,
+            "MAIL_FROM": True,
+            "smtp_configured": True,
+        }
+    finally:
+        settings.smtp_host, settings.smtp_port, settings.smtp_user, settings.smtp_password, settings.mail_from = original
 
 
 def token(email, password):
