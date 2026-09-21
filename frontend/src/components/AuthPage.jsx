@@ -6,7 +6,7 @@ import {
   ArrowLeft, Check, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { apiRequest } from "../lib/api.js";
+import { requestNeonPasswordReset } from "../lib/neon.js";
 
 export function TechTalkMinimalLogo({ size = 1 }) {
   return (
@@ -124,9 +124,6 @@ export default function AuthPage({ defaultMode = "login" }) {
 
     try {
       const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
-      if (!result.email_verification_sent) {
-        throw new Error("Your account was saved, but verification email delivery is not configured. Please contact support.");
-      }
       showToast(`✓ ${result.detail || "Verification code sent."}`);
       navigate(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`, { replace: true });
     } catch (error) {
@@ -140,11 +137,8 @@ export default function AuthPage({ defaultMode = "login" }) {
       return;
     }
     try {
-      const result = await apiRequest("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email: loginEmail.trim() }),
-      });
-      showToast(`📧 ${result.detail}`);
+      await requestNeonPasswordReset(loginEmail.trim());
+      showToast("📧 Password reset email sent by Neon Auth.");
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

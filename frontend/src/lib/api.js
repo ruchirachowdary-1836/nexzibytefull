@@ -1,12 +1,12 @@
 const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
 const TOKEN_KEY = "techtalk-token";
 const REFRESH_TOKEN_KEY = "techtalk-refresh-token";
-import { getNeonToken } from "./neon.js";
+import { getNeonToken, neonAuthEnabled } from "./neon.js";
 
 export async function apiRequest(path, options = {}, allowRefresh = true) {
   const { useNeonToken = false, ...requestOptions } = options;
   const localToken = localStorage.getItem(TOKEN_KEY);
-  const token = localToken || (useNeonToken ? await getNeonToken() : null);
+  const token = localToken || ((useNeonToken || neonAuthEnabled) ? await getNeonToken() : null);
   const response = await fetch(`${API_URL}${path}`, {
     ...requestOptions,
     headers: {

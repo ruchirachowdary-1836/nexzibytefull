@@ -20,7 +20,7 @@ separately and covered by tests.
 - Passwords are stored as bcrypt hashes, never as plaintext.
 - JWT validation and role checks protect authenticated and administrative
   routes.
-- Settings are environment-backed (`DB_URL`, `JWT_SECRET`, CORS, SMTP, and
+- Settings are environment-backed (`DB_URL`, `JWT_SECRET`, CORS, Neon Auth, and
   optional external JWT settings).
 - SQLAlchemy parameterization and ORM mapping are used for database access.
 - The CI workflow runs static checks, tests with coverage, dependency auditing,
@@ -33,7 +33,7 @@ Before each production deployment:
 1. Set a unique, high-entropy `JWT_SECRET`; do not use the development default.
 2. Set `CORS_ORIGINS` to exact trusted origins (not `*`).
 3. Use a least-privilege database role and TLS-enabled database URL.
-4. Keep SMTP, database, and external identity-provider credentials in the
+4. Keep database and external identity-provider credentials in the
    platform secret manager.
 5. Review the migration SQL and run the migration against a backup/staging
    database before production.

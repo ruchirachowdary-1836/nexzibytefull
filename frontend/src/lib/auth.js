@@ -1,5 +1,5 @@
 import { apiRequest } from "./api.js";
-import { getNeonSession, neonAuthEnabled, neonClient, signInWithGoogle } from "./neon.js";
+import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWithGoogle, signUpWithEmail } from "./neon.js";
 
 const TOKEN_KEY = "techtalk-token";
 const REFRESH_TOKEN_KEY = "techtalk-refresh-token";
@@ -11,34 +11,33 @@ function storeTokens(result) {
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
-    const result = await apiRequest("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ name, email, password, professional_role: role || null, referral_contact: referral_contact || null, accept_terms }),
-    });
-    return { ...result, email, user: result.user };
+    if (!neonAuthEnabled) throw new Error("Neon Auth is not configured.");
+    const result = await signUpWithEmail({ name, email, password });
+    const user = result?.user || result?.session?.user || null;
+    return {
+      ...result,
+      email,
+      user,
+      email_verification_required: !user?.emailVerified,
+      detail: "Verification email sent. Check your inbox before signing in.",
+    };
   },
 
   async login({ email, password }) {
-    const body = new URLSearchParams({ username: email, password });
-    const response = await fetch(`${import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com"}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.detail || "Unable to sign in.");
-    if (data.verification_required) {
-      if (!data.verification_email_queued) {
-        throw new Error("Your password is correct, but verification email delivery is not configured. Please contact support.");
+    if (!neonAuthEnabled) throw new Error("Neon Auth is not configured.");
+    try {
+      await signInWithEmail({ email, password });
+      return this.me();
+    } catch (error) {
+      if (/verify|verification|email/i.test(error.message)) {
+        throw new Error("Please verify your email before continuing. Check your inbox for the Neon Auth verification link.");
       }
-      return data;
+      throw error;
     }
-    storeTokens(data);
-    return this.me();
   },
 
   me() {
-    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled && localStorage.getItem("techtalk-google-pending") === "1") {
+    if (neonAuthEnabled && !localStorage.getItem(TOKEN_KEY)) {
       return getNeonSession()
         .then((session) => normalizeNeonUser(session?.user))
         .then(hydrateNeonProfile);
@@ -64,7 +63,7 @@ export const authService = {
         body: JSON.stringify({ refresh_token: refreshToken }),
       }).catch(() => {});
     }
-    if (neonAuthEnabled && localStorage.getItem("techtalk-google-session") === "1") {
+    if (neonAuthEnabled) {
       neonClient.auth.signOut().catch(() => {});
     }
     localStorage.removeItem(TOKEN_KEY);
@@ -76,7 +75,7 @@ export const authService = {
   hasToken() {
     return Boolean(
       localStorage.getItem(TOKEN_KEY) ||
-      localStorage.getItem("techtalk-google-pending") === "1"
+      (neonAuthEnabled && neonClient)
     );
   },
 
@@ -95,13 +94,7 @@ async function hydrateNeonProfile(neonUser) {
     const session = neonUser || (await getNeonSession());
     const sessionUser = session?.user || session;
     const normalized = normalizeNeonUser(sessionUser);
-    const exchanged = await apiRequest("/auth/neon-session", {
-      method: "POST",
-      useNeonToken: true,
-    });
-    storeTokens(exchanged);
-    localStorage.setItem("techtalk-google-session", "1");
-    const profile = exchanged.user || normalized;
+    const profile = await apiRequest("/auth/session", { useNeonToken: true });
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);

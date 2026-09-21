@@ -22,21 +22,33 @@ def create_access_token(subject: str):
     return jwt.encode({'sub': subject, 'exp': datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)}, settings.jwt_secret, algorithm='HS256')
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     email = decode_local_email(token)
+    neon_claims = None
     if not email and settings.neon_auth_jwks_url:
-        email = decode_neon_email(token)
+        neon_claims = decode_neon_claims(token)
+        email = (neon_claims or {}).get('email') or (neon_claims or {}).get('sub')
     user = db.query(User).filter(User.email == email.lower()).first() if email else None
+    neon_email_verified = bool(
+        neon_claims and (neon_claims.get('email_verified') or neon_claims.get('emailVerified'))
+    )
+    if user and neon_email_verified and not user.is_active:
+        user.is_active = True
+        user.email_verified = True
+        db.commit()
     if not user and email and settings.neon_auth_jwks_url:
-        claims = decode_neon_claims(token)
+        claims = neon_claims or {}
+        email_verified = bool(claims.get('email_verified') or claims.get('emailVerified'))
         user = User(
             name=(claims or {}).get('name') or (claims or {}).get('user_metadata', {}).get('name') or email.split('@')[0],
             email=email.lower(),
-            email_verified=True,
+            email_verified=email_verified,
+            is_active=email_verified,
             password_hash=None,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-    if not user or not user.is_active: raise HTTPException(status_code=401, detail='Invalid authentication credentials')
+    if not user or not user.is_active or (neon_claims is not None and not neon_email_verified):
+        raise HTTPException(status_code=401, detail='Email verification is required before accessing this account')
     return user
 def get_optional_user(token: str | None = Depends(optional_oauth2_scheme), db: Session = Depends(get_db)):
     if not token:

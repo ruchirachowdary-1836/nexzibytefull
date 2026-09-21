@@ -19,8 +19,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    verification_token: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)
-    verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(String(20), default='user')
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)

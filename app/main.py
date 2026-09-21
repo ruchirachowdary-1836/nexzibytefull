@@ -7,10 +7,7 @@ from typing import Literal
 import secrets
 import hashlib
 import json
-import smtplib
-from io import BytesIO
 from collections import Counter
-from email.message import EmailMessage
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -19,14 +16,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 import qrcode
-from .config import (
-    allowed_origins,
-    settings,
-    smtp_configured,
-    smtp_missing_settings,
-    smtp_runtime_diagnostic,
-    smtp_sender,
-)
+from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
@@ -42,212 +32,12 @@ from .observability import (
 configure_logging()
 logger = logging.getLogger(__name__)
 
-def _smtp_error_message(exc: Exception) -> str:
-    message = str(exc).replace("\r", " ").replace("\n", " ").strip()
-    for secret in (settings.smtp_password, settings.smtp_user):
-        if secret:
-            message = message.replace(secret, "[redacted]")
-    return message[:300] or "SMTP operation failed."
-
-
-def _send_smtp_message(message: EmailMessage) -> None:
-    if not smtp_configured():
-        missing = ", ".join(smtp_missing_settings())
-        logger.error("smtp_configuration_missing", extra={"missing_settings": missing})
-        raise RuntimeError("SMTP configuration is incomplete.")
-
-    smtp_host = settings.smtp_host
-    smtp_user = settings.smtp_user
-    smtp_password = settings.smtp_password
-    assert smtp_host is not None and smtp_user is not None and smtp_password is not None
-    logger.info("smtp_connection_started", extra={"smtp_host": smtp_host, "smtp_port": settings.smtp_port})
-    try:
-        with smtplib.SMTP(smtp_host, settings.smtp_port, timeout=15) as server:
-            logger.info("smtp_starttls_started")
-            server.starttls()
-            logger.info("smtp_starttls_succeeded")
-            try:
-                server.login(smtp_user, smtp_password)
-                logger.info("smtp_authentication_succeeded")
-            except smtplib.SMTPAuthenticationError as exc:
-                logger.error(
-                    "smtp_authentication_failed",
-                    extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
-                )
-                raise
-            try:
-                server.send_message(message)
-                logger.info("smtp_send_succeeded")
-            except (OSError, smtplib.SMTPException) as exc:
-                logger.error(
-                    "smtp_send_failed",
-                    extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
-                )
-                raise
-    except (OSError, smtplib.SMTPException) as exc:
-        logger.error(
-            "smtp_operation_failed",
-            extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
-        )
-        raise
-
-
-def send_verification_email(user: User):
-    if not smtp_configured():
-        raise HTTPException(
-            503,
-            detail='Email verification service is unavailable. Configure the required SMTP settings in Render.',
-        )
-    message = EmailMessage()
-    message['Subject'] = 'Verify your NexziByte TechTalk account'
-    message['From'] = smtp_sender()
-    message['To'] = user.email
-    link = f'{settings.frontend_url}/#/verify-email?token={user.verification_token}'
-    message.set_content(
-        f'Your NexziByte TechTalk verification code is: {user.verification_token}\n\n'
-        f'You can also verify directly by opening this link:\n{link}\n\n'
-        'This code and link expire in 24 hours.'
-    )
-    try:
-        _send_smtp_message(message)
-    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
-        raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP configuration.') from exc
-
-
-def send_verification_email_background(user_id: int) -> None:
-    db = SessionLocal()
-    user = db.get(User, user_id)
-    log = EmailLog(
-        user_id=user_id,
-        email=user.email if user else "unknown",
-        email_type="verification",
-        status="pending",
-    )
-    db.add(log)
-    db.commit()
-    try:
-        if user:
-            send_verification_email(user)
-            log.status = "sent"
-            log.sent_at = datetime.utcnow()
-        else:
-            log.status = "failed"
-            log.error_message = "User no longer exists."
-    except HTTPException as exc:
-        log.status = "failed"
-        log.error_message = str(exc.detail)
-        logger.error("verification_email_failed", extra={"user_id": user_id, "detail": exc.detail})
-    finally:
-        db.commit()
-        db.close()
-
-
 def send_pass_email_background(
-    user_id: int | None,
-    recipient_email: str,
-    email_type: str,
-    subject: str,
-    details: list[str],
-    pass_id: str,
-    qr_data: str,
+    user_id: int | None, recipient_email: str, email_type: str, subject: str,
+    details: list[str], pass_id: str, qr_data: str,
 ) -> None:
-    db = SessionLocal()
-    log = EmailLog(
-        user_id=user_id,
-        email=recipient_email,
-        email_type=email_type,
-        status="pending",
-    )
-    db.add(log)
-    db.commit()
-    try:
-        if not smtp_configured():
-            raise RuntimeError("Email delivery is not configured.")
-        message = EmailMessage()
-        message["Subject"] = subject
-        message["From"] = smtp_sender()
-        message["To"] = recipient_email
-        message.set_content(
-            f"{subject}\n\n"
-            + "\n".join(details)
-            + f"\nPass ID: {pass_id}\n"
-            "The attached QR image is your entry pass. Keep this email available at accreditation.\n"
-            f"QR payload: {qr_data}\n"
-        )
-        qr_image = qrcode.make(qr_data)
-        qr_bytes = BytesIO()
-        qr_image.save(qr_bytes, format="PNG")
-        message.add_attachment(
-            qr_bytes.getvalue(),
-            maintype="image",
-            subtype="png",
-            filename=f"{pass_id}.png",
-        )
-        _send_smtp_message(message)
-        log.status = "sent"
-        log.sent_at = datetime.utcnow()
-    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
-        log.status = "failed"
-        log.error_message = str(exc)
-        logger.error("pass_email_failed", extra={"user_id": user_id, "email_type": email_type})
-    finally:
-        db.commit()
-        db.close()
+    logger.info("pass_email_not_sent", extra={"email_type": email_type})
 
-
-def send_password_reset_email_background(user_id: int, raw_token: str) -> None:
-    db = SessionLocal()
-    user = db.get(User, user_id)
-    if not user:
-        db.close()
-        return
-    log = EmailLog(user_id=user.id, email=user.email, email_type="password_reset", status="pending")
-    db.add(log)
-    db.commit()
-    try:
-        if not smtp_configured():
-            raise RuntimeError("Email delivery is not configured.")
-        message = EmailMessage()
-        message["Subject"] = "Reset your NexziByte TechTalk password"
-        message["From"] = smtp_sender()
-        message["To"] = user.email
-        link = f"{settings.frontend_url}/#/reset-password?token={raw_token}"
-        message.set_content(
-            f"Reset your password by opening this link:\n{link}\n\n"
-            "This link expires in one hour and can only be used once."
-        )
-        _send_smtp_message(message)
-        log.status = "sent"
-        log.sent_at = datetime.utcnow()
-    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
-        log.status = "failed"
-        log.error_message = str(exc)
-        logger.error("password_reset_email_failed", extra={"user_id": user.id})
-    finally:
-        db.commit()
-        db.close()
-
-
-def create_verification_code(db: Session) -> str:
-    code = f'{secrets.randbelow(1_000_000):06d}'
-    while db.query(User).filter_by(verification_token=code).first():
-        code = f'{secrets.randbelow(1_000_000):06d}'
-    return code
-
-
-def create_session_tokens(db: Session, user: User) -> dict[str, str]:
-    refresh = secrets.token_urlsafe(48)
-    db.add(RefreshToken(
-        user_id=user.id,
-        token_hash=hashlib.sha256(refresh.encode()).hexdigest(),
-        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
-    ))
-    db.commit()
-    return {
-        "access_token": create_access_token(user.email),
-        "refresh_token": refresh,
-        "token_type": "bearer",
-    }
 
 def audit(db: Session, actor: User | None, action: str, resource: str | None = None, metadata: dict | None = None):
     """Best-effort audit primitive for privileged handlers."""
@@ -256,18 +46,6 @@ def audit(db: Session, actor: User | None, action: str, resource: str | None = N
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    diagnostic = smtp_runtime_diagnostic()
-    logger.info(
-        "smtp_runtime_diagnostic SMTP_HOST present: %s; SMTP_PORT present: %s; "
-        "SMTP_USER present: %s; SMTP_PASSWORD present: %s; MAIL_FROM present: %s; "
-        "smtp_configured: %s",
-        diagnostic["SMTP_HOST"],
-        diagnostic["SMTP_PORT"],
-        diagnostic["SMTP_USER"],
-        diagnostic["SMTP_PASSWORD"],
-        diagnostic["MAIL_FROM"],
-        diagnostic["smtp_configured"],
-    )
     database_url = str(engine.url)
     if not database_url.startswith("sqlite"):
         if settings.jwt_secret == "change-this-in-production" or len(settings.jwt_secret) < 32:
@@ -316,12 +94,6 @@ def cleanup_expired_records() -> None:
             PassRequest.status.in_(['approved', 'issued']),
         ).update({'status': 'expired'}, synchronize_session=False)
         stale_cutoff = now - timedelta(days=settings.stale_account_days)
-        db.query(User).filter(
-            User.email_verified.is_(False),
-            User.verification_expires_at.is_not(None),
-            User.verification_expires_at < stale_cutoff,
-            User.is_active.is_(True),
-        ).update({'is_active': False}, synchronize_session=False)
         db.commit()
     except Exception:
         db.rollback()
@@ -376,8 +148,6 @@ def ensure_auth_columns():
     additions = {
         'referral_contact': 'VARCHAR(40)',
         'email_verified': 'BOOLEAN DEFAULT FALSE',
-        'verification_token': 'VARCHAR(128)',
-        'verification_expires_at': 'TIMESTAMP',
         'failed_login_attempts': 'INTEGER DEFAULT 0',
         'locked_until': 'TIMESTAMP',
     }
@@ -550,7 +320,7 @@ def pass_request_response(request):
         'role': request.role,
     }
 def user_item(user):
-    private_fields = {'password_hash', 'verification_token', 'verification_expires_at'}
+    private_fields = {'password_hash'}
     return {c.name: getattr(user, c.name) for c in user.__table__.columns if c.name not in private_fields}
 def one(db, cls, ident):
     obj = db.get(cls, ident)
@@ -806,17 +576,6 @@ def admin_email_logs(
         for row in rows
     ]
 
-@app.get('/admin/email-config')
-def admin_email_config(_: User = Depends(require_admin)):
-    missing = smtp_missing_settings()
-    return {
-        'configured': not missing,
-        'missing_settings': missing,
-        'smtp_host': settings.smtp_host,
-        'smtp_port': settings.smtp_port,
-        'sender_configured': bool(smtp_sender()),
-    }
-
 @app.get('/dashboard/member')
 def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return {
@@ -824,85 +583,6 @@ def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_cur
         'activity': user_profile_payload(user, db)['activity'],
         'pass_requests': [pass_request_response(row) for row in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()],
     }
-
-@app.post('/auth/register', status_code=201)
-def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    if not rate_limit(f'register:{body.email.lower()}', 5):
-        raise HTTPException(429, detail='Too many registration attempts. Try again later.')
-    if not body.accept_terms:
-        raise HTTPException(400, detail='You must accept the Terms and Conditions.')
-    normalized_email = body.email.lower().strip()
-    try:
-        password_policy(body.password)
-    except ValueError as exc:
-        raise HTTPException(422, detail=str(exc)) from exc
-    if not smtp_configured():
-        missing = ", ".join(smtp_missing_settings())
-        logger.error("verification_email_configuration_missing", extra={"missing_settings": missing})
-        raise HTTPException(503, detail='Email verification service is unavailable. Please try again later.')
-    if db.query(User).filter_by(email=normalized_email).first(): raise HTTPException(409, detail='Email already registered')
-    user = User(
-        name=body.name.strip(),
-        email=normalized_email,
-        password_hash=hash_password(body.password),
-        professional_role=getattr(body, 'professional_role', None),
-        profile_image=getattr(body, 'profile_image', None),
-        referral_contact=body.referral_contact,
-        is_active=False,
-        email_verified=False,
-        verification_token=create_verification_code(db),
-        verification_expires_at=datetime.utcnow() + timedelta(hours=24),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    ensure_user_settings(db, user)
-    db.commit()
-    email_verification_configured = smtp_configured()
-    background_tasks.add_task(send_verification_email_background, user.id)
-    return {
-        'detail': 'Account saved. Check your email for the verification code to activate and sign in.',
-        'email_verification_required': True,
-        'email_verification_sent': email_verification_configured,
-        'email': user.email,
-        'user': user_item(user),
-    }
-
-@app.post('/auth/login')
-def login(
-    form: OAuth2PasswordRequestForm = Depends(),
-    *,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    if not rate_limit(f'login:{form.username.lower().strip()}', 10):
-        raise HTTPException(429, detail='Too many login attempts. Try again later.')
-    username = form.username.lower().strip()
-    user = db.query(User).filter_by(email=username).first()
-    now = datetime.utcnow()
-    if user and user.locked_until and user.locked_until > now:
-        raise HTTPException(423, detail='Account temporarily locked. Try again later.')
-    if not user or not user.password_hash or not verify_password(form.password, user.password_hash):
-        if user:
-            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-            if user.failed_login_attempts >= 5:
-                user.locked_until = now + timedelta(minutes=min(60, 2 ** min(user.failed_login_attempts - 5, 5)))
-            db.commit()
-        raise HTTPException(401, detail='Incorrect email or password')
-    user.failed_login_attempts = 0
-    user.locked_until = None
-    if not user.is_active or not user.email_verified:
-        user.verification_token = create_verification_code(db)
-        user.verification_expires_at = now + timedelta(minutes=15)
-        db.commit()
-        background_tasks.add_task(send_verification_email_background, user.id)
-        return {
-            'detail': 'Your email is not verified. A verification code was sent to your email.',
-            'verification_required': True,
-            'verification_email_queued': smtp_configured(),
-            'email': user.email,
-        }
-    return {'user': user_item(user), **create_session_tokens(db, user)}
 
 @app.post('/auth/refresh')
 def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):
@@ -930,122 +610,12 @@ def logout(body: RefreshTokenIn, db: Session = Depends(get_db)):
         db.commit()
     return {'detail': 'Signed out'}
 
-@app.get('/auth/verify-email')
-def verify_email(token: str, db: Session = Depends(get_db)):
-    if not rate_limit('verify-email:link', 20):
-        raise HTTPException(429, detail='Too many verification attempts. Try again later.')
-    user = db.query(User).filter_by(verification_token=token).first()
-    if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
-        raise HTTPException(400, detail='Verification link is invalid or expired.')
-    user.email_verified = True
-    user.is_active = True
-    user.verification_token = None
-    user.verification_expires_at = None
-    tokens = create_session_tokens(db, user)
-    return {'detail': 'Email verified. You are now signed in.', 'user': user_item(user), **tokens}
-
-
-@app.post('/auth/verify-email')
-def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
-    if not rate_limit('verify-email:code', 20):
-        raise HTTPException(429, detail='Too many verification attempts. Try again later.')
-    code = body.code.strip()
-    query = db.query(User).filter_by(verification_token=code)
-    if body.email:
-        query = query.filter_by(email=body.email.lower().strip())
-    user = query.first()
-    if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
-        raise HTTPException(400, detail='Verification code is invalid or expired.')
-    user.email_verified = True
-    user.is_active = True
-    user.verification_token = None
-    user.verification_expires_at = None
-    tokens = create_session_tokens(db, user)
-    return {'detail': 'Email verified. You are now signed in.', 'user': user_item(user), **tokens}
-
-
-@app.post('/auth/resend-verification')
-def resend_verification(
-    body: VerificationResendIn,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    if not rate_limit(f'verify-email:resend:{body.email.lower()}', 3):
-        raise HTTPException(429, detail='Too many verification requests. Try again later.')
-    user = db.query(User).filter_by(email=body.email.lower().strip()).first()
-    if not user:
-        raise HTTPException(404, detail='No account exists for this email address.')
-    user.verification_token = create_verification_code(db)
-    user.verification_expires_at = datetime.utcnow() + timedelta(hours=24)
-    db.commit()
-    if not smtp_configured():
-        raise HTTPException(503, detail='Email delivery is not configured on the backend.')
-    background_tasks.add_task(send_verification_email_background, user.id)
-    return {'detail': 'A new verification code was sent to your email.'}
-
-
-@app.post('/auth/forgot-password')
-def forgot_password(
-    body: ForgotPasswordIn,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    normalized_email = body.email.lower().strip()
-    if not rate_limit(f'forgot-password:{normalized_email}', 3):
-        raise HTTPException(429, detail='Too many password reset requests. Try again later.')
-    user = db.query(User).filter_by(email=normalized_email, is_active=True).first()
-    if user:
-        raw_token = secrets.token_urlsafe(48)
-        db.query(PasswordResetToken).filter(
-            PasswordResetToken.user_id == user.id,
-            PasswordResetToken.used_at.is_(None),
-        ).update({PasswordResetToken.used_at: datetime.utcnow()})
-        db.add(PasswordResetToken(
-            user_id=user.id,
-            token_hash=hashlib.sha256(raw_token.encode()).hexdigest(),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-        ))
-        db.commit()
-        background_tasks.add_task(send_password_reset_email_background, user.id, raw_token)
-    return {'detail': 'If an account exists for that email, password reset instructions have been sent.'}
-
-
-@app.post('/auth/reset-password')
-def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
-    if not rate_limit('reset-password', 20):
-        raise HTTPException(429, detail='Too many password reset attempts. Try again later.')
-    try:
-        password_policy(body.new_password)
-    except ValueError as exc:
-        raise HTTPException(422, detail=str(exc)) from exc
-    digest = hashlib.sha256(body.token.encode()).hexdigest()
-    reset = db.query(PasswordResetToken).filter_by(token_hash=digest).first()
-    now = datetime.utcnow()
-    if not reset or reset.used_at or reset.expires_at < now:
-        raise HTTPException(400, detail='Password reset link is invalid or expired.')
-    user = db.get(User, reset.user_id)
-    if not user or not user.is_active:
-        raise HTTPException(400, detail='Password reset link is invalid or expired.')
-    user.password_hash = hash_password(body.new_password)
-    reset.used_at = now
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == user.id,
-        RefreshToken.revoked_at.is_(None),
-    ).update({RefreshToken.revoked_at: now})
-    db.commit()
-    return {'detail': 'Password reset successfully. You can now sign in.'}
-
-
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
 @app.get('/auth/session')
 def auth_session(user: User = Depends(get_current_user)):
     return user_item(user)
-
-@app.post('/auth/neon-session')
-def create_neon_session(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return {'user': user_item(user), **create_session_tokens(db, user)}
 
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)

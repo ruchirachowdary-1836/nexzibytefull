@@ -19,13 +19,13 @@ flowchart LR
     CDN[Render static service<br/>React/Vite dist]
     API[Render web service<br/>FastAPI + Uvicorn]
     DB[(Neon PostgreSQL)]
-    SMTP[SMTP provider<br/>optional configuration]
+    NeonEmail[Neon Auth<br/>managed verification]
     NeonAuth[Neon Auth<br/>optional/conditional]
 
     Browser -->|HTTPS / SPA routes| CDN
     Browser -->|REST JSON + bearer token| API
     API -->|SQLAlchemy / pooled connection| DB
-    API -->|verification email| SMTP
+    API -->|verification state\| Neon Auth
     Browser -->|Neon Auth SDK| NeonAuth
     Browser -->|Neon JWT on API requests| API
 ```
@@ -163,7 +163,7 @@ sequenceDiagram
 - `app/models.py`
   - Declarative schema and relationships.
 - `app/config.py`
-  - Environment-backed database, JWT, CORS, frontend and SMTP settings.
+  - Environment-backed database, JWT, CORS, frontend and Neon Auth settings.
 - Alembic
   - Migration chain is executed at Render startup before Uvicorn starts.
 
@@ -248,12 +248,12 @@ sequenceDiagram
     participant UI
     participant API
     participant DB
-    participant Mail as SMTP
+    participant Auth as Neon Auth
 
     User->>UI: submit registration + terms acceptance
     UI->>API: POST /auth/register
     API->>DB: create inactive/unverified user
-    API->>Mail: send verification link when SMTP is configured
+    API->>Auth: use the managed verification state
     API-->>UI: registration/verification status
     User->>UI: open verification link
     UI->>API: GET /auth/verify-email?token=...
@@ -333,7 +333,7 @@ flowchart TB
 - Health check: `/health`
 - Required production variables include `DB_URL`, `JWT_SECRET`,
   `CORS_ORIGINS`, and `FRONTEND_URL`.
-- SMTP variables are supported by the code but are not present in the checked
+- Neon Auth variables are supported by the code but are not present in the checked
   `render.yaml` configuration.
 
 ### Frontend Render service
@@ -357,7 +357,7 @@ flowchart TB
   API.
 - Neon Data API access from the browser is conditional and must be protected
   by Neon Auth/RLS policies before being used for sensitive data.
-- Secrets such as `DB_URL`, `JWT_SECRET`, and SMTP credentials should remain
+- Secrets such as `DB_URL`, `JWT_SECRET`, and identity-provider credentials should remain
   Render environment variables and must not be committed.
 
 ## 10. Implemented versus remaining integration items
@@ -366,8 +366,8 @@ flowchart TB
 
 - React/Vite frontend deployed independently from FastAPI backend.
 - Neon PostgreSQL persistence and Alembic migrations.
-- FastAPI JWT fallback authentication.
-- Email-verification data model and verification endpoint.
+- Neon JWT authentication for protected API routes.
+- Neon Auth-managed email verification.
 - Referral contact persistence for users and pass requests.
 - Terms-aware registration payload.
 - Neon Auth client and Google sign-in initiation.
@@ -377,7 +377,7 @@ flowchart TB
 
 ### Configuration or follow-up required
 
-- Configure a real SMTP provider in Render for actual verification email
+- Configure a real Neon Auth in Render for actual verification email
   delivery.
 - Enable/configure Google as a provider in the Neon Auth project.
 - Validate Neon JWTs in FastAPI, or provide a controlled identity-sync/session
@@ -416,5 +416,5 @@ declared Python dependencies and CI-only tooling, then runs:
 
 Coverage and the rendered migration SQL are retained as workflow artifacts when
 available. The workflow uses only non-production CI environment values; real
-database, SMTP, identity-provider, and signing secrets must be supplied by the
+database, identity-provider, and signing secrets must be supplied by the
 deployment platform.
