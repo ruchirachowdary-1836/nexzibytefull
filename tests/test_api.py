@@ -117,6 +117,16 @@ def test_auth_profile_routes_and_home_data():
     assert client.post('/auth/login', data={'username': profile_email, 'password': UPDATED_USER_PASSWORD}).status_code == 200
 
 
+def test_neon_session_exchange_returns_fastapi_tokens():
+    response = register_and_verify('Neon Bridge User', 'neon-bridge@example.com', STRONG_USER_PASSWORD)
+    exchange = client.post('/auth/neon-session', headers={
+        'Authorization': 'Bearer ' + response['access_token'],
+    })
+    assert exchange.status_code == 200
+    assert exchange.json()['access_token']
+    assert exchange.json()['refresh_token']
+
+
 def test_cors_preflight_for_frontend():
     response = client.options('/posts', headers={
         'Origin': 'https://techtalk-frontend-acvb.onrender.com',

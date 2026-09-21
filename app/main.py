@@ -1024,6 +1024,10 @@ def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db
 def auth_session(user: User = Depends(get_current_user)):
     return user_item(user)
 
+@app.post('/auth/neon-session')
+def create_neon_session(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return {'user': user_item(user), **create_session_tokens(db, user)}
+
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 

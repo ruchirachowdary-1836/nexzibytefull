@@ -29,7 +29,9 @@ export const neonClient = neonAuthEnabled
   : null;
 
 export async function getNeonToken() {
-  return neonClient?.auth.getJWTToken?.() || null;
+  if (!neonClient) return null;
+  const session = await getNeonSession();
+  return session?.session?.token || session?.token || null;
 }
 
 export async function getNeonSession() {

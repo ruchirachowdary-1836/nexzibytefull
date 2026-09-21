@@ -38,7 +38,7 @@ export const authService = {
   },
 
   me() {
-    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled) {
+    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled && localStorage.getItem("techtalk-google-pending") === "1") {
       return getNeonSession()
         .then((session) => normalizeNeonUser(session?.user))
         .then(hydrateNeonProfile);
@@ -64,9 +64,13 @@ export const authService = {
         body: JSON.stringify({ refresh_token: refreshToken }),
       }).catch(() => {});
     }
-    if (neonAuthEnabled) neonClient.auth.signOut().catch(() => {});
+    if (neonAuthEnabled && localStorage.getItem("techtalk-google-session") === "1") {
+      neonClient.auth.signOut().catch(() => {});
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem("techtalk-google-pending");
+    localStorage.removeItem("techtalk-google-session");
   },
 
   hasToken() {
@@ -91,18 +95,13 @@ async function hydrateNeonProfile(neonUser) {
     const session = neonUser || (await getNeonSession());
     const sessionUser = session?.user || session;
     const normalized = normalizeNeonUser(sessionUser);
-    let profile;
-    try {
-      profile = await apiRequest("/auth/session", { useNeonToken: true });
-    } catch (error) {
-      if (!/HTTP 404/.test(error.message)) throw error;
-      try {
-        profile = await apiRequest("/auth/me", { useNeonToken: true });
-      } catch (fallbackError) {
-        if (!/HTTP 404/.test(fallbackError.message)) throw fallbackError;
-        profile = normalized;
-      }
-    }
+    const exchanged = await apiRequest("/auth/neon-session", {
+      method: "POST",
+      useNeonToken: true,
+    });
+    storeTokens(exchanged);
+    localStorage.setItem("techtalk-google-session", "1");
+    const profile = exchanged.user || normalized;
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);
