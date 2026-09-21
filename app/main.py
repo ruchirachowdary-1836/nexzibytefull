@@ -19,7 +19,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 import qrcode
-from .config import allowed_origins, settings, smtp_configured, smtp_sender
+from .config import allowed_origins, settings, smtp_configured, smtp_missing_settings, smtp_sender
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
@@ -39,7 +39,7 @@ def send_verification_email(user: User):
     if not smtp_configured():
         raise HTTPException(
             503,
-            detail='Email delivery is not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and MAIL_FROM in Render before creating accounts.',
+            detail='Email verification service is unavailable. Configure the required SMTP settings in Render.',
         )
     message = EmailMessage()
     message['Subject'] = 'Verify your NexziByte TechTalk account'
@@ -61,7 +61,11 @@ def send_verification_email(user: User):
             server.login(smtp_user, smtp_password)
             server.send_message(message)
     except (OSError, smtplib.SMTPException) as exc:
-        raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP credentials.') from exc
+        logger.error(
+            "verification_email_smtp_failed",
+            extra={"smtp_host": smtp_host, "smtp_port": settings.smtp_port, "error_type": type(exc).__name__},
+        )
+        raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP configuration.') from exc
 
 
 def send_verification_email_background(user_id: int) -> None:
@@ -752,6 +756,17 @@ def admin_email_logs(
         for row in rows
     ]
 
+@app.get('/admin/email-config')
+def admin_email_config(_: User = Depends(require_admin)):
+    missing = smtp_missing_settings()
+    return {
+        'configured': not missing,
+        'missing_settings': missing,
+        'smtp_host': settings.smtp_host,
+        'smtp_port': settings.smtp_port,
+        'sender_configured': bool(smtp_sender()),
+    }
+
 @app.get('/dashboard/member')
 def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return {
@@ -771,6 +786,10 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
         password_policy(body.password)
     except ValueError as exc:
         raise HTTPException(422, detail=str(exc)) from exc
+    if not smtp_configured():
+        missing = ", ".join(smtp_missing_settings())
+        logger.error("verification_email_configuration_missing", extra={"missing_settings": missing})
+        raise HTTPException(503, detail='Email verification service is unavailable. Please try again later.')
     if db.query(User).filter_by(email=normalized_email).first(): raise HTTPException(409, detail='Email already registered')
     user = User(
         name=body.name.strip(),

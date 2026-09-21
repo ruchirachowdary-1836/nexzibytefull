@@ -1,4 +1,5 @@
 import os
+import importlib
 
 os.environ['DB_URL'] = 'sqlite:///./test_techtalk.db'
 
@@ -7,6 +8,8 @@ from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.main import app
 from app.models import User
+from app.config import settings
+main_module = importlib.import_module("app.main")
 
 client = TestClient(app)
 STRONG_ADMIN_PASSWORD = 'NexziByte!Adm1n#2026'
@@ -15,6 +18,12 @@ UPDATED_USER_PASSWORD = 'Mango!River#Pass7X'
 
 
 def setup_module():
+    settings.smtp_host = "smtp.test.invalid"
+    settings.smtp_port = 587
+    settings.smtp_user = "test@example.com"
+    settings.smtp_password = "test-password"
+    settings.mail_from = "TechTalk <test@example.com>"
+    main_module.send_verification_email_background = lambda user_id: None
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     db = SessionLocal()
