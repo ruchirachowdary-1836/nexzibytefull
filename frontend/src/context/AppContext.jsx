@@ -96,8 +96,13 @@ export function AppProvider({ children }) {
 
   const register = async (credentials) => {
     const result = await authService.register(credentials);
-    setUser(result.user);
     return result;
+  };
+
+  const hydrateCurrentUser = async () => {
+    const authenticatedUser = await authService.me();
+    setUser(authenticatedUser);
+    return authenticatedUser;
   };
 
   const logout = () => {
@@ -181,7 +186,7 @@ export function AppProvider({ children }) {
   const markAllNotificationsRead = () => setNotifications((items) => items.map((item) => ({ ...item, read: true })));
 
   const value = {
-    user, setUser, isLoggedIn, backendOnline, login, loginWithGoogle, register, logout, updateUserProfile,
+    user, setUser, isLoggedIn, backendOnline, login, loginWithGoogle, register, hydrateCurrentUser, logout, updateUserProfile,
     resetUserProfile: logout, userPosts, setUserPosts, userDrafts, setUserDrafts, createPost,
     deletePost: (id, draft) => draft ? setUserDrafts((items) => items.filter((item) => item.id !== id)) : setUserPosts((items) => items.filter((item) => item.id !== id)),
     notifications, setNotifications, markNotificationRead, markAllNotificationsRead,

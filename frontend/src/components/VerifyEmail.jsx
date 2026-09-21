@@ -3,10 +3,13 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { apiRequest } from "../lib/api.js";
 import { neonAuthEnabled, sendNeonVerificationCode, verifyNeonVerificationCode } from "../lib/neon.js";
+import { authService } from "../lib/auth.js";
+import { useApp } from "../context/AppContext.jsx";
 
 export default function VerifyEmail() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { setUser } = useApp();
   const [state, setState] = useState({ loading: Boolean(params.get("token")), message: "" });
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);
@@ -50,6 +53,8 @@ export default function VerifyEmail() {
       if (response?.access_token) {
         localStorage.setItem("techtalk-token", response.access_token);
         localStorage.setItem("techtalk-refresh-token", response.refresh_token);
+        const authenticatedUser = await authService.me();
+        setUser(authenticatedUser);
         navigate("/profile", { replace: true });
       } else {
         setState({ loading: false, message: response?.detail || "Email verified. You are now signed in." });

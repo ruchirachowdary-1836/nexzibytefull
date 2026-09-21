@@ -21,6 +21,11 @@ export default function LoginModal() {
     setSubmitting(true);
     try {
       const authenticatedUser = await login({ email: email.trim(), password });
+      if (authenticatedUser?.verification_required) {
+        setLoginModalOpen(false);
+        navigate(`/verify-email?email=${encodeURIComponent(authenticatedUser.email || email.trim())}&purpose=signin`, { replace: true });
+        return;
+      }
       setLoginModalOpen(false);
       showToast(`✓ Welcome back, ${authenticatedUser?.name || "Member"}! You are signed in.`);
       navigate("/profile");
