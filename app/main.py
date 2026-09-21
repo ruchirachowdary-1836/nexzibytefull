@@ -19,7 +19,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 import qrcode
-from .config import allowed_origins, settings
+from .config import allowed_origins, settings, smtp_configured, smtp_sender
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
@@ -36,14 +36,14 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 def send_verification_email(user: User):
-    if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+    if not smtp_configured():
         raise HTTPException(
             503,
             detail='Email delivery is not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and MAIL_FROM in Render before creating accounts.',
         )
     message = EmailMessage()
     message['Subject'] = 'Verify your NexziByte TechTalk account'
-    message['From'] = settings.mail_from
+    message['From'] = smtp_sender()
     message['To'] = user.email
     link = f'{settings.frontend_url}/#/verify-email?token={user.verification_token}'
     message.set_content(
@@ -111,11 +111,11 @@ def send_pass_email_background(
     db.add(log)
     db.commit()
     try:
-        if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+        if not smtp_configured():
             raise RuntimeError("Email delivery is not configured.")
         message = EmailMessage()
         message["Subject"] = subject
-        message["From"] = settings.mail_from
+        message["From"] = smtp_sender()
         message["To"] = recipient_email
         message.set_content(
             f"{subject}\n\n"
@@ -159,11 +159,11 @@ def send_password_reset_email_background(user_id: int, raw_token: str) -> None:
     db.add(log)
     db.commit()
     try:
-        if not all((settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.mail_from)):
+        if not smtp_configured():
             raise RuntimeError("Email delivery is not configured.")
         message = EmailMessage()
         message["Subject"] = "Reset your NexziByte TechTalk password"
-        message["From"] = settings.mail_from
+        message["From"] = smtp_sender()
         message["To"] = user.email
         link = f"{settings.frontend_url}/#/reset-password?token={raw_token}"
         message.set_content(
@@ -730,6 +730,27 @@ def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_cur
 def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return [item(request) for request in db.query(PassRequest).order_by(PassRequest.created_at.desc()).all()]
 
+@app.get('/admin/email-logs')
+def admin_email_logs(
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Expose delivery state to administrators without exposing it publicly."""
+    rows = db.query(EmailLog).order_by(EmailLog.created_at.desc()).limit(limit).all()
+    return [
+        {
+            'id': row.id,
+            'email': row.email,
+            'email_type': row.email_type,
+            'status': row.status,
+            'error_message': row.error_message,
+            'sent_at': row.sent_at,
+            'created_at': row.created_at,
+        }
+        for row in rows
+    ]
+
 @app.get('/dashboard/member')
 def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return {
@@ -767,9 +788,7 @@ def register(body: RegisterIn, background_tasks: BackgroundTasks, db: Session = 
     db.refresh(user)
     ensure_user_settings(db, user)
     db.commit()
-    email_verification_configured = bool(
-        settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from
-    )
+    email_verification_configured = smtp_configured()
     background_tasks.add_task(send_verification_email_background, user.id)
     return {
         'detail': 'Account saved. Check your email for the verification code to activate and sign in.',
@@ -811,7 +830,7 @@ def login(
     return {
         'detail': 'Verification code sent. Enter the code from your email to sign in.',
         'verification_required': True,
-        'verification_email_queued': bool(settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from),
+        'verification_email_queued': smtp_configured(),
         'email': user.email,
     }
 
@@ -886,7 +905,7 @@ def resend_verification(
     user.verification_token = create_verification_code(db)
     user.verification_expires_at = datetime.utcnow() + timedelta(hours=24)
     db.commit()
-    if not (settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from):
+    if not smtp_configured():
         raise HTTPException(503, detail='Email delivery is not configured on the backend.')
     background_tasks.add_task(send_verification_email_background, user.id)
     return {'detail': 'A new verification code was sent to your email.'}

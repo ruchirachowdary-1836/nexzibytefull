@@ -41,6 +41,14 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def smtp_sender() -> str | None:
+    return settings.mail_from or settings.smtp_user
+
+
+def smtp_configured() -> bool:
+    return bool(settings.smtp_host and settings.smtp_user and settings.smtp_password and smtp_sender())
+
+
 def allowed_origins() -> list[str]:
     raw_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
     if "*" in raw_origins:
