@@ -124,6 +124,9 @@ export default function AuthPage({ defaultMode = "login" }) {
 
     try {
       const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
+      if (!result.email_verification_sent) {
+        throw new Error("Your account was saved, but verification email delivery is not configured. Please contact support.");
+      }
       showToast(`✓ ${result.detail || "Verification code sent."}`);
       navigate(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`, { replace: true });
     } catch (error) {

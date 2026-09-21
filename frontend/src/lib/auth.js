@@ -27,7 +27,12 @@ export const authService = {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.detail || "Unable to sign in.");
-    if (data.verification_required) return data;
+    if (data.verification_required) {
+      if (!data.verification_email_queued) {
+        throw new Error("Your password is correct, but verification email delivery is not configured. Please contact support.");
+      }
+      return data;
+    }
     storeTokens(data);
     return this.me();
   },

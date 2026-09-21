@@ -811,6 +811,7 @@ def login(
     return {
         'detail': 'Verification code sent. Enter the code from your email to sign in.',
         'verification_required': True,
+        'verification_email_queued': bool(settings.smtp_host and settings.smtp_user and settings.smtp_password and settings.mail_from),
         'email': user.email,
     }
 
