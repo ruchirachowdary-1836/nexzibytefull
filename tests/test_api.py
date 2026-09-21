@@ -47,7 +47,9 @@ def register_and_verify(name, email, password):
     assert response.status_code == 201
     assert response.json()['email_verification_required'] is True
     assert 'access_token' not in response.json()
-    assert client.post('/auth/login', data={'username': email, 'password': password}).status_code == 403
+    pending_login = client.post('/auth/login', data={'username': email, 'password': password})
+    assert pending_login.status_code == 200
+    assert pending_login.json()['verification_required'] is True
     db = SessionLocal()
     pending_user = db.query(User).filter_by(email=email).one()
     assert pending_user.is_active is False

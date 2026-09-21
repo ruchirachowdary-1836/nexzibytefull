@@ -48,7 +48,7 @@ export default function VerifyEmail() {
         ? await verifyNeonVerificationCode(email, code)
         : await apiRequest("/auth/verify-email", {
             method: "POST",
-            body: JSON.stringify({ code }),
+            body: JSON.stringify({ email, code }),
           });
       if (response?.access_token) {
         localStorage.setItem("techtalk-token", response.access_token);

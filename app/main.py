@@ -371,6 +371,7 @@ class CheckInIn(BaseModel):
 
 class VerificationCodeIn(BaseModel):
     code: str = Field(min_length=6, max_length=128)
+    email: EmailStr | None = None
 
 class VerificationResendIn(BaseModel):
     email: EmailStr
@@ -810,8 +811,6 @@ def login(
     username = form.username.lower().strip()
     user = db.query(User).filter_by(email=username).first()
     now = datetime.utcnow()
-    if user and not user.is_active:
-        raise HTTPException(403, detail='Verify your email before signing in.')
     if user and user.locked_until and user.locked_until > now:
         raise HTTPException(423, detail='Account temporarily locked. Try again later.')
     if not user or not user.password_hash or not verify_password(form.password, user.password_hash):
@@ -823,6 +822,17 @@ def login(
         raise HTTPException(401, detail='Incorrect email or password')
     user.failed_login_attempts = 0
     user.locked_until = None
+    if not user.is_active or not user.email_verified:
+        user.verification_token = create_verification_code(db)
+        user.verification_expires_at = now + timedelta(minutes=15)
+        db.commit()
+        background_tasks.add_task(send_verification_email_background, user.id)
+        return {
+            'detail': 'Your email is not verified. A verification code was sent to your email.',
+            'verification_required': True,
+            'verification_email_queued': smtp_configured(),
+            'email': user.email,
+        }
     user.verification_token = create_verification_code(db)
     user.verification_expires_at = now + timedelta(minutes=15)
     db.commit()
@@ -880,7 +890,10 @@ def verify_email_code(body: VerificationCodeIn, db: Session = Depends(get_db)):
     if not rate_limit('verify-email:code', 20):
         raise HTTPException(429, detail='Too many verification attempts. Try again later.')
     code = body.code.strip()
-    user = db.query(User).filter_by(verification_token=code).first()
+    query = db.query(User).filter_by(verification_token=code)
+    if body.email:
+        query = query.filter_by(email=body.email.lower().strip())
+    user = query.first()
     if not user or not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
         raise HTTPException(400, detail='Verification code is invalid or expired.')
     user.email_verified = True

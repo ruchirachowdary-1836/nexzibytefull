@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter, Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, Link, Navigate, useSearchParams, useLocation } from "react-router-dom";
 import { 
   Sparkles, Search, Filter, ArrowLeft, ArrowRight, Calendar, MapPin, 
   Clock, Mic, QrCode, CheckCircle2, BookOpen, Layers, ShieldCheck 
@@ -282,6 +282,14 @@ function ScannerPage() {
   );
 }
 
+function ProtectedRoute({ children }) {
+  const { isLoggedIn, authReady } = useApp();
+  if (!authReady) {
+    return <div className="section-padding"><div className="container"><p>Restoring your session...</p></div></div>;
+  }
+  return isLoggedIn ? children : <Navigate to="/login" replace />;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    MAIN APPLICATION ROUTER & WRAPPER
    ══════════════════════════════════════════════════════════════════ */
@@ -313,8 +321,8 @@ function App() {
         <Route path="/login" element={<AuthPage defaultMode="login" />} />
         <Route path="/register" element={<AuthPage defaultMode="register" />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/dashboard" element={<MemberDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/dashboard" element={<ProtectedRoute><MemberDashboard /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/summits" element={<SummitsPage />} />
         <Route path="/summits/:id" element={<SummitDetailsPage />} />
         <Route path="/summit-details" element={<SummitDetailsPage />} />
@@ -328,8 +336,8 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout/:passId" element={<CheckoutPage />} />
         <Route path="/payment" element={<CheckoutPage />} />
-        <Route path="/scanner" element={<ScannerPage />} />
-        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/scanner" element={<ProtectedRoute><ScannerPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
         <Route path="*" element={<HomePage />} />
       </Routes>
 

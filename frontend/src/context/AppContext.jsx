@@ -10,6 +10,7 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [backendOnline, setBackendOnline] = useState(null);
   const [activePass, setActivePass] = useState(null);
   const [passesList, setPassesList] = useState([]);
@@ -42,7 +43,11 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     checkBackendHealth().then(setBackendOnline);
-    if (authService.hasToken()) {
+    if (!authService.hasToken()) {
+      setAuthReady(true);
+      return;
+    }
+    {
       const hydrateSession = async () => {
         const googlePending = localStorage.getItem("techtalk-google-pending") === "1";
         let lastError;
@@ -54,6 +59,7 @@ export function AppProvider({ children }) {
               localStorage.removeItem("techtalk-google-pending");
               window.location.hash = "/profile";
             }
+            setAuthReady(true);
             return;
           } catch (error) {
             lastError = error;
@@ -66,6 +72,7 @@ export function AppProvider({ children }) {
           localStorage.removeItem("techtalk-google-pending");
         }
         authService.logout();
+        setAuthReady(true);
       };
       hydrateSession();
     }
@@ -186,7 +193,7 @@ export function AppProvider({ children }) {
   const markAllNotificationsRead = () => setNotifications((items) => items.map((item) => ({ ...item, read: true })));
 
   const value = {
-    user, setUser, isLoggedIn, backendOnline, login, loginWithGoogle, register, hydrateCurrentUser, logout, updateUserProfile,
+    user, setUser, isLoggedIn, authReady, backendOnline, login, loginWithGoogle, register, hydrateCurrentUser, logout, updateUserProfile,
     resetUserProfile: logout, userPosts, setUserPosts, userDrafts, setUserDrafts, createPost,
     deletePost: (id, draft) => draft ? setUserDrafts((items) => items.filter((item) => item.id !== id)) : setUserPosts((items) => items.filter((item) => item.id !== id)),
     notifications, setNotifications, markNotificationRead, markAllNotificationsRead,
