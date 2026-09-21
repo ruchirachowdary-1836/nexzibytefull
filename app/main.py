@@ -35,6 +35,56 @@ from .observability import (
 configure_logging()
 logger = logging.getLogger(__name__)
 
+def _smtp_error_message(exc: Exception) -> str:
+    message = str(exc).replace("\r", " ").replace("\n", " ").strip()
+    for secret in (settings.smtp_password, settings.smtp_user):
+        if secret:
+            message = message.replace(secret, "[redacted]")
+    return message[:300] or "SMTP operation failed."
+
+
+def _send_smtp_message(message: EmailMessage) -> None:
+    if not smtp_configured():
+        missing = ", ".join(smtp_missing_settings())
+        logger.error("smtp_configuration_missing", extra={"missing_settings": missing})
+        raise RuntimeError("SMTP configuration is incomplete.")
+
+    smtp_host = settings.smtp_host
+    smtp_user = settings.smtp_user
+    smtp_password = settings.smtp_password
+    assert smtp_host is not None and smtp_user is not None and smtp_password is not None
+    logger.info("smtp_connection_started", extra={"smtp_host": smtp_host, "smtp_port": settings.smtp_port})
+    try:
+        with smtplib.SMTP(smtp_host, settings.smtp_port, timeout=15) as server:
+            logger.info("smtp_starttls_started")
+            server.starttls()
+            logger.info("smtp_starttls_succeeded")
+            try:
+                server.login(smtp_user, smtp_password)
+                logger.info("smtp_authentication_succeeded")
+            except smtplib.SMTPAuthenticationError as exc:
+                logger.error(
+                    "smtp_authentication_failed",
+                    extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
+                )
+                raise
+            try:
+                server.send_message(message)
+                logger.info("smtp_send_succeeded")
+            except (OSError, smtplib.SMTPException) as exc:
+                logger.error(
+                    "smtp_send_failed",
+                    extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
+                )
+                raise
+    except (OSError, smtplib.SMTPException) as exc:
+        logger.error(
+            "smtp_operation_failed",
+            extra={"exception_type": type(exc).__name__, "error": _smtp_error_message(exc)},
+        )
+        raise
+
+
 def send_verification_email(user: User):
     if not smtp_configured():
         raise HTTPException(
@@ -52,19 +102,8 @@ def send_verification_email(user: User):
         'This code and link expire in 24 hours.'
     )
     try:
-        smtp_host = settings.smtp_host
-        smtp_user = settings.smtp_user
-        smtp_password = settings.smtp_password
-        assert smtp_host is not None and smtp_user is not None and smtp_password is not None
-        with smtplib.SMTP(smtp_host, settings.smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.send_message(message)
-    except (OSError, smtplib.SMTPException) as exc:
-        logger.error(
-            "verification_email_smtp_failed",
-            extra={"smtp_host": smtp_host, "smtp_port": settings.smtp_port, "error_type": type(exc).__name__},
-        )
+        _send_smtp_message(message)
+    except (OSError, smtplib.SMTPException, RuntimeError) as exc:
         raise HTTPException(503, detail='Verification email could not be sent. Check the Render SMTP configuration.') from exc
 
 
@@ -137,11 +176,7 @@ def send_pass_email_background(
             subtype="png",
             filename=f"{pass_id}.png",
         )
-        assert settings.smtp_host and settings.smtp_user and settings.smtp_password
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(message)
+        _send_smtp_message(message)
         log.status = "sent"
         log.sent_at = datetime.utcnow()
     except (OSError, smtplib.SMTPException, RuntimeError) as exc:
@@ -174,11 +209,7 @@ def send_password_reset_email_background(user_id: int, raw_token: str) -> None:
             f"Reset your password by opening this link:\n{link}\n\n"
             "This link expires in one hour and can only be used once."
         )
-        assert settings.smtp_host and settings.smtp_user and settings.smtp_password
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(message)
+        _send_smtp_message(message)
         log.status = "sent"
         log.sent_at = datetime.utcnow()
     except (OSError, smtplib.SMTPException, RuntimeError) as exc:
@@ -852,16 +883,7 @@ def login(
             'verification_email_queued': smtp_configured(),
             'email': user.email,
         }
-    user.verification_token = create_verification_code(db)
-    user.verification_expires_at = now + timedelta(minutes=15)
-    db.commit()
-    background_tasks.add_task(send_verification_email_background, user.id)
-    return {
-        'detail': 'Verification code sent. Enter the code from your email to sign in.',
-        'verification_required': True,
-        'verification_email_queued': smtp_configured(),
-        'email': user.email,
-    }
+    return {'user': user_item(user), **create_session_tokens(db, user)}
 
 @app.post('/auth/refresh')
 def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):
