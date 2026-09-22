@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     cleanup_interval_seconds: int = 3600
     stale_account_days: int = 30
+    brevo_api_key: str | None = None
+    brevo_sender_email: str | None = None
+    brevo_sender_name: str | None = None
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

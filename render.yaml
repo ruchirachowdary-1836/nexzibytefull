@@ -26,6 +26,12 @@ services:
         value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth
       - key: NEON_AUTH_AUDIENCE
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        sync: false
   - type: web
     name: techtalk-frontend
     runtime: static

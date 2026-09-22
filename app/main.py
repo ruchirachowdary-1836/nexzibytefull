@@ -16,6 +16,8 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.orm import Session
 import qrcode
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
@@ -36,7 +38,65 @@ def send_pass_email_background(
     user_id: int | None, recipient_email: str, email_type: str, subject: str,
     details: list[str], pass_id: str, qr_data: str,
 ) -> None:
-    logger.info("pass_email_not_sent", extra={"email_type": email_type})
+    api_key = (settings.brevo_api_key or "").strip()
+    sender_email = (settings.brevo_sender_email or "").strip()
+    sender_name = (settings.brevo_sender_name or "").strip()
+    recipient = (recipient_email or "").strip()
+    if not all((api_key, sender_email, sender_name, recipient)):
+        logger.warning(
+            "pass_email_not_sent",
+            extra={"email_type": email_type, "reason": "brevo_configuration_incomplete"},
+        )
+        return
+
+    detail_lines = "".join(f"<li>{html_escape(detail)}</li>" for detail in details)
+    html_content = (
+        "<p>Your TechTalk pass has been created successfully.</p>"
+        f"<ul>{detail_lines}</ul>"
+        f"<p><strong>Pass ID:</strong> {html_escape(pass_id)}</p>"
+        f"<p><strong>QR/pass information:</strong> "
+        f"<code>{html_escape(qr_data)}</code></p>"
+        "<p>Please keep this email available for event or community access.</p>"
+    )
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key["api-key"] = api_key
+    message = sib_api_v3_sdk.SendSmtpEmail(
+        sender=sib_api_v3_sdk.SendSmtpEmailSender(email=sender_email, name=sender_name),
+        to=[sib_api_v3_sdk.SendSmtpEmailTo(email=recipient)],
+        subject=subject,
+        html_content=html_content,
+    )
+    try:
+        with sib_api_v3_sdk.ApiClient(configuration) as api_client:
+            response = sib_api_v3_sdk.TransactionalEmailsApi(api_client).send_transac_email(message)
+        message_id = getattr(response, "message_id", None) or getattr(response, "messageId", None)
+        logger.info(
+            "pass_email_sent",
+            extra={
+                "email_type": email_type,
+                "message_id": message_id or "missing",
+            },
+        )
+    except ApiException as exc:
+        logger.error(
+            "pass_email_failed",
+            extra={
+                "email_type": email_type,
+                "error_type": type(exc).__name__,
+                "status": getattr(exc, "status", None),
+                "reason": str(getattr(exc, "reason", ""))[:300],
+            },
+        )
+    except Exception as exc:
+        logger.error(
+            "pass_email_failed",
+            extra={"email_type": email_type, "error_type": type(exc).__name__},
+        )
+
+
+def html_escape(value: object) -> str:
+    import html
+    return html.escape(str(value), quote=True)
 
 
 def audit(db: Session, actor: User | None, action: str, resource: str | None = None, metadata: dict | None = None):
@@ -459,7 +519,7 @@ def create_pass_request(
         user_id=user.id if user else None,
         first_name=first_name,
         last_name=' '.join(last_name) or first_name,
-        email=body.email.lower().strip(),
+        email=(user.email if user else body.email).lower().strip(),
         pass_type=body.pass_type,
         amount=body.amount,
         company=body.company,
@@ -480,11 +540,13 @@ def create_pass_request(
         send_pass_email_background,
         request.user_id,
         request.email,
-        "pass_confirmation",
-        f"Your {request.pass_type} is ready",
+        "community_pass" if "community" in request.pass_type.lower() else "pass_confirmation",
+        f"Your Community Pass — {request.pass_type}" if "community" in request.pass_type.lower() else f"Your {request.pass_type} is ready",
         [
             f"Pass holder: {request.first_name} {request.last_name}".strip(),
             f"Pass type: {request.pass_type}",
+            f"Community: {request.company or 'TechTalk Community'}",
+            f"Access information: {request.notes or 'Use your pass ID at the community entrance.'}",
             "Status: Issued",
         ],
         request.pass_id,
@@ -1188,12 +1250,18 @@ def create_registration(
         user.id,
         user.email,
         "registration_confirmation",
-        f"Registration confirmed: {event.title}",
+        f"Your Event Pass — {event.title}",
         [
+            f"User name: {user.name}",
             f"Event: {event.title}",
+            f"Event date: {event.date.isoformat()}",
+            f"Event time: {event.time.isoformat() if event.time else 'To be announced'}",
+            f"Venue/location: {event.location or 'To be announced'}",
+            f"Event description: {event.description or 'See your TechTalk event page for details.'}",
             f"Pass holder: {user.name}",
             f"Registration ID: {x.registration_number}",
-            f"Event type: {body.event_type.replace('_', ' ').title()}",
+            f"Pass ID: {x.pass_id}",
+            f"Event instructions: {event.agenda or 'Bring this pass and QR information for entry.'}",
         ],
         x.pass_id,
         x.qr_data,
