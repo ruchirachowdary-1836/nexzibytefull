@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Sparkles, Lock, Mail, User, Briefcase, Eye, EyeOff,
@@ -45,6 +45,7 @@ export default function AuthPage({ defaultMode = "login" }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoggedIn, logout, login, register, loginWithGoogle, showToast } = useApp();
+  const accessMessageShown = useRef(false);
 
   // Mode: "login" or "register"
   const [mode, setMode] = useState(
@@ -62,9 +63,21 @@ export default function AuthPage({ defaultMode = "login" }) {
 
   useEffect(() => {
     if (isLoggedIn && location.pathname !== "/profile") {
-      navigate("/profile", { replace: true });
+      const destination = location.state?.from;
+      navigate(
+        destination?.pathname
+          ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}`
+          : "/profile",
+        { replace: true }
+      );
     }
-  }, [isLoggedIn, location.pathname, navigate]);
+  }, [isLoggedIn, location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    if (!location.state?.message || accessMessageShown.current) return;
+    accessMessageShown.current = true;
+    showToast(location.state.message);
+  }, [location.state, showToast]);
 
   // Login Form States
   const [loginEmail, setLoginEmail] = useState(user?.email || "");
@@ -94,11 +107,15 @@ export default function AuthPage({ defaultMode = "login" }) {
       const authenticated = await login({ email: loginEmail.trim(), password: loginPassword });
       if (authenticated.verification_required) {
         showToast(`✓ ${authenticated.detail}`);
-        navigate(`/verify-email?email=${encodeURIComponent(authenticated.email || loginEmail.trim())}&purpose=signin`, { replace: true });
+        navigate(`/verify-email?email=${encodeURIComponent(authenticated.email || loginEmail.trim())}&purpose=signin`, {
+          replace: true,
+          state: { from: location.state?.from || null },
+        });
         return;
       }
-      showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
-      navigate("/profile");
+        showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
+        const destination = location.state?.from;
+        navigate(destination?.pathname ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}` : "/profile");
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

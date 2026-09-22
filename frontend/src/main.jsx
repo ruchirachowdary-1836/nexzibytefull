@@ -284,10 +284,20 @@ function ScannerPage() {
 
 function ProtectedRoute({ children }) {
   const { isLoggedIn, authReady } = useApp();
+  const location = useLocation();
   if (!authReady) {
     return <div className="section-padding"><div className="container"><p>Restoring your session...</p></div></div>;
   }
-  return isLoggedIn ? children : <Navigate to="/login" replace />;
+  return isLoggedIn ? children : (
+    <Navigate
+      to="/login"
+      replace
+      state={{
+        from: location,
+        message: "Please sign in or create an account to access this section.",
+      }}
+    />
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -313,26 +323,31 @@ function App() {
       {/* Main Routed Content */}
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/events" element={<EventsPage />} />
-        <Route path="/explore" element={<ExploreFeedPage />} />
+        <Route path="/explore" element={<ProtectedRoute><ExploreFeedPage /></ProtectedRoute>} />
         <Route path="/posts/:id" element={<PostDetailsPage />} />
         <Route path="/post/:id" element={<PostDetailsPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/login" element={<AuthPage defaultMode="login" />} />
         <Route path="/register" element={<AuthPage defaultMode="register" />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/community" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+        <Route path="/services" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
+        <Route path="/resources" element={<ProtectedRoute><ExploreFeedPage /></ProtectedRoute>} />
+        <Route path="/about" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/partner" element={<ProtectedRoute><PassesPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><MemberDashboard /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/summits" element={<SummitsPage />} />
-        <Route path="/summits/:id" element={<SummitDetailsPage />} />
-        <Route path="/summit-details" element={<SummitDetailsPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/internship" element={<InternshipPage />} />
-        <Route path="/founder-meets" element={<FounderMeetsPage />} />
-        <Route path="/founder-meets/:id" element={<FounderMeetDetailsPage />} />
-        <Route path="/founder-meet-details" element={<FounderMeetDetailsPage />} />
+        <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+        <Route path="/summits" element={<ProtectedRoute><SummitsPage /></ProtectedRoute>} />
+        <Route path="/summits/:id" element={<ProtectedRoute><SummitDetailsPage /></ProtectedRoute>} />
+        <Route path="/summit-details" element={<ProtectedRoute><SummitDetailsPage /></ProtectedRoute>} />
+        <Route path="/courses" element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
+        <Route path="/internship" element={<ProtectedRoute><InternshipPage /></ProtectedRoute>} />
+        <Route path="/founder-meets" element={<ProtectedRoute><FounderMeetsPage /></ProtectedRoute>} />
+        <Route path="/founder-meets/:id" element={<ProtectedRoute><FounderMeetDetailsPage /></ProtectedRoute>} />
+        <Route path="/founder-meet-details" element={<ProtectedRoute><FounderMeetDetailsPage /></ProtectedRoute>} />
         <Route path="/speakers" element={<SpeakersPage />} />
-        <Route path="/passes" element={<PassesPage />} />
+        <Route path="/passes" element={<ProtectedRoute><PassesPage /></ProtectedRoute>} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout/:passId" element={<CheckoutPage />} />
         <Route path="/payment" element={<CheckoutPage />} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2, MailCheck, RefreshCw, XCircle } from "lucide-react";
 import { getNeonSession, resendNeonVerification, verifyNeonEmail, waitForNeonSession } from "../lib/neon.js";
 import { useApp } from "../context/AppContext.jsx";
@@ -10,6 +10,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
 export default function VerifyEmail() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser, hydrateCurrentUser } = useApp();
   const email = useMemo(() => params.get("email") || "", [params]);
   const purpose = params.get("purpose") || "signup";
@@ -55,7 +56,13 @@ export default function VerifyEmail() {
       if (session?.user) {
         const profile = await hydrateCurrentUser();
         setUser(profile);
-        navigate("/profile", { replace: true });
+        const destination = location.state?.from;
+        navigate(
+          destination?.pathname
+            ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}`
+            : "/profile",
+          { replace: true }
+        );
         return;
       }
       throw new Error("Your email was verified, but the Neon Auth session is not ready yet.");

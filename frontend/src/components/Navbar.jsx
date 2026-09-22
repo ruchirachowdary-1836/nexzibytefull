@@ -49,7 +49,7 @@ function DropdownArrowIcon() {
 }
 
 export default function Navbar() {
-  const { setLoginModalOpen, openPassModal, user, isLoggedIn, logout, unreadNotificationCount } = useApp();
+  const { setLoginModalOpen, openPassModal, user, isLoggedIn, authReady, logout, unreadNotificationCount } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -86,6 +86,17 @@ export default function Navbar() {
     setActiveDropdown(null);
     setMobileMenuOpen(false);
 
+    if (!authReady) return;
+    if (!isLoggedIn) {
+      navigate("/login", {
+        state: {
+          from: { pathname: path, hash: hashId ? `#${hashId}` : "" },
+          message: "Please sign in or create an account to access this section.",
+        },
+      });
+      return;
+    }
+
     if (location.pathname === "/") {
       if (hashId) {
         const el = document.getElementById(hashId);
@@ -99,6 +110,22 @@ export default function Navbar() {
     } else {
       navigate(path);
     }
+  };
+
+  const handleProtectedPass = (passType) => {
+    setActiveDropdown(null);
+    setMobileMenuOpen(false);
+    if (!authReady) return;
+    if (!isLoggedIn) {
+      navigate("/login", {
+        state: {
+          from: { pathname: "/partner" },
+          message: "Please sign in or create an account to access this section.",
+        },
+      });
+      return;
+    }
+    openPassModal(passType);
   };
 
   const toggleDropdown = (name) => {
@@ -191,7 +218,7 @@ export default function Navbar() {
                     className="nav-editorial-dropdown-item"
                     onClick={() => {
                       setActiveDropdown(null);
-                      openPassModal("visitor-pass");
+                      handleProtectedPass("visitor-pass");
                     }}
                     role="menuitem"
                   >
@@ -386,7 +413,7 @@ export default function Navbar() {
               type="button" 
               className="nav-partner-btn"
               onClick={() => {
-                openPassModal("speaker-pass");
+                handleProtectedPass("speaker-pass");
               }}
             >
               <span>PARTNER</span>
@@ -477,7 +504,7 @@ export default function Navbar() {
             <button 
               type="button" 
               className="nav-join-community-btn"
-              onClick={() => openPassModal("visitor-pass")}
+              onClick={() => handleProtectedPass("visitor-pass")}
             >
               Join Community
             </button>
@@ -572,7 +599,7 @@ export default function Navbar() {
             <button 
               type="button" 
               className="mobile-nav-link-dark" 
-              onClick={() => { setMobileMenuOpen(false); openPassModal("visitor-pass"); }}
+              onClick={() => handleProtectedPass("visitor-pass")}
             >
               Pricing &amp; Passes
             </button>
@@ -637,7 +664,7 @@ export default function Navbar() {
               type="button" 
               className="mobile-nav-link-dark"
               style={{ color: "#FFFFFF", fontWeight: 800 }}
-              onClick={() => { setMobileMenuOpen(false); openPassModal("speaker-pass"); }}
+              onClick={() => handleProtectedPass("speaker-pass")}
             >
               Partner With Us
             </button>
@@ -674,7 +701,7 @@ export default function Navbar() {
               type="button" 
               className="nav-join-community-btn"
               style={{ flex: 1 }}
-              onClick={() => { setMobileMenuOpen(false); openPassModal("visitor-pass"); }}
+              onClick={() => handleProtectedPass("visitor-pass")}
             >
               Join Community
             </button>
