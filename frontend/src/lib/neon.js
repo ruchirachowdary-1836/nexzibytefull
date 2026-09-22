@@ -30,6 +30,9 @@ export const neonClient = neonAuthEnabled
 
 export async function getNeonToken() {
   if (!neonClient) return null;
+  if (typeof neonClient.auth.getJWTToken === "function") {
+    return neonClient.auth.getJWTToken();
+  }
   const session = await getNeonSession();
   return session?.session?.token || session?.token || null;
 }
