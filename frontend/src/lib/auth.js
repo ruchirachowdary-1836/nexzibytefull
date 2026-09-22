@@ -4,11 +4,12 @@ import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWit
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
     if (!neonAuthEnabled) throw new Error("Neon Auth is not configured.");
-    const result = await signUpWithEmail({ name, email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    const result = await signUpWithEmail({ name, email: normalizedEmail, password });
     const user = result?.user || result?.session?.user || null;
     return {
       ...result,
-      email,
+      email: normalizedEmail,
       user,
       email_verification_required: !user?.emailVerified,
       detail: "Verification email sent. Check your inbox before signing in.",

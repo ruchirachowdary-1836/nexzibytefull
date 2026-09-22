@@ -123,9 +123,10 @@ export default function AuthPage({ defaultMode = "login" }) {
     }
 
     try {
-      const result = await register({ name: regName.trim(), email: regEmail.trim(), password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
+      const normalizedEmail = regEmail.trim().toLowerCase();
+      const result = await register({ name: regName.trim(), email: normalizedEmail, password: regPassword, role: regRole, referral_contact: referralContact, accept_terms: acceptTerms });
       showToast(`✓ ${result.detail || "Verification code sent."}`);
-      navigate(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`, { replace: true });
+      navigate(`/verify-email?email=${encodeURIComponent(result.email || normalizedEmail)}`, { replace: true });
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

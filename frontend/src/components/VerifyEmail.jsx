@@ -50,17 +50,17 @@ export default function VerifyEmail() {
     setLoading(true);
     setError("");
     try {
-      await verifyNeonEmail(code);
-      setVerified(true);
-      setMessage("Email verified successfully.");
+      await verifyNeonEmail(email, code);
       const session = await waitForNeonSession();
       if (session?.user) {
         const profile = await hydrateCurrentUser();
         setUser(profile);
         navigate("/profile", { replace: true });
+        return;
       }
+      throw new Error("Your email was verified, but the Neon Auth session is not ready yet.");
     } catch (verificationError) {
-      setError("That verification code is incorrect or expired. Please try again or request a new code.");
+      setError(verificationError.message || "Unable to verify your email. Please try again.");
     } finally {
       setLoading(false);
     }

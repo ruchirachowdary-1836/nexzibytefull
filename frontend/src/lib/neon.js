@@ -42,43 +42,66 @@ export async function getNeonSession() {
 
 export async function signUpWithEmail({ email, password, name }) {
   if (!neonClient) throw new Error("Neon Auth is not configured.");
-  const result = await neonClient.auth.signUp.email({ email, password, name });
+  const result = await neonClient.auth.signUp.email({ email: email.trim().toLowerCase(), password, name });
   if (result?.error) throw new Error(result.error.message || "Unable to create your account.");
   return result?.data || result;
 }
 
 export async function signInWithEmail({ email, password }) {
   if (!neonClient) throw new Error("Neon Auth is not configured.");
-  const result = await neonClient.auth.signIn.email({ email, password });
+  const result = await neonClient.auth.signIn.email({ email: email.trim().toLowerCase(), password });
   if (result?.error) throw new Error(result.error.message || "Unable to sign in.");
   return result?.data || result;
 }
 
+function authErrorMessage(error, fallbackMessage) {
+  const status = error?.status || error?.response?.status;
+  if (status === 400 || /invalid|incorrect|otp|code/i.test(error?.message || "")) {
+    return fallbackMessage;
+  }
+  if (status === 401 || /session|unauthorized/i.test(error?.message || "")) {
+    return "Your verification session has expired. Please request a new code.";
+  }
+  if (status >= 500) {
+    return "Neon Auth could not verify your email right now. Please try again.";
+  }
+  return error?.message || fallbackMessage;
+}
+
 function unwrapAuthResult(result, fallbackMessage) {
   if (result?.error) {
-    throw new Error(result.error.message || fallbackMessage);
+    const error = new Error(authErrorMessage(result.error, fallbackMessage));
+    error.category = /expired|session/i.test(error.message) ? "session" : "invalid_code";
+    throw error;
   }
   return result?.data || result;
 }
 
-export async function verifyNeonEmail(code) {
+export async function verifyNeonEmail(email, otp) {
   if (!neonClient) throw new Error("Neon Auth is not configured.");
-  if (typeof neonClient.auth.verifyEmail !== "function") {
+  const verifyOtp = neonClient.auth.emailOtp?.verifyEmail;
+  if (typeof verifyOtp !== "function") {
     throw new Error("Email verification codes are not enabled in the configured Neon Auth client.");
   }
-  return unwrapAuthResult(
-    await neonClient.auth.verifyEmail({ code: code.trim() }),
-    "That verification code is incorrect or expired."
-  );
+  try {
+    return unwrapAuthResult(
+      await verifyOtp({ email: email.trim().toLowerCase(), otp: String(otp) }),
+      "That verification code is incorrect or expired."
+    );
+  } catch (error) {
+    if (error.category) throw error;
+    throw new Error(authErrorMessage(error, "That verification code is incorrect or expired."));
+  }
 }
 
 export async function resendNeonVerification(email) {
   if (!neonClient) throw new Error("Neon Auth is not configured.");
-  if (typeof neonClient.auth.sendVerificationEmail !== "function") {
+  const sendOtp = neonClient.auth.emailOtp?.sendVerificationOtp;
+  if (typeof sendOtp !== "function") {
     throw new Error("Neon Auth verification-code resend is not available.");
   }
   return unwrapAuthResult(
-    await neonClient.auth.sendVerificationEmail({ email: email.trim() }),
+    await sendOtp({ email: email.trim().toLowerCase(), type: "email-verification" }),
     "Unable to resend the verification code."
   );
 }
