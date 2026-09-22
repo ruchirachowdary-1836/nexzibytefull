@@ -13,7 +13,10 @@ export async function apiRequest(path, options = {}, allowRefresh = true) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+  if (!response.ok) {
+    const method = requestOptions.method || "GET";
+    throw new Error(data.detail || `HTTP ${response.status} for ${method} ${path}`);
+  }
   return data;
 }
 
