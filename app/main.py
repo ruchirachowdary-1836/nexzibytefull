@@ -19,7 +19,7 @@ import qrcode
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
-from .auth import create_access_token, get_current_user, get_optional_user, hash_password, require_admin, verify_password
+from .auth import get_current_user, get_optional_user, hash_password, require_admin, verify_password
 from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
 from .observability import (
     ObservabilityMiddleware,
@@ -146,6 +146,7 @@ def ensure_pass_issue_columns():
 def ensure_auth_columns():
     columns = {column['name'] for column in inspect(engine).get_columns('users')}
     additions = {
+        'neon_auth_user_id': 'VARCHAR(128)',
         'referral_contact': 'VARCHAR(40)',
         'email_verified': 'BOOLEAN DEFAULT FALSE',
         'failed_login_attempts': 'INTEGER DEFAULT 0',
@@ -584,32 +585,6 @@ def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_cur
         'pass_requests': [pass_request_response(row) for row in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()],
     }
 
-@app.post('/auth/refresh')
-def refresh_access_token(body: RefreshTokenIn, db: Session = Depends(get_db)):
-    digest = hashlib.sha256(body.refresh_token.encode()).hexdigest()
-    token = db.query(RefreshToken).filter_by(token_hash=digest).first()
-    if not token or token.revoked_at or token.expires_at < datetime.utcnow():
-        raise HTTPException(401, detail='Invalid refresh token')
-    replacement = secrets.token_urlsafe(48)
-    replacement_hash = hashlib.sha256(replacement.encode()).hexdigest()
-    token.revoked_at = datetime.utcnow()
-    token.replaced_by_hash = replacement_hash
-    db.add(RefreshToken(user_id=token.user_id, token_hash=replacement_hash,
-                        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)))
-    db.commit()
-    user = db.get(User, token.user_id)
-    if user is None:
-        raise HTTPException(401, detail='Invalid refresh token')
-    return {'access_token': create_access_token(user.email), 'refresh_token': replacement, 'token_type': 'bearer'}
-
-@app.post('/auth/logout')
-def logout(body: RefreshTokenIn, db: Session = Depends(get_db)):
-    token = db.query(RefreshToken).filter_by(token_hash=hashlib.sha256(body.refresh_token.encode()).hexdigest()).first()
-    if token and not token.revoked_at:
-        token.revoked_at = datetime.utcnow()
-        db.commit()
-    return {'detail': 'Signed out'}
-
 @app.get('/auth/me')
 def auth_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
@@ -678,9 +653,7 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
     for key, value in fields.items():
         if value is not None:
             setattr(user, key, value.strip() if isinstance(value, str) else value)
-    db.add(user); db.commit(); db.refresh(user);     response = user_item(user)
-    response['access_token'] = create_access_token(user.email)
-    return response
+    db.add(user); db.commit(); db.refresh(user);         return user_item(user)
 
 @app.put('/auth/change-password')
 def change_password(body: ChangePasswordIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

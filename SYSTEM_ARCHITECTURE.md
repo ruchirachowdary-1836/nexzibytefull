@@ -116,9 +116,9 @@ The frontend supports two code paths:
   `VITE_NEON_DATA_API_URL`, and a non-`fastapi` provider setting are present.
   Email/password registration and login use Neon Auth. Google sign-in is
   initiated through the Neon Auth social provider.
-- **FastAPI JWT fallback:** used when Neon Auth is disabled. Login submits
-  OAuth2-compatible form fields to `POST /auth/login`; the returned JWT is
-  stored under the frontend token key and sent as a bearer token.
+- **Neon Auth only:** Neon Auth owns email/password registration, verification,
+  password reset, Google OAuth, and session JWT issuance. FastAPI receives and
+  validates those Neon JWTs for application APIs.
 
 The current Render configuration selects Neon Auth and still includes a Clerk
 publishable-key variable/package from the earlier integration. Clerk is not

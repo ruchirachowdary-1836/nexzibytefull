@@ -1,10 +1,12 @@
 import os
 os.environ["DB_URL"] = "sqlite:///./test_techtalk.db"
 
+from fastapi import Header, HTTPException
 from fastapi.testclient import TestClient
-from app.auth import create_access_token, hash_password
+from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.main import app
+from app.auth import get_current_user
 from app.models import User
 
 client = TestClient(app)
@@ -20,10 +22,20 @@ def setup_module():
     db.add(User(name="Admin", email="admin@example.com", password_hash=hash_password(STRONG_ADMIN_PASSWORD), role="admin", is_active=True, email_verified=True))
     db.commit()
     db.close()
+    def test_user(authorization: str | None = Header(default=None)):
+        token_value = authorization.removeprefix("Bearer ") if authorization else ""
+        email = token_value.removeprefix("test:")
+        session = SessionLocal()
+        user = session.query(User).filter_by(email=email).one_or_none()
+        session.close()
+        if not user:
+            raise HTTPException(401, detail="Invalid test credentials")
+        return user
+    app.dependency_overrides[get_current_user] = test_user
 
 
 def token(email, password=None):
-    return {"Authorization": "Bearer " + create_access_token(email)}
+    return {"Authorization": "Bearer test:" + email}
 
 
 def register_and_verify(name, email, password):

@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -13,20 +12,23 @@ from .database import get_db
 from .models import User
 
 pwd_context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=settings.bcrypt_rounds, deprecated='auto')
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
-optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login', auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/session')
+optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/session', auto_error=False)
 def hash_password(password: str): return pwd_context.hash(password)
 def verify_password(password: str, hashed: str | None):
     return bool(hashed) and pwd_context.verify(password, hashed)
-def create_access_token(subject: str):
-    return jwt.encode({'sub': subject, 'exp': datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)}, settings.jwt_secret, algorithm='HS256')
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    email = decode_local_email(token)
     neon_claims = None
-    if not email and settings.neon_auth_jwks_url:
+    if settings.neon_auth_jwks_url:
         neon_claims = decode_neon_claims(token)
-        email = (neon_claims or {}).get('email') or (neon_claims or {}).get('sub')
-    user = db.query(User).filter(User.email == email.lower()).first() if email else None
+    email = (neon_claims or {}).get('email') or (neon_claims or {}).get('sub')
+    neon_user_id = (neon_claims or {}).get('sub') if neon_claims else None
+    user = db.query(User).filter(User.neon_auth_user_id == neon_user_id).first() if neon_user_id else None
+    if not user and email:
+        user = db.query(User).filter(User.email == email.lower()).first()
+        if user and neon_user_id and not user.neon_auth_user_id:
+            user.neon_auth_user_id = neon_user_id
+            db.commit()
     neon_email_verified = bool(
         neon_claims and (neon_claims.get('email_verified') or neon_claims.get('emailVerified'))
     )
@@ -40,6 +42,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         user = User(
             name=(claims or {}).get('name') or (claims or {}).get('user_metadata', {}).get('name') or email.split('@')[0],
             email=email.lower(),
+            neon_auth_user_id=neon_user_id,
             email_verified=email_verified,
             is_active=email_verified,
             password_hash=None,
@@ -53,9 +56,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 def get_optional_user(token: str | None = Depends(optional_oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
         return None
-    email = decode_local_email(token)
-    if not email and settings.neon_auth_jwks_url:
-        email = decode_neon_email(token)
+    claims = decode_neon_claims(token) if settings.neon_auth_jwks_url else None
+    email = (claims or {}).get('email') or (claims or {}).get('sub')
     user = db.query(User).filter(User.email == email.lower()).first() if email else None
     return user if user and user.is_active else None
 def require_roles(*roles: str):
@@ -67,16 +69,6 @@ def require_roles(*roles: str):
     return dependency
 
 require_admin = require_roles('staff', 'hr', 'admin', 'super_admin')
-
-def decode_local_email(token: str):
-    try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=['HS256']).get('sub')
-    except JWTError:
-        return None
-
-def decode_neon_email(token: str):
-    claims = decode_neon_claims(token)
-    return (claims or {}).get('email') or (claims or {}).get('sub')
 
 @lru_cache(maxsize=1)
 def _neon_keys(url: str):

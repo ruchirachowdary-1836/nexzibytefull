@@ -1,14 +1,6 @@
 import { apiRequest } from "./api.js";
 import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWithGoogle, signUpWithEmail } from "./neon.js";
 
-const TOKEN_KEY = "techtalk-token";
-const REFRESH_TOKEN_KEY = "techtalk-refresh-token";
-
-function storeTokens(result) {
-  localStorage.setItem(TOKEN_KEY, result.access_token);
-  if (result.refresh_token) localStorage.setItem(REFRESH_TOKEN_KEY, result.refresh_token);
-}
-
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
     if (!neonAuthEnabled) throw new Error("Neon Auth is not configured.");
@@ -37,7 +29,7 @@ export const authService = {
   },
 
   me() {
-    if (neonAuthEnabled && !localStorage.getItem(TOKEN_KEY)) {
+    if (neonAuthEnabled) {
       return getNeonSession()
         .then((session) => normalizeNeonUser(session?.user))
         .then(hydrateNeonProfile);
@@ -46,7 +38,7 @@ export const authService = {
   },
 
   updateProfile(payload) {
-    if (!localStorage.getItem(TOKEN_KEY) && neonAuthEnabled) {
+    if (neonAuthEnabled) {
       return neonClient.auth.updateUser({ name: payload.name, image: payload.profile_image }).then((result) => {
         if (result?.error) throw new Error(result.error.message || "Unable to update your profile.");
         return normalizeNeonUser(result?.data?.user || result?.user);
@@ -56,26 +48,16 @@ export const authService = {
   },
 
   logout() {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (refreshToken) {
-      apiRequest("/auth/logout", {
-        method: "POST",
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      }).catch(() => {});
-    }
     if (neonAuthEnabled) {
       neonClient.auth.signOut().catch(() => {});
     }
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem("techtalk-google-pending");
     localStorage.removeItem("techtalk-google-session");
   },
 
   hasToken() {
     return Boolean(
-      localStorage.getItem(TOKEN_KEY) ||
-      (neonAuthEnabled && neonClient)
+      neonAuthEnabled && neonClient
     );
   },
 

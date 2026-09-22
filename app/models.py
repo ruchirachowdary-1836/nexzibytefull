@@ -15,6 +15,7 @@ founder_meet_speakers = __import__('sqlalchemy').Table('founder_meet_speakers', 
 class User(Base):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(primary_key=True)
+    neon_auth_user_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)

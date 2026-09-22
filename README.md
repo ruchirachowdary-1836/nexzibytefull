@@ -21,7 +21,7 @@ The schema is managed through Alembic migrations. For a new demo database, run `
 
 | Area | Core routes | Purpose |
 | --- | --- | --- |
-| Auth | `POST /auth/register`, `POST /auth/login` | Account creation and JWT login |
+| Auth | Neon Auth client + `GET /auth/session` | Account creation, verification, sessions, and Google OAuth |
 | Users | `/users`, `/users/me` | Admin management and current profile |
 | Content | `/categories`, `/posts` | Category and post lifecycle |
 | Community | `/posts/{id}/comments`, `/reactions`, `/save` | Comments, reaction toggle, saved posts |

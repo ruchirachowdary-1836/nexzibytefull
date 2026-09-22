@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 import { TechTalkMinimalLogo } from "./AuthPage.jsx";
-import { apiRequest } from "../lib/api.js";
+import { requestNeonPasswordReset } from "../lib/neon.js";
 
 export default function LoginModal() {
   const { loginModalOpen, setLoginModalOpen, user, login, showToast } = useApp();
@@ -48,11 +48,8 @@ export default function LoginModal() {
       return;
     }
     try {
-      const result = await apiRequest("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      showToast(`📧 ${result.detail}`);
+      await requestNeonPasswordReset(email.trim());
+      showToast("📧 Password reset email sent by Neon Auth.");
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }
