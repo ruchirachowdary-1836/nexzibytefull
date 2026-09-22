@@ -54,6 +54,46 @@ export async function signInWithEmail({ email, password }) {
   return result?.data || result;
 }
 
+function unwrapAuthResult(result, fallbackMessage) {
+  if (result?.error) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  return result?.data || result;
+}
+
+export async function verifyNeonEmail(code) {
+  if (!neonClient) throw new Error("Neon Auth is not configured.");
+  if (typeof neonClient.auth.verifyEmail !== "function") {
+    throw new Error("Email verification codes are not enabled in the configured Neon Auth client.");
+  }
+  return unwrapAuthResult(
+    await neonClient.auth.verifyEmail({ code: code.trim() }),
+    "That verification code is incorrect or expired."
+  );
+}
+
+export async function resendNeonVerification(email) {
+  if (!neonClient) throw new Error("Neon Auth is not configured.");
+  if (typeof neonClient.auth.sendVerificationEmail !== "function") {
+    throw new Error("Neon Auth verification-code resend is not available.");
+  }
+  return unwrapAuthResult(
+    await neonClient.auth.sendVerificationEmail({ email: email.trim() }),
+    "Unable to resend the verification code."
+  );
+}
+
+export async function waitForNeonSession({ attempts = 12, delayMs = 750 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const session = await getNeonSession();
+    if (session?.user) return session;
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}
+
 export async function signInWithGoogle() {
   if (!neonClient) {
     throw new Error(
@@ -86,6 +126,7 @@ export async function signInWithGoogle() {
   const redirectUrl = result?.data?.url || result?.url;
   if (redirectUrl) {
     window.location.assign(redirectUrl);
+    return { redirecting: true };
   }
   return result;
 }

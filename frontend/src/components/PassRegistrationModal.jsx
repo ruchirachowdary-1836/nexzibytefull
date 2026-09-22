@@ -10,15 +10,17 @@ export default function PassRegistrationModal() {
     setPassModalOpen, 
     selectedPassType, 
     setSelectedPassType, 
-    registerPass 
+    registerPass,
+    user,
+    showToast,
   } = useApp();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("Lalitha Mindhi");
-  const [email, setEmail] = useState("lalitha@nexzibyte.com");
-  const [phone, setPhone] = useState("+91 98765 43210");
-  const [organization, setOrganization] = useState("NexziByte Ecosystem");
-  const [role, setRole] = useState("Senior Systems Architect");
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [role, setRole] = useState("");
   const [additionalField, setAdditionalField] = useState("");
   const [notes, setNotes] = useState("");
   const [delegationMembers, setDelegationMembers] = useState(1);
@@ -96,16 +98,22 @@ export default function PassRegistrationModal() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name || !email || !phone) {
+    if (!user?.email) {
+      showToast("Please sign in before requesting a pass.");
+      navigate("/login");
+      return;
+    }
+    const registeredEmail = user.email;
+    const registeredName = user.name || name;
+    if (!registeredName || !phone) {
       showToast("⚠️ Please provide Full Name, Email Address, and Contact Number.");
       return;
     }
 
     setIsProcessing(true);
-    setTimeout(() => {
-      registerPass({
-        attendeeName: isDelegation ? `${name} (${delegationMembers} Attendees)` : name,
-        email,
+    registerPass({
+        attendeeName: isDelegation ? `${registeredName} (${delegationMembers} Attendees)` : registeredName,
+        email: registeredEmail,
         phone,
         contact: phone,
         passType: activeType,
@@ -113,14 +121,16 @@ export default function PassRegistrationModal() {
         organization,
         role: isStudent ? `${role} (${additionalField || "Student"})` : role,
         notes: isDelegation ? `Delegation size: ${delegationMembers} members. Contact: ${phone}. ${notes}` : `Contact: ${phone}. ${notes || additionalField}`
+      }).catch((error) => {
+        showToast(`⚠️ ${error.message || "Unable to generate your pass."}`);
+      }).finally(() => {
+        setIsProcessing(false);
       });
-      setIsProcessing(false);
       // Smoothly jump down to the generated ticket
-      const ticketEl = document.getElementById("digital-pass");
-      if (ticketEl) {
-        ticketEl.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 600);
+      window.setTimeout(() => {
+        const ticketEl = document.getElementById("digital-pass");
+        if (ticketEl) ticketEl.scrollIntoView({ behavior: "smooth" });
+      }, 50);
   };
 
   return (
@@ -227,10 +237,11 @@ export default function PassRegistrationModal() {
                 type="email" 
                 required
                 className="form-input" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. lalitha@company.com"
+                value={user?.email || email}
+                readOnly
+                aria-describedby="pass-email-help"
               />
+              <small id="pass-email-help">This pass will be sent to your Neon Auth email.</small>
             </div>
           </div>
 

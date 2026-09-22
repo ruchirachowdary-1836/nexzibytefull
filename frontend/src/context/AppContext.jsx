@@ -51,7 +51,7 @@ export function AppProvider({ children }) {
       const hydrateSession = async () => {
         const googlePending = localStorage.getItem("techtalk-google-pending") === "1";
         let lastError;
-        for (let attempt = 0; attempt < (googlePending ? 4 : 1); attempt += 1) {
+        for (let attempt = 0; attempt < (googlePending ? 12 : 1); attempt += 1) {
           try {
             const authenticatedUser = await authService.me();
             setUser(authenticatedUser);
@@ -96,9 +96,10 @@ export function AppProvider({ children }) {
   };
 
   const loginWithGoogle = async () => {
-    const authenticatedUser = await authService.loginWithGoogle();
-    setUser(authenticatedUser);
-    return authenticatedUser;
+    // OAuth redirects away from the app. Session hydration after the callback
+    // is responsible for loading the user and synchronizing the profile.
+    await authService.loginWithGoogle();
+    return null;
   };
 
   const register = async (credentials) => {

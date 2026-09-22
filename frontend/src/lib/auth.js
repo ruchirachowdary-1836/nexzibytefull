@@ -17,15 +17,28 @@ export const authService = {
 
   async login({ email, password }) {
     if (!neonAuthEnabled) throw new Error("Neon Auth is not configured.");
+    let result;
     try {
-      await signInWithEmail({ email, password });
-      return this.me();
+      result = await signInWithEmail({ email, password });
     } catch (error) {
-      if (/verify|verification|email/i.test(error.message)) {
-        throw new Error("Please verify your email before continuing. Check your inbox for the Neon Auth verification link.");
+      if (/verify|verification|email.*verified|not verified/i.test(error.message || "")) {
+        return {
+          verification_required: true,
+          email,
+          detail: "Please verify your email before continuing.",
+        };
       }
       throw error;
     }
+    const signedInUser = result?.user || result?.session?.user || null;
+    if (signedInUser && signedInUser.emailVerified === false) {
+      return {
+        verification_required: true,
+        email: signedInUser.email || email,
+        detail: "Please verify your email before continuing.",
+      };
+    }
+    return this.me();
   },
 
   me() {
