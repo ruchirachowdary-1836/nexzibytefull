@@ -21,6 +21,14 @@ optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/session', auto_err
 def hash_password(password: str): return pwd_context.hash(password)
 def verify_password(password: str, hashed: str | None):
     return bool(hashed) and pwd_context.verify(password, hashed)
+
+def neon_email_is_verified(claims: dict | None) -> bool:
+    if not claims:
+        return False
+    if 'emailVerified' in claims:
+        return claims['emailVerified'] is True
+    return claims.get('email_verified') is True
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     neon_claims = None
     if settings.neon_auth_jwks_url:
@@ -33,16 +41,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         if user and neon_user_id and not user.neon_auth_user_id:
             user.neon_auth_user_id = neon_user_id
             db.commit()
-    neon_email_verified = bool(
-        neon_claims and (neon_claims.get('email_verified') or neon_claims.get('emailVerified'))
-    )
+    neon_email_verified = neon_email_is_verified(neon_claims)
     if user and neon_email_verified and not user.is_active:
         user.is_active = True
         user.email_verified = True
         db.commit()
     if not user and email and settings.neon_auth_jwks_url:
         claims = neon_claims or {}
-        email_verified = bool(claims.get('email_verified') or claims.get('emailVerified'))
+        email_verified = neon_email_is_verified(claims)
         user = User(
             name=(claims or {}).get('name') or (claims or {}).get('user_metadata', {}).get('name') or email.split('@')[0],
             email=email.lower(),
