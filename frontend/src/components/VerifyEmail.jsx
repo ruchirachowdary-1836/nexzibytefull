@@ -54,7 +54,7 @@ export default function VerifyEmail() {
       await verifyNeonEmail(email, code);
       const session = await waitForNeonSession();
       if (session?.user) {
-        const profile = await hydrateCurrentUser();
+        const profile = await hydrateCurrentUser(session);
         setUser(profile);
         const destination = location.state?.from;
         navigate(

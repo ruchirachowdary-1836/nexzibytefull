@@ -42,11 +42,14 @@ export const authService = {
     return this.me();
   },
 
-  me() {
+  me(session = null) {
     if (neonAuthEnabled) {
-      return getNeonSession()
-        .then((session) => normalizeNeonUser(session?.user))
-        .then(hydrateNeonProfile);
+      return (session ? Promise.resolve(session) : getNeonSession())
+        .then((currentSession) => ({
+          session: currentSession,
+          user: normalizeNeonUser(currentSession?.user),
+        }))
+        .then(({ session: currentSession, user }) => hydrateNeonProfile(user, currentSession));
     }
     return apiRequest("/auth/session");
   },
@@ -85,12 +88,12 @@ function normalizeNeonUser(user) {
   return { id: user.id, email: user.email, name: user.name || user.email, profile_image: user.image || null };
 }
 
-async function hydrateNeonProfile(neonUser) {
+async function hydrateNeonProfile(neonUser, session = null) {
   try {
-    const session = neonUser || (await getNeonSession());
-    const sessionUser = session?.user || session;
+    const currentSession = session || (await getNeonSession());
+    const sessionUser = currentSession?.user || currentSession;
     const normalized = normalizeNeonUser(sessionUser);
-    const profile = await apiRequest("/users/me", { useNeonToken: true });
+    const profile = await apiRequest("/users/me", { useNeonToken: true, neonSession: currentSession });
     return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);

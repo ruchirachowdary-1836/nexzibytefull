@@ -2,8 +2,8 @@ const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.o
 import { getNeonToken, neonAuthEnabled } from "./neon.js";
 
 export async function apiRequest(path, options = {}, allowRefresh = true) {
-  const { useNeonToken = false, ...requestOptions } = options;
-  const token = (useNeonToken || neonAuthEnabled) ? await getNeonToken() : null;
+  const { useNeonToken = false, neonSession = null, ...requestOptions } = options;
+  const token = (useNeonToken || neonAuthEnabled) ? await getNeonToken(neonSession) : null;
   const response = await fetch(`${API_URL}${path}`, {
     ...requestOptions,
     headers: {

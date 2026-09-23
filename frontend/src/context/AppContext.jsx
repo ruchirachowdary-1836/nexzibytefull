@@ -63,7 +63,7 @@ export function AppProvider({ children }) {
             return;
           } catch (error) {
             lastError = error;
-            if (!googlePending || attempt === 3) break;
+            if (!googlePending || attempt === 11) break;
             await new Promise((resolve) => window.setTimeout(resolve, 750));
           }
         }
@@ -107,8 +107,8 @@ export function AppProvider({ children }) {
     return result;
   };
 
-  const hydrateCurrentUser = async () => {
-    const authenticatedUser = await authService.me();
+  const hydrateCurrentUser = async (session = null) => {
+    const authenticatedUser = await authService.me(session);
     setUser(authenticatedUser);
     return authenticatedUser;
   };

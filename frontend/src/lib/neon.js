@@ -28,10 +28,10 @@ export const neonClient = neonAuthEnabled
     })
   : null;
 
-export async function getNeonToken() {
+export async function getNeonToken(session = null) {
   if (!neonClient) return null;
-  const session = await getNeonSession();
-  return session?.session?.token || session?.token || null;
+  const currentSession = session || (await getNeonSession());
+  return currentSession?.session?.token || currentSession?.token || null;
 }
 
 export async function getNeonSession() {
