@@ -3,10 +3,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from jose import jwk
 import json
+import base64
+import time
 from urllib.request import urlopen
 from functools import lru_cache
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from .config import settings
 from .database import get_db
 from .models import User
@@ -91,7 +95,26 @@ def decode_neon_claims(token: str):
         key_data = next((key for key in keys if key.get('kid') == header.get('kid')), None)
         if not key_data:
             return None
+        if header.get('alg') == 'EdDSA' and key_data.get('kty') == 'OKP' and key_data.get('crv') == 'Ed25519':
+            return decode_ed25519_claims(token, claims, key_data)
         verified = jwt.decode(token, jwk.construct(key_data), algorithms=[header.get('alg', 'RS256')], options={'verify_aud': False})
         return verified
-    except (JWTError, OSError, ValueError, KeyError, TypeError):
+    except (JWTError, InvalidSignature, OSError, ValueError, KeyError, TypeError):
         return None
+
+def decode_ed25519_claims(token: str, claims: dict, key_data: dict):
+    segments = token.split('.')
+    if len(segments) != 3:
+        return None
+    signing_input = f'{segments[0]}.{segments[1]}'.encode('ascii')
+    signature = base64.urlsafe_b64decode(f'{segments[2]}===')
+    public_key = Ed25519PublicKey.from_public_bytes(
+        base64.urlsafe_b64decode(f"{key_data['x']}===")
+    )
+    public_key.verify(signature, signing_input)
+    now = time.time()
+    if claims.get('exp') is not None and now >= float(claims['exp']):
+        return None
+    if claims.get('nbf') is not None and now < float(claims['nbf']):
+        return None
+    return claims
