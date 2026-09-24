@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from jose import jwk
+import logging
 import json
 import base64
 import time
@@ -15,6 +16,7 @@ from .config import settings
 from .database import get_db
 from .models import User
 
+logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=settings.bcrypt_rounds, deprecated='auto')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/session')
 optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/session', auto_error=False)
@@ -33,6 +35,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     neon_claims = None
     if settings.neon_auth_jwks_url:
         neon_claims = decode_neon_claims(token)
+    verification_value = None
+    verification_type = None
+    verification_key = None
+    if neon_claims:
+        verification_key = 'emailVerified' if 'emailVerified' in neon_claims else (
+            'email_verified' if 'email_verified' in neon_claims else None
+        )
+        if verification_key:
+            verification_value = neon_claims.get(verification_key)
+            verification_type = type(verification_value).__name__
     email = (neon_claims or {}).get('email') or (neon_claims or {}).get('sub')
     neon_user_id = (neon_claims or {}).get('sub') if neon_claims else None
     user = db.query(User).filter(User.neon_auth_user_id == neon_user_id).first() if neon_user_id else None
@@ -60,7 +72,20 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         db.add(user)
         db.commit()
         db.refresh(user)
-    if not user or not user.is_active or (neon_claims is not None and not neon_email_verified):
+    rejected = not user or not user.is_active or (neon_claims is not None and not neon_email_verified)
+    logger.warning(
+        'neon_auth_check keys=%s verification_key=%s verification_type=%s '
+        'verification_value=%s claims_decoded=%s user_found=%s user_active=%s rejected=%s',
+        sorted(neon_claims.keys()) if neon_claims else [],
+        verification_key,
+        verification_type,
+        verification_value,
+        bool(neon_claims),
+        bool(user),
+        user.is_active if user else None,
+        rejected,
+    )
+    if rejected:
         raise HTTPException(status_code=401, detail='Email verification is required before accessing this account')
     return user
 def get_optional_user(token: str | None = Depends(optional_oauth2_scheme), db: Session = Depends(get_db)):
@@ -90,22 +115,26 @@ def decode_neon_claims(token: str):
         header = jwt.get_unverified_header(token)
         claims = jwt.get_unverified_claims(token)
         if settings.neon_auth_issuer and claims.get('iss') != settings.neon_auth_issuer:
+            logger.warning('neon_token_rejected reason=issuer_mismatch')
             return None
         audience = claims.get('aud')
         if settings.neon_auth_audience and (
             settings.neon_auth_audience not in audience if isinstance(audience, list)
             else settings.neon_auth_audience != audience
         ):
+            logger.warning('neon_token_rejected reason=audience_mismatch')
             return None
         keys = _neon_keys(settings.neon_auth_jwks_url)
         key_data = next((key for key in keys if key.get('kid') == header.get('kid')), None)
         if not key_data:
+            logger.warning('neon_token_rejected reason=signing_key_not_found')
             return None
         if header.get('alg') == 'EdDSA' and key_data.get('kty') == 'OKP' and key_data.get('crv') == 'Ed25519':
             return decode_ed25519_claims(token, claims, key_data)
         verified = jwt.decode(token, jwk.construct(key_data), algorithms=[header.get('alg', 'RS256')], options={'verify_aud': False})
         return verified
-    except (JWTError, InvalidSignature, OSError, ValueError, KeyError, TypeError):
+    except (JWTError, InvalidSignature, OSError, ValueError, KeyError, TypeError) as error:
+        logger.warning('neon_token_rejected reason=%s', type(error).__name__)
         return None
 
 def decode_ed25519_claims(token: str, claims: dict, key_data: dict):
