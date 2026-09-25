@@ -90,11 +90,30 @@ function normalizeNeonUser(user) {
 
 async function hydrateNeonProfile(neonUser, session = null) {
   try {
-    const currentSession = session || (await getNeonSession());
-    const sessionUser = currentSession?.user || currentSession;
-    const normalized = normalizeNeonUser(sessionUser);
-    const profile = await apiRequest("/users/me", { useNeonToken: true, neonSession: currentSession });
-    return { ...normalized, ...profile, name: profile.name || normalized.name, profile_image: profile.profile_image || normalized.profile_image };
+    let currentSession = session || (await getNeonSession());
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const sessionUser = currentSession?.user || currentSession;
+      const normalized = normalizeNeonUser(sessionUser);
+      try {
+        const profile = await apiRequest("/users/me", {
+          useNeonToken: true,
+          neonSession: currentSession,
+        });
+        return {
+          ...normalized,
+          ...profile,
+          name: profile.name || normalized.name,
+          profile_image: profile.profile_image || normalized.profile_image,
+        };
+      } catch (error) {
+        const isVerificationPropagation =
+          error?.message === "Email verification is required before accessing this account";
+        if (!isVerificationPropagation || attempt === 2) throw error;
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        currentSession = await getNeonSession();
+      }
+    }
+    throw new Error("Unable to load the authenticated member profile.");
   } catch (error) {
     throw new Error(`Signed in, but your member profile could not be created: ${error.message}`);
   }
