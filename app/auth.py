@@ -109,6 +109,19 @@ def decode_neon_claims(token: str):
         if header.get("alg") != "EdDSA":
             logger.warning("AUTH_DEBUG_DECODE signature_check_failed reason=unexpected_algorithm")
             return None
+        configured_issuer = settings.neon_auth_issuer
+        claim_issuer = claims.get("iss")
+        logger.warning(
+            "AUTH_DEBUG_ISSUER configured=%s configured_length=%s claim_present=%s "
+            "claim_length=%s stripped_equal=%s",
+            bool(configured_issuer),
+            len(configured_issuer) if configured_issuer else 0,
+            claim_issuer is not None,
+            len(claim_issuer) if isinstance(claim_issuer, str) else 0,
+            bool(configured_issuer)
+            and isinstance(claim_issuer, str)
+            and configured_issuer.strip() == claim_issuer.strip(),
+        )
         if not settings.neon_auth_issuer or claims.get("iss") != settings.neon_auth_issuer:
             logger.warning("AUTH_DEBUG_DECODE issuer_check_failed reason=issuer_mismatch_or_unconfigured")
             return None
