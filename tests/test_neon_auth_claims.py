@@ -31,6 +31,7 @@ def neon_profile_auth(monkeypatch):
     db = SessionLocal()
     email = "neon-claims@example.com"
     db.query(User).filter(User.email == email).delete()
+    db.query(User).filter(User.neon_auth_user_id == "neon-user-claims").delete()
     db.add(User(name="Neon Claims User", email=email, is_active=False, email_verified=False, password_hash=None))
     db.commit()
     db.close()
@@ -77,3 +78,47 @@ def test_users_me_rejects_missing_or_false_email_verified_claim(neon_profile_aut
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Email verification is required before accessing this account"
+
+
+def test_users_me_syncs_external_subject_and_email_verified(neon_profile_auth):
+    private_key, _ = neon_profile_auth
+    email = "new-neon-user@example.com"
+    response = TestClient(app).get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {_token(private_key, _claims(email, {'emailVerified': True}))}"},
+    )
+    assert response.status_code == 200
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(neon_auth_user_id="neon-user-claims").one()
+        assert user.email == email
+        assert user.email_verified is True
+        assert user.is_active is True
+
+
+def test_users_me_rejects_expired_and_not_yet_valid_tokens(neon_profile_auth):
+    private_key, email = neon_profile_auth
+    expired = _claims(email, {"emailVerified": True, "exp": time.time() - 1})
+    not_yet_valid = _claims(
+        email, {"emailVerified": True, "nbf": time.time() + 300}
+    )
+    for claims in (expired, not_yet_valid):
+        response = TestClient(app).get(
+            "/users/me",
+            headers={"Authorization": f"Bearer {_token(private_key, claims)}"},
+        )
+        assert response.status_code == 401
+
+
+def test_users_me_enforces_configured_audience(neon_profile_auth, monkeypatch):
+    private_key, email = neon_profile_auth
+    monkeypatch.setattr(settings, "neon_auth_audience", "techtalk-api")
+    valid = _claims(email, {"emailVerified": True, "aud": "techtalk-api"})
+    invalid = _claims(email, {"emailVerified": True, "aud": "another-api"})
+    assert TestClient(app).get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {_token(private_key, valid)}"},
+    ).status_code == 200
+    assert TestClient(app).get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {_token(private_key, invalid)}"},
+    ).status_code == 401

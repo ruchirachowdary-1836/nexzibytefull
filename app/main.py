@@ -22,6 +22,13 @@ from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
 from .auth import get_current_user, get_optional_user, hash_password, require_admin, verify_password
+from .services.events import (
+    event_response,
+    event_state,
+    list_events,
+    make_event,
+    update_event,
+)
 from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
 from .observability import (
     ObservabilityMiddleware,
@@ -1125,38 +1132,6 @@ def delete_speaker(speaker_id:int,db:Session=Depends(get_db),_:User=Depends(requ
 @app.get('/speakers/{speaker_id}/events')
 def speaker_events(speaker_id:int,db:Session=Depends(get_db)):
     x=one(db,Speaker,speaker_id);return {'summits':[item(e) for e in x.summits], 'founder_meets':[item(e) for e in x.founder_meets]}
-
-def event_response(event):
-    result=item(event)
-    result['status'] = 'past' if event.status == 'past' or event.date < date.today() else 'upcoming'
-    result['speakers']=[item(s) for s in event.speakers]
-    return result
-def list_events(db, cls, status):
-    q=db.query(cls)
-    if status:
-        if status not in ('upcoming','past'): raise HTTPException(422,detail='status must be upcoming or past')
-        compare=cls.date >= date.today() if status=='upcoming' else cls.date < date.today();q=q.filter(compare)
-    return [event_response(x) for x in q.order_by(cls.date)]
-def make_event(db, cls, body):
-    data=body.model_dump(exclude={'speaker_ids','venue','founder_information','networking_info'})
-    if cls is Summit: data['venue']=body.venue
-    else: data.update(founder_information=body.founder_information,networking_info=body.networking_info)
-    x=cls(**data)
-    x.status = 'upcoming' if x.date >= date.today() else 'past'
-    attach_speakers(db,x,body.speaker_ids);db.add(x);db.commit();db.refresh(x);return event_response(x)
-def update_event(db, cls, ident, body):
-    x=one(db,cls,ident)
-    data=body.model_dump(exclude={'speaker_ids'})
-    set_values(x,data,set(data))
-    x.status = 'upcoming' if x.date >= date.today() else 'past'
-    attach_speakers(db,x,body.speaker_ids);db.commit();return event_response(x)
-def event_state(db, cls, ident, action):
-    x=one(db,cls,ident)
-    if action in ('publish', 'unpublish'):
-        x.is_published=action=='publish'
-    elif action=='archive':
-        x.status='past'
-    db.commit();return event_response(x)
 
 @app.post('/summits',status_code=201)
 def create_summit(body:EventIn,db:Session=Depends(get_db),_:User=Depends(require_admin)): return make_event(db,Summit,body)

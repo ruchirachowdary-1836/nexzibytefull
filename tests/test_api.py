@@ -289,3 +289,125 @@ def test_extended_profile_notification_and_admin_routes():
     assert client.get(f"/summits/{summit.json()['id']}/agenda", headers=admin).status_code == 200
     assert client.get(f"/summits/{summit.json()['id']}/speakers", headers=admin).status_code == 200
     assert client.get(f"/summits/{summit.json()['id']}/related", headers=admin).status_code == 200
+
+
+def test_profile_links_categories_and_saved_post_contracts():
+    user = token('test@example.com', STRONG_USER_PASSWORD)
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
+
+    link = client.post(
+        '/profile/links',
+        json={'label': 'Portfolio', 'url': 'https://example.com/portfolio'},
+        headers=user,
+    )
+    assert link.status_code == 201
+    link_id = link.json()['id']
+    assert client.get('/profile/links', headers=user).json()[0]['label'] == 'Portfolio'
+    updated_link = client.put(
+        f'/profile/links/{link_id}',
+        json={'label': 'Website', 'url': 'https://example.com'},
+        headers=user,
+    )
+    assert updated_link.status_code == 200
+    assert updated_link.json()['label'] == 'Website'
+
+    category = client.post(
+        '/categories',
+        json={'name': 'Contract Tests', 'slug': 'contract-tests'},
+        headers=admin,
+    )
+    assert category.status_code == 201
+    category_id = category.json()['id']
+    assert client.put(
+        f'/categories/{category_id}',
+        json={'name': 'Updated Contract Tests', 'slug': 'updated-contract-tests'},
+        headers=admin,
+    ).status_code == 200
+    post = client.post(
+        '/posts',
+        json={
+            'title': 'Contract post',
+            'content': 'Contract content',
+            'category_id': category_id,
+        },
+        headers=user,
+    )
+    assert post.status_code == 201
+    post_id = post.json()['id']
+    assert client.post(f'/posts/{post_id}/save', headers=user).status_code == 200
+    saved = client.get('/users/me/saved-posts', headers=user)
+    assert saved.status_code == 200
+    assert any(row['id'] == post_id for row in saved.json())
+    assert client.delete(f'/posts/{post_id}/save', headers=user).status_code == 200
+    assert client.delete(f'/profile/links/{link_id}', headers=user).status_code == 204
+
+
+def test_admin_dashboard_and_event_lifecycle_contract():
+    admin = token('admin@example.com', STRONG_ADMIN_PASSWORD)
+    user = token('test@example.com', STRONG_USER_PASSWORD)
+    speaker = client.post(
+        '/speakers',
+        json={'name': 'Contract Speaker', 'designation': 'Founder'},
+        headers=admin,
+    )
+    assert speaker.status_code == 201
+    meet = client.post(
+        '/founder-meets',
+        json={
+            'title': 'Founder contract meet',
+            'date': '2032-04-20',
+            'location': 'Hyderabad',
+            'speaker_ids': [speaker.json()['id']],
+        },
+        headers=admin,
+    )
+    assert meet.status_code == 201
+    meet_id = meet.json()['id']
+    assert client.patch(f'/founder-meets/{meet_id}/publish', headers=admin).status_code == 200
+    registration = client.post(
+        '/registrations',
+        json={'event_type': 'founder_meet', 'event_id': meet_id},
+        headers=user,
+    )
+    assert registration.status_code == 201
+    registration_id = registration.json()['id']
+    assert client.get('/registrations', headers=admin).status_code == 200
+    assert client.get('/admin/dashboard', headers=admin).status_code == 200
+    assert client.get('/admin/users', headers=admin).status_code == 200
+    assert client.get('/admin/events', headers=admin).status_code == 200
+    assert client.patch(
+        f'/registrations/{registration_id}/cancel', headers=user
+    ).status_code == 200
+    assert client.delete(f'/founder-meets/{meet_id}', headers=admin).status_code == 200
+
+
+def test_public_contact_newsletter_and_course_contracts():
+    suffix = 'contract-' + str(int(__import__('time').time() * 1000000))
+    partnership = client.post(
+        '/partnership-inquiries',
+        json={
+            'first_name': 'Asha',
+            'last_name': 'Rao',
+            'email': f'{suffix}@example.com',
+            'partnership_type': 'Community',
+            'details': 'Interested in a community partnership.',
+        },
+    )
+    assert partnership.status_code == 201
+    subscription = client.post(
+        '/newsletter/subscribe', json={'email': f'{suffix}@example.com'}
+    )
+    assert subscription.status_code == 201
+    course = client.post(
+        '/course-applications',
+        json={
+            'course_id': 'ai-foundations',
+            'course_title': 'AI Foundations',
+            'name': 'Asha Rao',
+            'email': f'{suffix}-course@example.com',
+            'phone': '+911234567890',
+            'experience_level': 'beginner',
+        },
+    )
+    assert course.status_code == 201
+    assert course.json()['status'] == 'submitted'
