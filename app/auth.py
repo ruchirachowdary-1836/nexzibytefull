@@ -8,7 +8,6 @@ decisions differently.
 
 import base64
 import json
-import logging
 import time
 from functools import lru_cache
 from urllib.request import urlopen
@@ -25,7 +24,6 @@ from .config import settings
 from .database import get_db
 from .models import User
 
-logger = logging.getLogger(__name__)
 pwd_context = CryptContext(
     schemes=["bcrypt"], bcrypt__rounds=settings.bcrypt_rounds, deprecated="auto"
 )
@@ -101,29 +99,13 @@ def decode_ed25519_claims(token: str, claims: dict, key_data: dict):
 def decode_neon_claims(token: str):
     """Return verified Neon claims, or ``None`` without exposing token data."""
     if not settings.neon_auth_jwks_url:
-        logger.warning("AUTH_DEBUG_DECODE jwks_url_configured=false")
         return None
     try:
         header = jwt.get_unverified_header(token)
         claims = jwt.get_unverified_claims(token)
         if header.get("alg") != "EdDSA":
-            logger.warning("AUTH_DEBUG_DECODE signature_check_failed reason=unexpected_algorithm")
             return None
-        configured_issuer = settings.neon_auth_issuer
-        claim_issuer = claims.get("iss")
-        logger.warning(
-            "AUTH_DEBUG_ISSUER configured=%s configured_length=%s claim_present=%s "
-            "claim_length=%s stripped_equal=%s",
-            bool(configured_issuer),
-            len(configured_issuer) if configured_issuer else 0,
-            claim_issuer is not None,
-            len(claim_issuer) if isinstance(claim_issuer, str) else 0,
-            bool(configured_issuer)
-            and isinstance(claim_issuer, str)
-            and configured_issuer.strip() == claim_issuer.strip(),
-        )
         if not settings.neon_auth_issuer or claims.get("iss") != settings.neon_auth_issuer:
-            logger.warning("AUTH_DEBUG_DECODE issuer_check_failed reason=issuer_mismatch_or_unconfigured")
             return None
         if settings.neon_auth_audience:
             audience = claims.get("aud")
@@ -134,7 +116,6 @@ def decode_neon_claims(token: str):
                     and settings.neon_auth_audience in audience
                 )
             ):
-                logger.warning("AUTH_DEBUG_DECODE audience_check_failed reason=audience_mismatch")
                 return None
         key_data = next(
             (key for key in _neon_keys(settings.neon_auth_jwks_url)
@@ -142,31 +123,19 @@ def decode_neon_claims(token: str):
             None,
         )
         if not key_data or key_data.get("kty") != "OKP" or key_data.get("crv") != "Ed25519":
-            logger.warning("AUTH_DEBUG_DECODE jwks_lookup_failed reason=kid_or_key_shape_not_found")
             return None
-        verified_claims = decode_ed25519_claims(token, claims, key_data)
-        if verified_claims is None:
-            logger.warning("AUTH_DEBUG_DECODE signature_or_time_check_failed reason=signature_exp_or_nbf")
-        return verified_claims
-    except (JWTError, OSError, TypeError, ValueError, KeyError, AttributeError) as error:
-        logger.warning("AUTH_DEBUG_DECODE exception_type=%s", type(error).__name__)
+        return decode_ed25519_claims(token, claims, key_data)
+    except (JWTError, OSError, TypeError, ValueError, KeyError, AttributeError):
         return None
 
 
 def _sync_user(db: Session, claims: dict) -> User | None:
     subject = claims.get("sub")
     email = claims.get("email")
-    logger.warning(
-        "AUTH_DEBUG_SYNC sub_present=%s email_present=%s",
-        isinstance(subject, str) and bool(subject),
-        isinstance(email, str) and bool(email),
-    )
     if not isinstance(subject, str) or not subject or not isinstance(email, str) or not email:
-        logger.warning("AUTH_DEBUG_SYNC rejected_reason=missing_sub_or_email")
         return None
     email = email.strip().lower()
     verified = neon_email_is_verified(claims)
-    logger.warning("AUTH_DEBUG_SYNC verified_claim=%s", verified)
     user = db.query(User).filter(User.neon_auth_user_id == subject).one_or_none()
     if user is None:
         user = db.query(User).filter(User.email == email).one_or_none()
@@ -203,18 +172,7 @@ def get_current_user(
 ):
     """Canonical bearer-token verification, identity sync, and authorization."""
     claims = decode_neon_claims(token)
-    logger.warning(
-        "AUTH_DEBUG_CLAIMS truthy=%s keys=%s",
-        bool(claims),
-        sorted(claims.keys()) if claims else [],
-    )
     user = _sync_user(db, claims) if claims else None
-    if user is None:
-        logger.warning("AUTH_DEBUG_REJECT condition=user_is_none")
-    if user is not None and not user.is_active:
-        logger.warning("AUTH_DEBUG_REJECT condition=user_is_inactive")
-    if user is not None and not user.email_verified:
-        logger.warning("AUTH_DEBUG_REJECT condition=user_email_unverified")
     if user is None or not user.is_active or not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
