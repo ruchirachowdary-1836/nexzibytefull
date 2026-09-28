@@ -19,7 +19,7 @@ export default function RegistrationConfirmation() {
         ? "Your registration was saved. Email confirmation is available only for a verified account email."
         : status === "unknown"
           ? "Your registration was saved. We could not check email delivery; view My Passes for the latest status."
-          : `Your registration was saved. Confirmation email to ${registrationNotice.email} is being processed.`;
+          : `Your registration was saved. The confirmation email to ${registrationNotice.email} is still sending; check My Passes shortly.`;
 
   const resend = async () => {
     setSending(true);

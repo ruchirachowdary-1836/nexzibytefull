@@ -332,8 +332,16 @@ def fix_alembic(
 
     old_revision = '0018_merge_neon_auth_and_registration_heads'
     merge_revision = '0018_merge_heads'
-    head_revision = '0019_course_app_pass_fields'
+    pass_fields_revision = '0019_course_app_pass_fields'
+    head_revision = '0020_registration_emails'
     required_columns = {'pass_id', 'qr_data', 'issued_at'}
+    email_columns = {
+        'email_sent_at',
+        'email_last_attempt_at',
+        'email_pass_id',
+        'email_delivery_status',
+    }
+    tracked_tables = ('registrations', 'course_applications', 'pass_requests')
     required_indexes = {
         'ix_course_applications_pass_id',
         'ix_course_applications_qr_data',
@@ -373,6 +381,14 @@ def fix_alembic(
                 index['name']
                 for index in inspector.get_indexes('course_applications')
             }
+            before_tracked_columns = {
+                table_name: (
+                    {column['name'] for column in inspector.get_columns(table_name)}
+                    if inspector.has_table(table_name)
+                    else None
+                )
+                for table_name in tracked_tables
+            }
             missing_base = base_columns - before_columns
             if missing_base:
                 raise HTTPException(
@@ -408,9 +424,19 @@ def fix_alembic(
             ):
                 starting_state = 'current_merge_revision'
             elif (
+                before_versions == [pass_fields_revision]
+                and required_columns <= before_columns
+                and required_indexes <= before_indexes
+            ):
+                starting_state = 'pass_fields_revision'
+            elif (
                 before_versions == [head_revision]
                 and required_columns <= before_columns
                 and required_indexes <= before_indexes
+                and all(
+                    columns is None or email_columns <= columns
+                    for columns in before_tracked_columns.values()
+                )
             ):
                 return {
                     'status': 'already_applied',
@@ -450,10 +476,23 @@ def fix_alembic(
                     'course_applications'
                 )
             }
+            after_inspector = inspect(verify_connection)
+            after_tracked_columns = {
+                table_name: (
+                    {column['name'] for column in after_inspector.get_columns(table_name)}
+                    if after_inspector.has_table(table_name)
+                    else None
+                )
+                for table_name in tracked_tables
+            }
         if (
             after_versions != [head_revision]
             or not required_columns <= set(after_columns)
             or not required_indexes <= after_indexes
+            or any(
+                columns is not None and not email_columns <= columns
+                for columns in after_tracked_columns.values()
+            )
         ):
             raise RuntimeError('Alembic upgrade completed without the expected schema.')
 
