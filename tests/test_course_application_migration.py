@@ -53,6 +53,7 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
 
     config = Config("alembic.ini")
     config.set_main_option("path_separator", "os")
+    config.config_file_name = None
     try:
         command.upgrade(config, "head")
         with engine.connect() as connection:

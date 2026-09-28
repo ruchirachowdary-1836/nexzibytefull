@@ -64,7 +64,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://techtalk-backend-shob.onrender.com
+        value: https://techtalk-backendd.onrender.com
       - key: VITE_AUTH_PROVIDER
         value: neon
       - key: VITE_NEON_DATA_API_URL

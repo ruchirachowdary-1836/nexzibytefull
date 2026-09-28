@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backend-shob.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://techtalk-backendd.onrender.com";
 import { getNeonToken, neonAuthEnabled } from "./neon.js";
 
 export async function apiRequest(path, options = {}, allowRefresh = true) {
@@ -44,6 +44,14 @@ export const api = {
   getFounderMeets: () => apiRequest("/founder-meets?public=true"),
   getCategories: () => apiRequest("/categories"),
   getAdminDashboard: () => apiRequest("/admin/dashboard"),
+  getAdminRegistrations: (filters = {}) => {
+    const params = new URLSearchParams(
+      Object.entries(filters).filter(([, value]) => value !== "" && value != null),
+    );
+    return apiRequest(`/admin/registrations${params.size ? `?${params}` : ""}`);
+  },
+  getAdminRegistration: (id) => apiRequest(`/admin/registrations/${id}`),
+  resendAdminRegistrationEmail: (id) => apiRequest(`/admin/registrations/${id}/resend-email`, { method: "POST" }),
   subscribeNewsletter: (email) => apiRequest("/newsletter/subscribe", { method: "POST", body: JSON.stringify({ email }) }),
   submitPartnershipInquiry: (payload) => apiRequest("/partnership-inquiries", { method: "POST", body: JSON.stringify(payload) }),
   submitCourseApplication: (payload) => apiRequest("/course-applications", { method: "POST", body: JSON.stringify(payload) }),

@@ -6,7 +6,8 @@ os.environ["DB_URL"] = "sqlite:///./test_techtalk.db"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import main as main_module
@@ -193,6 +194,306 @@ def test_registration_email_is_sent_once(monkeypatch, tmp_path):
             assert registration.email_delivery_status == "sent"
             assert registration.email_sent_at is not None
             assert registration.email_pass_id == registration.pass_id
+    finally:
+        close_client(client, engine)
+
+
+def test_event_registration_persists_server_generated_pass_and_email_state(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    submitted = []
+    monkeypatch.setattr(
+        main_module,
+        "send_registration_email",
+        lambda *args, **kwargs: submitted.append((args, kwargs)),
+    )
+    try:
+        with test_session() as db:
+            user = User(
+                name="Event Attendee",
+                email="attendee@example.com",
+                email_verified=True,
+                is_active=True,
+            )
+            event = Summit(
+                title="Production Summit",
+                date=date(2030, 6, 1),
+                location="Hyderabad",
+                venue="Tech Campus",
+                status="upcoming",
+                is_published=True,
+            )
+            db.add_all([user, event])
+            db.commit()
+            db.refresh(user)
+            db.refresh(event)
+            active_user["value"] = user
+            event_id = event.id
+
+        response = client.post(
+            "/registrations",
+            json={"event_type": "summit", "event_id": event_id},
+        )
+        assert response.status_code == 201
+        payload = response.json()
+        assert payload["pass_id"].startswith("NEX-EVT-")
+        assert len(payload["pass_id"].rsplit("-", 1)[-1]) == 6
+        assert payload["email"] == "attendee@example.com"
+        assert payload["event_name"] == "Production Summit"
+        with test_session() as db:
+            registrations = db.query(Registration).all()
+            assert len(registrations) == 1
+            saved = registrations[0]
+            assert saved.user_id == user.id
+            assert saved.event_type == "summit"
+            assert saved.event_id == event_id
+            assert saved.status == "registered"
+            assert saved.registered_at is not None
+            assert saved.pass_id == payload["pass_id"]
+            assert saved.qr_data
+            assert saved.email_delivery_status == "sent"
+            assert saved.email_sent_at is not None
+            assert saved.email_last_attempt_at is not None
+            assert saved.email_pass_id == saved.pass_id
+        assert len(submitted) == 1
+        assert submitted[0][0][1].email == "attendee@example.com"
+    finally:
+        close_client(client, engine)
+
+
+def test_duplicate_event_registration_is_rejected_without_second_row(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    submitted = []
+    monkeypatch.setattr(
+        main_module,
+        "send_registration_email",
+        lambda *args, **kwargs: submitted.append(args),
+    )
+    try:
+        with test_session() as db:
+            user = User(
+                name="Duplicate Attendee",
+                email="duplicate@example.com",
+                email_verified=True,
+                is_active=True,
+            )
+            event = Summit(
+                title="Duplicate Test Summit",
+                date=date(2030, 7, 1),
+                location="Hyderabad",
+                status="upcoming",
+                is_published=True,
+            )
+            db.add_all([user, event])
+            db.commit()
+            db.refresh(user)
+            db.refresh(event)
+            active_user["value"] = user
+            event_id = event.id
+
+        body = {"event_type": "summit", "event_id": event_id}
+        first = client.post("/registrations", json=body)
+        duplicate = client.post("/registrations", json=body)
+        assert first.status_code == 201
+        assert duplicate.status_code == 409
+        with test_session() as db:
+            assert db.query(Registration).count() == 1
+        assert len(submitted) == 1
+    finally:
+        close_client(client, engine)
+
+
+def test_event_email_failure_keeps_committed_registration_and_marks_failure(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+
+    def fail_send(*args, **kwargs):
+        raise RuntimeError("provider rejected submission")
+
+    monkeypatch.setattr(main_module, "send_registration_email", fail_send)
+    try:
+        with test_session() as db:
+            user = User(
+                name="Email Failure",
+                email="email-failure@example.com",
+                email_verified=True,
+                is_active=True,
+            )
+            event = Summit(
+                title="Email Failure Summit",
+                date=date(2030, 8, 15),
+                location="Hyderabad",
+                status="upcoming",
+                is_published=True,
+            )
+            db.add_all([user, event])
+            db.commit()
+            db.refresh(user)
+            db.refresh(event)
+            active_user["value"] = user
+            event_id = event.id
+
+        response = client.post(
+            "/registrations",
+            json={"event_type": "summit", "event_id": event_id},
+        )
+        assert response.status_code == 201
+        registration_id = response.json()["id"]
+        assert response.json()["pass_id"].startswith("NEX-EVT-")
+        with test_session() as db:
+            saved = db.get(Registration, registration_id)
+            assert saved is not None
+            assert saved.email_delivery_status == "failed"
+            assert saved.email_last_attempt_at is not None
+            assert saved.email_sent_at is None
+            assert saved.email_pass_id is None
+    finally:
+        close_client(client, engine)
+
+
+def test_failed_registration_commit_returns_error_without_pass_or_email(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    submitted = []
+    monkeypatch.setattr(
+        main_module,
+        "send_registration_email",
+        lambda *args, **kwargs: submitted.append(args),
+    )
+    try:
+        with test_session() as db:
+            user = User(
+                name="Commit Failure",
+                email="commit-failure@example.com",
+                email_verified=True,
+                is_active=True,
+            )
+            event = Summit(
+                title="Commit Failure Summit",
+                date=date(2030, 8, 1),
+                location="Hyderabad",
+                status="upcoming",
+                is_published=True,
+            )
+            db.add_all([user, event])
+            db.commit()
+            db.refresh(user)
+            db.refresh(event)
+            active_user["value"] = user
+            event_id = event.id
+
+        class CommitFailureSession(Session):
+            def commit(self):
+                raise SQLAlchemyError("simulated commit failure")
+
+        def failing_db():
+            db = CommitFailureSession(bind=engine)
+            try:
+                yield db
+            finally:
+                db.close()
+
+        main_module.app.dependency_overrides[get_db] = failing_db
+        response = client.post(
+            "/registrations",
+            json={"event_type": "summit", "event_id": event_id},
+        )
+        assert response.status_code == 500
+        assert "Registration could not be completed" in response.json()["detail"]
+        with test_session() as db:
+            assert db.query(Registration).count() == 0
+        assert submitted == []
+    finally:
+        close_client(client, engine)
+
+
+def test_admin_can_filter_view_and_resend_registration_email(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    submitted = []
+    monkeypatch.setattr(
+        main_module,
+        "send_registration_email",
+        lambda *args, **kwargs: submitted.append((args, kwargs)),
+    )
+    try:
+        with test_session() as db:
+            admin = User(
+                name="Admin",
+                email="admin-registration@example.com",
+                role="admin",
+                email_verified=True,
+                is_active=True,
+            )
+            event = Summit(
+                title="Admin Dashboard Summit",
+                date=date(2030, 9, 1),
+                location="Hyderabad",
+                status="upcoming",
+                is_published=True,
+            )
+            db.add_all([admin, event])
+            db.flush()
+            registration = Registration(
+                user_id=admin.id,
+                event_type="summit",
+                event_id=event.id,
+                status="registered",
+                registration_number="REG-ADM1",
+                pass_id="NEX-EVT-123456",
+                qr_data="signed-existing-pass",
+                email_delivery_status="failed",
+                email_last_attempt_at=datetime.utcnow() - timedelta(minutes=4),
+            )
+            db.add(registration)
+            db.commit()
+            db.refresh(admin)
+            registration_id = registration.id
+            active_user["value"] = admin
+
+        listed = client.get(
+            "/admin/registrations",
+            params={
+                "event_type": "summit",
+                "email_status": "failed",
+                "search": "admin-registration@example.com",
+                "event": "Admin Dashboard",
+                "pass_id": "123456",
+            },
+        )
+        assert listed.status_code == 200
+        result = listed.json()
+        assert result["total"] == 1
+        assert result["items"][0]["user_name"] == "Admin"
+        assert result["items"][0]["event_name"] == "Admin Dashboard Summit"
+        assert result["items"][0]["pass_id"] == "NEX-EVT-123456"
+
+        details = client.get(f"/admin/registrations/{registration_id}")
+        assert details.status_code == 200
+        assert details.json()["qr_available"] is True
+
+        resent = client.post(f"/admin/registrations/{registration_id}/resend-email")
+        assert resent.status_code == 200
+        assert resent.json()["submitted_to_provider"] is True
+        assert resent.json()["email_delivery_status"] == "sent"
+        assert len(submitted) == 1
+        with test_session() as db:
+            saved = db.get(Registration, registration_id)
+            assert saved.pass_id == "NEX-EVT-123456"
+            assert saved.email_delivery_status == "sent"
+            assert saved.email_sent_at is not None
+            assert saved.email_pass_id == saved.pass_id
+            assert db.query(Registration).count() == 1
+
+        active_user["value"].role = "user"
+        forbidden = client.get("/admin/registrations")
+        assert forbidden.status_code == 403
     finally:
         close_client(client, engine)
 

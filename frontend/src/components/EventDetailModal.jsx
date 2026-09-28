@@ -1,58 +1,84 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   X, Calendar, Clock, MapPin, Sparkles, CheckCircle2, 
-  ArrowRight, Users, BookOpen, Award, Building, User, Mail, Phone, MapPinCheck 
+  ArrowRight, Users, BookOpen, Award
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api, waitForRegistrationEmail } from "../lib/api.js";
 
 export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegister = false }) {
-  const { showToast } = useApp();
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    organization: "",
-    role: "",
-    city: ""
-  });
+  const { showToast, user } = useApp();
   const [submitting, setSubmitting] = useState(false);
   const [registered, setRegistered] = useState(false);
-  const [regPassId, setRegPassId] = useState("");
+  const [registration, setRegistration] = useState(null);
+  const [registrationError, setRegistrationError] = useState("");
+  const [emailResending, setEmailResending] = useState(false);
+
+  useEffect(() => {
+    setSubmitting(false);
+    setRegistered(false);
+    setRegistration(null);
+    setRegistrationError("");
+    setEmailResending(false);
+  }, [isOpen, event?.event_type, event?.id]);
 
   if (!isOpen || !event) return null;
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.email || !formData.phone) {
-      showToast("Please fill in your name, email, and phone number.");
+    if (!user?.email) {
+      setRegistrationError("Sign in with a verified account before registering.");
       return;
     }
-
+    if (!["summit", "founder_meet"].includes(event.event_type) || !Number.isInteger(Number(event.id))) {
+      setRegistrationError("This event is not currently available for registration. Choose a published event from the event list.");
+      return;
+    }
     setSubmitting(true);
-    setTimeout(() => {
-      const generatedPassId = `NEX-EVT-${Math.floor(100000 + Math.random() * 900000)}`;
-      setRegPassId(generatedPassId);
-      setSubmitting(false);
+    setRegistrationError("");
+    try {
+      const created = await api.registerForEvent(event.event_type, Number(event.id));
+      setRegistration({
+        ...created,
+        email: user.email,
+        event_name: created.event_name || event.title,
+        email_delivery_status: created.email_delivery_status || "pending",
+      });
       setRegistered(true);
-      showToast(`Registration confirmed! Pass ID: ${generatedPassId}`);
-    }, 800);
+      setSubmitting(false);
+      waitForRegistrationEmail("registration", created.id)
+        .then((updated) => {
+          if (updated) {
+            setRegistration((current) => (
+              current ? { ...current, email_delivery_status: updated.email_delivery_status } : current
+            ));
+          }
+        })
+        .catch(() => {});
+    } catch (error) {
+      setRegistrationError(error.message || "Registration could not be completed. Please try again.");
+      showToast(error.message || "Registration could not be completed. Please try again.");
+      setSubmitting(false);
+    }
   };
 
-  const handleResetRegistration = () => {
-    setRegistered(false);
-    setFormData({
-      fullName: "",
-      email: "",
-      phone: "",
-      organization: "",
-      role: "",
-      city: ""
-    });
+  const handleResendConfirmation = async () => {
+    if (!registration?.id) return;
+    setEmailResending(true);
+    setRegistrationError("");
+    try {
+      await api.resendRegistrationEmail("registration", registration.id);
+      const updated = await waitForRegistrationEmail("registration", registration.id);
+      if (updated) {
+        setRegistration((current) => (
+          current ? { ...current, email_delivery_status: updated.email_delivery_status } : current
+        ));
+      }
+    } catch (error) {
+      setRegistrationError(error.message || "Confirmation email could not be resent.");
+    } finally {
+      setEmailResending(false);
+    }
   };
 
   return (
@@ -227,111 +253,24 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                     <span className="event-reg-badge">FREE ACCESS PASS</span>
                     <h3 className="event-reg-title">Register for This Event</h3>
                     <p className="event-reg-subtitle">
-                      Secure your confirmed delegate seat and receive your digital QR pass instantly.
+                      Register with your verified TechTalk account. Your pass is generated and saved by the server.
                     </p>
                   </div>
 
                   <form onSubmit={handleRegisterSubmit} className="event-reg-form">
                     <div className="event-form-group">
-                      <label htmlFor="reg-name" className="event-form-label">
-                        <User size={14} /> Full Name *
-                      </label>
-                      <input 
-                        id="reg-name"
-                        type="text"
-                        name="fullName"
-                        required
-                        placeholder="e.g. Alex Sharma"
-                        className="event-form-input"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        autoFocus={autoFocusRegister}
-                      />
-                    </div>
-
-                    <div className="event-form-group">
-                      <label htmlFor="reg-email" className="event-form-label">
-                        <Mail size={14} /> Email Address *
-                      </label>
-                      <input 
-                        id="reg-email"
-                        type="email"
-                        name="email"
-                        required
-                        placeholder="alex@company.com"
-                        className="event-form-input"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="event-form-group">
-                      <label htmlFor="reg-phone" className="event-form-label">
-                        <Phone size={14} /> Phone Number *
-                      </label>
-                      <input 
-                        id="reg-phone"
-                        type="tel"
-                        name="phone"
-                        required
-                        placeholder="+91 98765 43210"
-                        className="event-form-input"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="event-form-group">
-                      <label htmlFor="reg-org" className="event-form-label">
-                        <Building size={14} /> College / Company
-                      </label>
-                      <input 
-                        id="reg-org"
-                        type="text"
-                        name="organization"
-                        placeholder="e.g. IIT Hyderabad / Tech Corp"
-                        className="event-form-input"
-                        value={formData.organization}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="event-form-row">
-                      <div className="event-form-group" style={{ flex: 1 }}>
-                        <label htmlFor="reg-role" className="event-form-label">
-                          Role
-                        </label>
-                        <input 
-                          id="reg-role"
-                          type="text"
-                          name="role"
-                          placeholder="e.g. Developer / Student"
-                          className="event-form-input"
-                          value={formData.role}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-
-                      <div className="event-form-group" style={{ flex: 1 }}>
-                        <label htmlFor="reg-city" className="event-form-label">
-                          <MapPinCheck size={14} /> City
-                        </label>
-                        <input 
-                          id="reg-city"
-                          type="text"
-                          name="city"
-                          placeholder="e.g. Hyderabad"
-                          className="event-form-input"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                        />
+                      <span className="event-form-label">Registering as</span>
+                      <div className="event-form-input" aria-label="Signed in account">
+                        {user?.name || "Signed-in member"} · {user?.email || "Sign in required"}
                       </div>
                     </div>
+
+                    {registrationError && <p role="alert">{registrationError}</p>}
 
                     <button 
                       type="submit" 
                       className="btn btn-blue-primary btn-full"
-                      disabled={submitting}
+                      disabled={submitting || !user || !event.event_type || !Number.isInteger(Number(event.id))}
                     >
                       {submitting ? (
                         <span>Registering Your Seat...</span>
@@ -355,14 +294,33 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                   </div>
                   <h3 className="event-success-title">You're Registered!</h3>
                   <p className="event-success-desc">
-                    We’ve reserved your spot for <strong>{event.title}</strong>. A confirmation pass email has been dispatched.
+                    {registration?.email_delivery_status === "sent"
+                      ? "Registration successful. Brevo accepted the confirmation email submission."
+                      : registration?.email_delivery_status === "failed"
+                        ? "Registration successful. Your pass has been generated, but we couldn't send the confirmation email yet."
+                        : registration?.email_delivery_status === "not_eligible"
+                          ? "Registration successful. Email confirmation requires an active account with a verified email."
+                          : "Registration successful. Your pass has been generated; confirmation email status is still processing."}
                   </p>
 
                   <div className="event-pass-preview-box">
                     <div className="event-pass-preview-label">CONFIRMED PASS ID</div>
-                    <div className="event-pass-preview-id">{regPassId}</div>
-                    <div className="event-pass-preview-name">{formData.fullName}</div>
-                    <div className="event-pass-preview-event">{event.date} • {event.location}</div>
+                    <div className="event-pass-preview-id">{registration?.pass_id}</div>
+                    <div className="event-pass-preview-name">{user?.name}</div>
+                    <div className="event-pass-preview-event">{event.date} • {event.venue || event.location}</div>
+                    <div className="event-pass-preview-event">Registered email: {registration?.email}</div>
+                    <div className="event-pass-preview-event">Email status: {registration?.email_delivery_status || "pending"}</div>
+                    {registration?.email_delivery_status === "failed" && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={emailResending}
+                        onClick={handleResendConfirmation}
+                      >
+                        {emailResending ? "Requesting resend…" : "Resend confirmation email"}
+                      </button>
+                    )}
+                    {registrationError && <p role="alert">{registrationError}</p>}
                   </div>
 
                   <div className="event-success-actions">
@@ -372,14 +330,6 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       onClick={onClose}
                     >
                       Done &amp; Return to Events
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary btn-sm btn-full"
-                      onClick={handleResetRegistration}
-                      style={{ marginTop: "8px" }}
-                    >
-                      Register Another Attendee
                     </button>
                   </div>
                 </div>

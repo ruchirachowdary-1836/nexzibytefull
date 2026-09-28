@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
   Search, Calendar, Clock, MapPin, Sparkles, Filter, 
@@ -11,6 +11,7 @@ import {
   DEDICATED_PAST_EVENTS 
 } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 // Modals
 import EventDetailModal from "./EventDetailModal.jsx";
@@ -28,8 +29,57 @@ const CATEGORY_FILTERS = [
   { id: "meetups", label: "Meetups" }
 ];
 
+function displayEventDate(value) {
+  if (!value) return "Date to be announced";
+  const parsed = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? String(value)
+    : parsed.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function displayEventTime(value) {
+  if (!value) return "Time to be announced";
+  const [hours, minutes] = String(value).split(":").map(Number);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return String(value);
+  const parsed = new Date();
+  parsed.setHours(hours, minutes, 0, 0);
+  return parsed.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function mapPublishedEvent(record, eventType, index) {
+  const decoration = DEDICATED_UPCOMING_EVENTS.find(
+    (event) => event.title.toLowerCase() === record.title.toLowerCase(),
+  ) || {};
+  const rawDate = String(record.date || "").slice(0, 10);
+  const month = rawDate.slice(5, 7);
+  return {
+    ...decoration,
+    id: record.id,
+    event_type: eventType,
+    title: record.title,
+    rawDate,
+    date: displayEventDate(rawDate),
+    monthGroup: month === "09" ? "sep-2026" : month === "10" ? "oct-2026" : "later",
+    time: displayEventTime(record.time),
+    location: record.location || record.venue || "Online",
+    venue: record.venue || record.location || "To be announced",
+    mode: /online|virtual/i.test(`${record.location || ""} ${record.venue || ""}`) ? "online" : "offline",
+    modeBadge: eventType === "summit" ? "Published Summit" : "Founder Meet",
+    description: record.description || decoration.description || "Published NexziByte event.",
+    image: decoration.image || DEDICATED_UPCOMING_EVENTS[index % DEDICATED_UPCOMING_EVENTS.length].image,
+    category: decoration.category || (eventType === "summit" ? "Summit" : "Founder Meet"),
+    filterCategory: decoration.filterCategory || (eventType === "summit" ? "conferences" : "meetups"),
+    agenda: decoration.title ? decoration.agenda : [],
+    speakers: decoration.title ? decoration.speakers : [],
+    about: record.description || decoration.about || record.title,
+  };
+}
+
 export default function EventsPage() {
   const { showToast } = useApp();
+  const [publishedEvents, setPublishedEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,6 +98,26 @@ export default function EventsPage() {
 
   const [hostModalOpen, setHostModalOpen] = useState(false);
   const [hostModalType, setHostModalType] = useState("host"); // "host" or "speaker"
+
+  useEffect(() => {
+    let active = true;
+    api.getUpcomingEvents()
+      .then((data) => {
+        if (!active) return;
+        const records = [
+          ...(data.summits || []).map((event, index) => mapPublishedEvent(event, "summit", index)),
+          ...(data.founder_meets || []).map((event, index) => mapPublishedEvent(event, "founder_meet", index)),
+        ];
+        setPublishedEvents(records);
+      })
+      .catch((error) => {
+        if (active) setEventsError(error.message || "Published events could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setEventsLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
 
   // Open Event Details
   const handleOpenEventDetails = (event, focusRegister = false) => {
@@ -79,7 +149,7 @@ export default function EventsPage() {
 
   // Filtered Upcoming Events
   const filteredEvents = useMemo(() => {
-    return DEDICATED_UPCOMING_EVENTS.filter((ev) => {
+    return publishedEvents.filter((ev) => {
       // 1. Text Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -130,7 +200,19 @@ export default function EventsPage() {
 
       return true;
     });
-  }, [searchQuery, selectedCategory, dateFilter, locationFilter, modeFilter]);
+  }, [publishedEvents, searchQuery, selectedCategory, dateFilter, locationFilter, modeFilter]);
+
+  const openFeaturedEvent = (focusRegister = false) => {
+    const matchingEvent = publishedEvents.find(
+      (candidate) => candidate.title.toLowerCase() === FEATURED_EVENT_DETAILS.title.toLowerCase(),
+    );
+    if (matchingEvent) {
+      handleOpenEventDetails(matchingEvent, focusRegister);
+      return;
+    }
+    document.getElementById("events-browser")?.scrollIntoView({ behavior: "smooth" });
+    showToast("Choose a currently published event to register and receive a database-backed pass.");
+  };
 
   const hasActiveFilters = searchQuery !== "" || selectedCategory !== "all" || dateFilter !== "all" || locationFilter !== "all" || modeFilter !== "all";
 
@@ -162,7 +244,7 @@ export default function EventsPage() {
             {/* Quick Stats Strip */}
             <div className="events-stats-strip">
               <div className="events-stat-pill">
-                <span className="events-stat-number">{DEDICATED_UPCOMING_EVENTS.length}</span>
+                <span className="events-stat-number">{publishedEvents.length}</span>
                 <span className="events-stat-text">Upcoming Events</span>
               </div>
               <div className="events-stat-pill">
@@ -317,9 +399,11 @@ export default function EventsPage() {
             </div>
 
             <div className="events-match-count-pill">
-              Showing <strong>{filteredEvents.length}</strong> of {DEDICATED_UPCOMING_EVENTS.length} events
+              Showing <strong>{filteredEvents.length}</strong> of {publishedEvents.length} events
             </div>
           </div>
+          {eventsLoading && <p role="status">Loading published events…</p>}
+          {eventsError && <p role="alert">{eventsError}</p>}
 
           {/* 3-Column Card Grid */}
           {filteredEvents.length > 0 ? (
@@ -412,7 +496,12 @@ export default function EventsPage() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !eventsLoading && !eventsError && publishedEvents.length === 0 ? (
+            <div className="events-empty-state-box">
+              <h3 className="events-empty-title">No published events are open for registration</h3>
+              <p className="events-empty-desc">Please check back when a summit or founder meet is published.</p>
+            </div>
+          ) : !eventsLoading && !eventsError ? (
             <div className="events-empty-state-box">
               <Sparkles size={40} className="text-blue-accent" style={{ opacity: 0.5, marginBottom: "16px" }} />
               <h3 className="events-empty-title">No matching events found</h3>
@@ -428,7 +517,7 @@ export default function EventsPage() {
                 Reset All Filters
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -528,10 +617,7 @@ export default function EventsPage() {
                 <button 
                   type="button" 
                   className="btn btn-secondary btn-lg"
-                  onClick={() => handleOpenEventDetails({
-                    ...FEATURED_EVENT_DETAILS,
-                    image: FEATURED_EVENT_DETAILS.image
-                  }, false)}
+                  onClick={() => openFeaturedEvent(false)}
                 >
                   <span>View Event</span>
                   <ExternalLink size={16} />
@@ -540,10 +626,7 @@ export default function EventsPage() {
                 <button 
                   type="button" 
                   className="btn btn-blue-primary btn-lg"
-                  onClick={() => handleOpenEventDetails({
-                    ...FEATURED_EVENT_DETAILS,
-                    image: FEATURED_EVENT_DETAILS.image
-                  }, true)}
+                  onClick={() => openFeaturedEvent(true)}
                 >
                   <Sparkles size={16} />
                   <span>Reserve Your Spot</span>

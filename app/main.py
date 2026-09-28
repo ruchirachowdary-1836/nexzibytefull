@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
@@ -54,7 +54,7 @@ def send_registration_email_background(
     *,
     resend: bool = False,
     pass_issued: bool = False,
-) -> None:
+) -> str:
     models = {
         "course_application": CourseApplication,
         "pass_request": PassRequest,
@@ -78,20 +78,20 @@ def send_registration_email_background(
                     "error_type": "RegistrationNotFound",
                 },
             )
-            return
+            return "not_found"
 
         user = db.get(User, registration.user_id) if registration.user_id else None
         if not user or not user.is_active or not user.email_verified:
             registration.email_delivery_status = "not_eligible"
             db.commit()
-            return
+            return "not_eligible"
 
         stored_email = getattr(registration, "email", None)
         recipient = (stored_email or user.email).strip().lower()
         if recipient != user.email.strip().lower():
             registration.email_delivery_status = "not_eligible"
             db.commit()
-            return
+            return "not_eligible"
 
         pass_id = getattr(registration, "pass_id", None)
         pass_was_sent = pass_id and registration.email_pass_id == pass_id
@@ -99,7 +99,7 @@ def send_registration_email_background(
             pass_id and not pass_was_sent
         )
         if not needs_send:
-            return
+            return registration.email_delivery_status or "pending"
 
         now = datetime.utcnow()
         last_attempt = registration.email_last_attempt_at
@@ -107,7 +107,7 @@ def send_registration_email_background(
             seconds=REGISTRATION_EMAIL_RETRY_SECONDS
         )
         if recent_attempt and (not pass_issued or registration.email_delivery_status == "sending"):
-            return
+            return registration.email_delivery_status or "pending"
 
         registration.email_last_attempt_at = now
         registration.email_delivery_status = "sending"
@@ -135,6 +135,13 @@ def send_registration_email_background(
                 description = registration.notes or (
                     f"{registration.pass_type} community access."
                 )
+            logger.info(
+                "registration_email_submission_attempted",
+                extra={
+                    "request_id": request_id,
+                    "registration_id": registration_id,
+                },
+            )
             send_registration_email(
                 kind,
                 user,
@@ -164,12 +171,20 @@ def send_registration_email_background(
                     "error_type": type(exc).__name__,
                 },
             )
-            return
+            return "failed"
 
         registration.email_sent_at = datetime.utcnow()
         registration.email_pass_id = pass_id
         registration.email_delivery_status = "sent"
         db.commit()
+        logger.info(
+            "registration_email_submission_succeeded",
+            extra={
+                "request_id": request_id,
+                "registration_id": registration_id,
+            },
+        )
+        return "sent"
     except Exception as exc:
         logger.error(
             "registration_email_failed",
@@ -179,6 +194,7 @@ def send_registration_email_background(
                 "error_type": type(exc).__name__,
             },
         )
+        return "failed"
     finally:
         db.close()
 
@@ -1585,27 +1601,135 @@ def create_registration(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    request_id = request_id_context.get() or "unavailable"
+    logger.info(
+        "event_registration_received",
+        extra={
+            "request_id": request_id,
+            "user_id": user.id,
+            "event_type": body.event_type,
+            "event_id": body.event_id,
+        },
+    )
     event = get_event(db, body.event_type, body.event_id)
-    if db.query(Registration).filter_by(user_id=user.id,**body.model_dump()).first(): raise HTTPException(409,detail='Already registered for this event')
-    x = Registration(
+    if event.status != 'upcoming' or event.date < date.today():
+        raise HTTPException(409, detail='Registration is not open for this event.')
+    if db.query(Registration).filter_by(
+        user_id=user.id,
+        event_type=body.event_type,
+        event_id=body.event_id,
+    ).first():
+        raise HTTPException(409, detail='Already registered for this event')
+
+    temporary_pass_id = f"PENDING-{secrets.token_hex(12).upper()}"
+    registration = Registration(
         user_id=user.id,
         registration_number=f"REG-{secrets.token_hex(5).upper()}",
-        pass_id=f"{body.event_type[:3].upper()}-{secrets.token_hex(4).upper()}",
-        qr_data="",
+        pass_id=temporary_pass_id,
+        qr_data=sign_pass_payload(temporary_pass_id, None),
+        email_delivery_status=(
+            "pending" if user.is_active and user.email_verified else "not_eligible"
+        ),
         **body.model_dump(),
     )
-    x.qr_data = sign_pass_payload(x.pass_id, None)
-    db.add(x)
-    db.commit()
-    db.refresh(x)
-    add_notification(db, user.id, 'event_update', 'Event registration confirmed', f'You are registered for the {body.event_type.replace("_", " ")} event.')
+    db.add(registration)
+    try:
+        db.flush()
+        logger.info(
+            "event_registration_created",
+            extra={
+                "request_id": request_id,
+                "registration_id": registration.id,
+                "user_id": user.id,
+                "event_type": body.event_type,
+                "event_id": body.event_id,
+            },
+        )
+        for _ in range(5):
+            pass_id = f"NEX-EVT-{secrets.randbelow(900000) + 100000}"
+            if not db.query(Registration.id).filter_by(pass_id=pass_id).first():
+                break
+        else:
+            raise RuntimeError("Could not allocate a unique event pass ID.")
+        registration.pass_id = pass_id
+        registration.qr_data = sign_pass_payload(pass_id, None)
+        logger.info(
+            "event_registration_pass_generated",
+            extra={
+                "request_id": request_id,
+                "registration_id": registration.id,
+                "pass_id": pass_id,
+            },
+        )
+        db.add(
+            Notification(
+                user_id=user.id,
+                type='event_update',
+                title='Event registration confirmed',
+                message=f'You are registered for {event.title}.',
+            )
+        )
+        response = item(registration)
+        response.update({
+            "email": user.email,
+            "event_name": event.title,
+            "email_delivery_status": registration.email_delivery_status,
+        })
+        db.commit()
+        logger.info(
+            "event_registration_transaction_committed",
+            extra={
+                "request_id": request_id,
+                "registration_id": registration.id,
+                "user_id": user.id,
+            },
+        )
+    except IntegrityError as exc:
+        db.rollback()
+        duplicate = db.query(Registration.id).filter_by(
+            user_id=user.id,
+            event_type=body.event_type,
+            event_id=body.event_id,
+        ).first()
+        if duplicate:
+            raise HTTPException(409, detail='Already registered for this event') from exc
+        logger.error(
+            "event_registration_database_failed",
+            extra={
+                "request_id": request_id,
+                "user_id": user.id,
+                "event_type": body.event_type,
+                "event_id": body.event_id,
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise HTTPException(
+            500,
+            detail='Registration could not be completed. Please try again.',
+        ) from exc
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.error(
+            "event_registration_database_failed",
+            extra={
+                "request_id": request_id,
+                "user_id": user.id,
+                "event_type": body.event_type,
+                "event_id": body.event_id,
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise HTTPException(
+            500,
+            detail='Registration could not be completed. Please try again.',
+        ) from exc
     background_tasks.add_task(
         send_registration_email_background,
         "registration",
-        x.id,
-        request_id_context.get() or "unavailable",
+        registration.id,
+        request_id,
     )
-    return item(x)
+    return response
 
 @app.post('/summits/{event_id}/register', status_code=201)
 def register_for_summit(event_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -1886,5 +2010,163 @@ def admin_events(db: Session = Depends(get_db), _: User = Depends(require_admin)
     }
 
 @app.get('/admin/registrations')
-def admin_registrations(db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return [item(reg) for reg in db.query(Registration).order_by(Registration.registered_at.desc()).all()]
+def admin_registrations(
+    event_type: Literal['summit', 'founder_meet'] | None = None,
+    event_id: int | None = None,
+    status: str | None = None,
+    email_status: str | None = None,
+    search: str | None = None,
+    event: str | None = None,
+    pass_id: str | None = None,
+    registered_from: date | None = None,
+    registered_to: date | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    query = db.query(Registration, User).join(User, User.id == Registration.user_id)
+    if event_type:
+        query = query.filter(Registration.event_type == event_type)
+    if event_id is not None:
+        query = query.filter(Registration.event_id == event_id)
+    if status:
+        query = query.filter(Registration.status == status)
+    if email_status:
+        query = query.filter(Registration.email_delivery_status == email_status)
+    if pass_id:
+        query = query.filter(Registration.pass_id.ilike(f'%{pass_id.strip()}%'))
+    if search:
+        term = f'%{search.strip()}%'
+        query = query.filter(or_(User.name.ilike(term), User.email.ilike(term)))
+    if event:
+        term = f'%{event.strip()}%'
+        summit_ids = db.query(Summit.id).filter(Summit.title.ilike(term))
+        founder_meet_ids = db.query(FounderMeet.id).filter(FounderMeet.title.ilike(term))
+        query = query.filter(or_(
+            (Registration.event_type == 'summit') & Registration.event_id.in_(summit_ids),
+            (Registration.event_type == 'founder_meet') & Registration.event_id.in_(founder_meet_ids),
+        ))
+    if registered_from:
+        query = query.filter(
+            Registration.registered_at >= datetime.combine(registered_from, time.min)
+        )
+    if registered_to:
+        query = query.filter(
+            Registration.registered_at <= datetime.combine(registered_to, time.max)
+        )
+
+    total = query.count()
+    rows = query.order_by(Registration.registered_at.desc()).offset(offset).limit(limit).all()
+    results = []
+    for registration, user in rows:
+        event = (
+            db.get(Summit if registration.event_type == 'summit' else FounderMeet, registration.event_id)
+        )
+        results.append({
+            'id': registration.id,
+            'user_id': registration.user_id,
+            'user_name': user.name,
+            'email': user.email,
+            'event_name': event.title if event else 'Event no longer available',
+            'event_type': registration.event_type,
+            'event_id': registration.event_id,
+            'status': registration.status,
+            'registered_at': registration.registered_at,
+            'registration_number': registration.registration_number,
+            'pass_id': registration.pass_id,
+            'pass_issued': bool(registration.pass_id),
+            'qr_available': bool(registration.qr_data),
+            'email_delivery_status': registration.email_delivery_status,
+            'email_sent_at': registration.email_sent_at,
+            'email_last_attempt_at': registration.email_last_attempt_at,
+        })
+    return {'total': total, 'items': results}
+
+
+@app.get('/admin/registrations/{registration_id}')
+def admin_registration_detail(
+    registration_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    row = (
+        db.query(Registration, User)
+        .join(User, User.id == Registration.user_id)
+        .filter(Registration.id == registration_id)
+        .one_or_none()
+    )
+    if row is None:
+        raise HTTPException(404, detail='Registration not found.')
+    registration, user = row
+    event = db.get(
+        Summit if registration.event_type == 'summit' else FounderMeet,
+        registration.event_id,
+    )
+    return {
+        'id': registration.id,
+        'user_id': registration.user_id,
+        'user_name': user.name,
+        'email': user.email,
+        'event_name': event.title if event else 'Event no longer available',
+        'event_type': registration.event_type,
+        'event_id': registration.event_id,
+        'status': registration.status,
+        'registered_at': registration.registered_at,
+        'registration_number': registration.registration_number,
+        'pass_id': registration.pass_id,
+        'pass_issued': bool(registration.pass_id),
+        'qr_available': bool(registration.qr_data),
+        'email_delivery_status': registration.email_delivery_status,
+        'email_sent_at': registration.email_sent_at,
+        'email_last_attempt_at': registration.email_last_attempt_at,
+    }
+
+
+@app.post('/admin/registrations/{registration_id}/resend-email')
+def admin_resend_registration_email(
+    registration_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    registration = db.get(Registration, registration_id)
+    if registration is None:
+        raise HTTPException(404, detail='Registration not found.')
+    if registration.email_last_attempt_at:
+        seconds_since_attempt = (
+            datetime.utcnow() - registration.email_last_attempt_at
+        ).total_seconds()
+        if seconds_since_attempt < REGISTRATION_EMAIL_RETRY_SECONDS:
+            retry_after = max(
+                1, int(REGISTRATION_EMAIL_RETRY_SECONDS - seconds_since_attempt)
+            )
+            raise HTTPException(
+                429,
+                detail='Please wait before requesting another confirmation email.',
+                headers={'Retry-After': str(retry_after)},
+            )
+    request_id = request_id_context.get() or 'unavailable'
+    logger.info(
+        'admin_registration_email_resend_requested',
+        extra={
+            'request_id': request_id,
+            'registration_id': registration.id,
+            'admin_user_id': admin.id,
+        },
+    )
+    result = send_registration_email_background(
+        'registration',
+        registration.id,
+        request_id,
+        resend=True,
+    )
+    return {
+        'registration_id': registration.id,
+        'email_delivery_status': result,
+        'submitted_to_provider': result == 'sent',
+        'detail': (
+            'Brevo accepted the confirmation email submission.'
+            if result == 'sent'
+            else 'The confirmation email could not be submitted.'
+        ),
+    }
