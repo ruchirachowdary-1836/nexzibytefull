@@ -49,6 +49,8 @@ import AuthPage from "./components/AuthPage.jsx";
 import VerifyEmail from "./components/VerifyEmail.jsx";
 import MemberDashboard from "./components/MemberDashboard.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import MyPasses from "./components/MyPasses.jsx";
+import RegistrationConfirmation from "./components/RegistrationConfirmation.jsx";
 
 // Modals
 import PassRegistrationModal from "./components/PassRegistrationModal.jsx";
@@ -336,6 +338,7 @@ function App() {
         <Route path="/about" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/partner" element={<ProtectedRoute><PassesPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><MemberDashboard /></ProtectedRoute>} />
+        <Route path="/my-passes" element={<ProtectedRoute><MyPasses /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
         <Route path="/summits" element={<ProtectedRoute><SummitsPage /></ProtectedRoute>} />
@@ -360,6 +363,7 @@ function App() {
       {!isCheckoutPage && <Footer />}
 
       {/* Modals */}
+      <RegistrationConfirmation />
       <PassRegistrationModal />
       <VideoModal />
       <ArticleModal />

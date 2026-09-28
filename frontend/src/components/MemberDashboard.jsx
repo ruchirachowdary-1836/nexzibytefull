@@ -20,7 +20,8 @@ export default function MemberDashboard() {
         </div>
         <div style={{ display: "flex", gap: "12px", marginTop: "24px", flexWrap: "wrap" }}>
           <Link className="btn btn-primary" to="/profile">Open profile</Link>
-          <Link className="btn btn-secondary" to="/passes">View passes</Link>
+          <Link className="btn btn-secondary" to="/my-passes">My passes</Link>
+          <Link className="btn btn-outline" to="/passes">Explore passes</Link>
           <button className="btn btn-outline" type="button" onClick={logout}>Sign out</button>
         </div>
       </div>

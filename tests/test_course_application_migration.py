@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, text
 from app.config import settings
 
 
-def test_upgrade_from_0018_merge_head_adds_course_application_pass_fields(
+def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
     tmp_path, monkeypatch
 ):
     database_path = tmp_path / "migration-test.db"
@@ -40,8 +40,15 @@ def test_upgrade_from_0018_merge_head_adds_course_application_pass_fields(
                 "experience_level VARCHAR(120), "
                 "notes TEXT, "
                 "status VARCHAR(30) NOT NULL, "
+                "email_sent_at DATETIME, "
                 "created_at DATETIME NOT NULL)"
             )
+        )
+        connection.execute(
+            text("CREATE TABLE registrations (id INTEGER PRIMARY KEY, email_sent_at DATETIME)")
+        )
+        connection.execute(
+            text("CREATE TABLE pass_requests (id INTEGER PRIMARY KEY, email_sent_at DATETIME)")
         )
 
     config = Config("alembic.ini")
@@ -53,6 +60,13 @@ def test_upgrade_from_0018_merge_head_adds_course_application_pass_fields(
                 column["name"]
                 for column in inspect(connection).get_columns("course_applications")
             }
+            other_tables = {
+                table: {
+                    column["name"]
+                    for column in inspect(connection).get_columns(table)
+                }
+                for table in ("registrations", "pass_requests")
+            }
             indexes = {
                 index["name"]
                 for index in inspect(connection).get_indexes("course_applications")
@@ -61,8 +75,21 @@ def test_upgrade_from_0018_merge_head_adds_course_application_pass_fields(
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0019_course_app_pass_fields"
+        assert revision == "0020_registration_emails"
         assert {"pass_id", "qr_data", "issued_at"} <= columns
+        assert {
+            "email_sent_at",
+            "email_last_attempt_at",
+            "email_pass_id",
+            "email_delivery_status",
+        } <= columns
+        for table_columns in other_tables.values():
+            assert {
+                "email_sent_at",
+                "email_last_attempt_at",
+                "email_pass_id",
+                "email_delivery_status",
+            } <= table_columns
         assert {
             "ix_course_applications_pass_id",
             "ix_course_applications_qr_data",

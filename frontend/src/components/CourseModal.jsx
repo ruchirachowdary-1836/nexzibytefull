@@ -4,6 +4,7 @@ import {
   CheckCircle2, ArrowRight, Share2, Award, UserCheck, Send 
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function CourseModal() {
   const { 
@@ -11,7 +12,9 @@ export default function CourseModal() {
     setCourseModalOpen, 
     selectedCourse, 
     showToast,
-    courseInitialTab 
+    courseInitialTab,
+    user,
+    updateRegistrationNotice,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState("overview"); // "overview" | "curriculum" | "apply"
@@ -50,14 +53,34 @@ export default function CourseModal() {
 
   if (!courseModalOpen || !selectedCourse) return null;
 
-  const handleSubmitApplication = (e) => {
+  const handleSubmitApplication = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
       return;
     }
-    setSubmitted(true);
-    showToast(`🎉 Application for ${selectedCourse.title} submitted successfully! Our team will contact you.`);
+    try {
+      const application = await api.submitCourseApplication({
+        course_id: String(selectedCourse.id || selectedCourse.slug || selectedCourse.title),
+        course_title: selectedCourse.title,
+        name: formData.name,
+        email: user?.email || formData.email,
+        phone: formData.phone,
+        interest_role: formData.interestRole,
+        experience_level: formData.experienceLevel,
+        notes: formData.notes,
+      });
+      await updateRegistrationNotice(
+        "course_application",
+        { ...application, email: application.email || user?.email, title: selectedCourse.title },
+        user?.email || formData.email,
+        selectedCourse.title,
+      );
+      setSubmitted(true);
+      showToast(`Application for ${selectedCourse.title} was saved.`);
+    } catch (error) {
+      showToast(error.message || "Your course application could not be saved.");
+    }
   };
 
   return (

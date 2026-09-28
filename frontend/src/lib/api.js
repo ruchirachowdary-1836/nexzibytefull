@@ -23,6 +23,21 @@ export async function apiRequest(path, options = {}, allowRefresh = true) {
   return data;
 }
 
+export async function waitForRegistrationEmail(kind, id, { attempts = 10, delayMs = 300 } = {}) {
+  let current = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const passes = await apiRequest("/users/me/passes");
+    current = passes.find((pass) => pass.kind === kind && pass.id === id) || current;
+    if (current && ["sent", "failed", "not_eligible"].includes(current.email_delivery_status)) {
+      return current;
+    }
+    if (attempt + 1 < attempts) {
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+  }
+  return current;
+}
+
 export const api = {
   getUpcomingEvents: () => apiRequest("/events/upcoming?limit=12"),
   getSummits: () => apiRequest("/summits?status=upcoming"),
@@ -34,6 +49,9 @@ export const api = {
   submitCourseApplication: (payload) => apiRequest("/course-applications", { method: "POST", body: JSON.stringify(payload) }),
   submitPassRequest: (payload) => apiRequest("/pass-requests", { method: "POST", body: JSON.stringify(payload) }),
   myPassRequests: () => apiRequest("/users/me/pass-requests"),
+  myPasses: () => apiRequest("/users/me/passes"),
+  waitForRegistrationEmail,
+  resendRegistrationEmail: (kind, id) => apiRequest(`/users/me/registrations/${encodeURIComponent(kind)}/${id}/resend`, { method: "POST" }),
   registerForEvent: (eventType, eventId) => apiRequest("/registrations", { method: "POST", body: JSON.stringify({ event_type: eventType, event_id: eventId }) }),
   createPost: (payload) => apiRequest("/posts", { method: "POST", body: JSON.stringify(payload) }),
   getMyPosts: () => apiRequest("/users/me/posts"),

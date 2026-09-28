@@ -143,6 +143,10 @@ class CourseApplication(Base):
     pass_id: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True, index=True)
     qr_data: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     issued_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_pass_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email_delivery_status: Mapped[str] = mapped_column(String(20), default='pending')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -165,6 +169,10 @@ class PassRequest(Base):
     qr_data: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     issued_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_pass_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email_delivery_status: Mapped[str] = mapped_column(String(20), default='pending')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -297,6 +305,10 @@ class Registration(Base):
     registration_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     pass_id: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     qr_data: Mapped[str] = mapped_column(String(1000), unique=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_pass_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email_delivery_status: Mapped[str] = mapped_column(String(20), default='pending')
     registered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

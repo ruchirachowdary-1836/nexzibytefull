@@ -71,6 +71,8 @@ export function PassQRCodeSVG({ value, size = 130 }) {
 export default function DigitalPass() {
   const { activePass, showToast } = useApp();
 
+  if (!activePass) return null;
+
   const handleCopyId = () => {
     navigator.clipboard?.writeText(activePass.passId);
     showToast(`Copied Pass ID ${activePass.passId} to clipboard.`);
@@ -103,7 +105,7 @@ export default function DigitalPass() {
                   {activePass.org}
                 </div>
                 <div className="ticket-brand-title">
-                  {activePass.event}
+                  {activePass.event || activePass.title || activePass.passType}
                 </div>
               </div>
 
@@ -159,11 +161,11 @@ export default function DigitalPass() {
                 <div style={{ display: "flex", gap: "16px", fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "4px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                     <MapPin size={13} style={{ color: "var(--coral)" }} />
-                    <span>Hyderabad, IN</span>
+                    <span>{activePass.venue || "TechTalk Community"}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                     <Calendar size={13} style={{ color: "#16A34A" }} />
-                    <span>2026 Season</span>
+                    <span>{activePass.date || "Date to be announced"}</span>
                   </div>
                 </div>
               </div>
@@ -171,7 +173,16 @@ export default function DigitalPass() {
               {/* QR Code & Status */}
               <div className="ticket-qr-block">
                 <div className="ticket-qr-svg-wrap">
-                  <PassQRCodeSVG value={activePass.qrData} size={120} />
+                  {activePass.qrImageDataUri ? (
+                    <img
+                      src={activePass.qrImageDataUri}
+                      alt={`Scannable QR code for pass ${activePass.passId}`}
+                      width="120"
+                      height="120"
+                    />
+                  ) : (
+                    <p>Pass QR is not available yet.</p>
+                  )}
                 </div>
 
                 <div className="ticket-valid-tag">

@@ -19,9 +19,6 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-import qrcode
-import sib_api_v3_sdk
-from sib_api_v3_sdk.rest import ApiException
 from .config import allowed_origins, settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import *
@@ -33,6 +30,7 @@ from .services.events import (
     make_event,
     update_event,
 )
+from .services.registration_email import qr_data_uri, send_registration_email
 from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
 from .observability import (
     ObservabilityMiddleware,
@@ -46,69 +44,143 @@ from .observability import (
 configure_logging()
 logger = logging.getLogger(__name__)
 
-def send_pass_email_background(
-    user_id: int | None, recipient_email: str, email_type: str, subject: str,
-    details: list[str], pass_id: str, qr_data: str,
-) -> None:
-    api_key = (settings.brevo_api_key or "").strip()
-    sender_email = (settings.brevo_sender_email or "").strip()
-    sender_name = (settings.brevo_sender_name or "").strip()
-    recipient = (recipient_email or "").strip()
-    if not all((api_key, sender_email, sender_name, recipient)):
-        logger.warning(
-            "pass_email_not_sent",
-            extra={"email_type": email_type, "reason": "brevo_configuration_incomplete"},
-        )
-        return
+REGISTRATION_EMAIL_RETRY_SECONDS = 180
 
-    detail_lines = "".join(f"<li>{html_escape(detail)}</li>" for detail in details)
-    html_content = (
-        "<p>Your TechTalk pass has been created successfully.</p>"
-        f"<ul>{detail_lines}</ul>"
-        f"<p><strong>Pass ID:</strong> {html_escape(pass_id)}</p>"
-        f"<p><strong>QR/pass information:</strong> "
-        f"<code>{html_escape(qr_data)}</code></p>"
-        "<p>Please keep this email available for event or community access.</p>"
-    )
-    configuration = sib_api_v3_sdk.Configuration()
-    configuration.api_key["api-key"] = api_key
-    message = sib_api_v3_sdk.SendSmtpEmail(
-        sender=sib_api_v3_sdk.SendSmtpEmailSender(email=sender_email, name=sender_name),
-        to=[sib_api_v3_sdk.SendSmtpEmailTo(email=recipient)],
-        subject=subject,
-        html_content=html_content,
-    )
+
+def send_registration_email_background(
+    kind: str,
+    registration_id: int,
+    request_id: str,
+    *,
+    resend: bool = False,
+    pass_issued: bool = False,
+) -> None:
+    models = {
+        "course_application": CourseApplication,
+        "pass_request": PassRequest,
+        "registration": Registration,
+    }
+    model = models[kind]
+    db = SessionLocal()
     try:
-        with sib_api_v3_sdk.ApiClient(configuration) as api_client:
-            response = sib_api_v3_sdk.TransactionalEmailsApi(api_client).send_transac_email(message)
-        message_id = getattr(response, "message_id", None) or getattr(response, "messageId", None)
-        logger.info(
-            "pass_email_sent",
-            extra={
-                "email_type": email_type,
-                "message_id": message_id or "missing",
-            },
+        registration = (
+            db.query(model)
+            .filter(model.id == registration_id)
+            .with_for_update()
+            .one_or_none()
         )
-    except ApiException as exc:
-        logger.error(
-            "pass_email_failed",
-            extra={
-                "email_type": email_type,
-                "error_type": type(exc).__name__,
-                "status": getattr(exc, "status", None),
-                "reason": str(getattr(exc, "reason", ""))[:300],
-            },
+        if registration is None:
+            logger.error(
+                "registration_email_failed",
+                extra={
+                    "request_id": request_id,
+                    "registration_id": registration_id,
+                    "error_type": "RegistrationNotFound",
+                },
+            )
+            return
+
+        user = db.get(User, registration.user_id) if registration.user_id else None
+        if not user or not user.is_active or not user.email_verified:
+            registration.email_delivery_status = "not_eligible"
+            db.commit()
+            return
+
+        stored_email = getattr(registration, "email", None)
+        recipient = (stored_email or user.email).strip().lower()
+        if recipient != user.email.strip().lower():
+            registration.email_delivery_status = "not_eligible"
+            db.commit()
+            return
+
+        pass_id = getattr(registration, "pass_id", None)
+        pass_was_sent = pass_id and registration.email_pass_id == pass_id
+        needs_send = resend or pass_issued or not registration.email_sent_at or (
+            pass_id and not pass_was_sent
         )
+        if not needs_send:
+            return
+
+        now = datetime.utcnow()
+        last_attempt = registration.email_last_attempt_at
+        recent_attempt = last_attempt and now - last_attempt < timedelta(
+            seconds=REGISTRATION_EMAIL_RETRY_SECONDS
+        )
+        if recent_attempt and (not pass_issued or registration.email_delivery_status == "sending"):
+            return
+
+        registration.email_last_attempt_at = now
+        registration.email_delivery_status = "sending"
+        db.commit()
+
+        try:
+            if kind == "registration":
+                event = get_event(db, registration.event_type, registration.event_id)
+                title = event.title
+                event_date = event.date
+                event_time = event.time
+                venue = getattr(event, "venue", None) or event.location
+                description = event.description or event.agenda
+            elif kind == "course_application":
+                title = registration.course_title
+                event_date = event_time = None
+                venue = "Online course"
+                description = registration.notes or (
+                    f"Course application for {registration.course_title}."
+                )
+            else:
+                title = registration.pass_type
+                event_date = event_time = None
+                venue = registration.company or "TechTalk Community"
+                description = registration.notes or (
+                    f"{registration.pass_type} community access."
+                )
+            send_registration_email(
+                kind,
+                user,
+                registration,
+                title=title,
+                event_date=event_date,
+                event_time=event_time,
+                venue=venue,
+                description=description,
+            )
+        except Exception as exc:
+            db.rollback()
+            failed_registration = (
+                db.query(model)
+                .filter(model.id == registration_id)
+                .with_for_update()
+                .one_or_none()
+            )
+            if failed_registration is not None:
+                failed_registration.email_delivery_status = "failed"
+                db.commit()
+            logger.error(
+                "registration_email_failed",
+                extra={
+                    "request_id": request_id,
+                    "registration_id": registration_id,
+                    "error_type": type(exc).__name__,
+                },
+            )
+            return
+
+        registration.email_sent_at = datetime.utcnow()
+        registration.email_pass_id = pass_id
+        registration.email_delivery_status = "sent"
+        db.commit()
     except Exception as exc:
         logger.error(
-            "pass_email_failed",
-            extra={"email_type": email_type, "error_type": type(exc).__name__},
+            "registration_email_failed",
+            extra={
+                "request_id": request_id,
+                "registration_id": registration_id,
+                "error_type": type(exc).__name__,
+            },
         )
-
-
-def html_escape(value: object) -> str:
-    import html
-    return html.escape(str(value), quote=True)
+    finally:
+        db.close()
 
 
 def audit(db: Session, actor: User | None, action: str, resource: str | None = None, metadata: dict | None = None):
@@ -566,6 +638,8 @@ def pass_request_response(request):
         'amount': request.amount,
         'company': request.company,
         'role': request.role,
+        'email_sent_at': request.email_sent_at,
+        'email_delivery_status': request.email_delivery_status,
     }
 def user_item(user):
     private_fields = {'password_hash'}
@@ -702,12 +776,37 @@ def subscribe_to_newsletter(body: NewsletterSubscribeIn, db: Session = Depends(g
     return {'id': subscriber.id, 'detail': 'You are subscribed to Nexzibyte TechTalk.'}
 
 @app.post('/course-applications', status_code=201)
-def create_course_application(body: CourseApplicationIn, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
-    application = CourseApplication(**body.model_dump(), user_id=user.id if user else None)
+def create_course_application(
+    body: CourseApplicationIn,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
+    application = CourseApplication(
+        **{
+            **body.model_dump(),
+            "email": user.email if user else str(body.email).lower().strip(),
+        },
+        user_id=user.id if user else None,
+        email_delivery_status="pending" if user and user.email_verified else "not_eligible",
+    )
     db.add(application)
     db.commit()
     db.refresh(application)
-    return {'id': application.id, 'status': application.status, 'detail': 'Course application received'}
+    if user and user.email_verified and user.is_active:
+        background_tasks.add_task(
+            send_registration_email_background,
+            "course_application",
+            application.id,
+            request_id_context.get() or "unavailable",
+        )
+    return {
+        'id': application.id,
+        'status': application.status,
+        'email': application.email,
+        'email_delivery_status': application.email_delivery_status,
+        'detail': 'Course application received',
+    }
 
 @app.post('/pass-requests', status_code=201)
 def create_pass_request(
@@ -738,27 +837,27 @@ def create_pass_request(
     request.qr_data = sign_pass_payload(request.pass_id, None)
     db.commit()
     db.refresh(request)
-    background_tasks.add_task(
-        send_pass_email_background,
-        request.user_id,
-        request.email,
-        "community_pass" if "community" in request.pass_type.lower() else "pass_confirmation",
-        f"Your Community Pass — {request.pass_type}" if "community" in request.pass_type.lower() else f"Your {request.pass_type} is ready",
-        [
-            f"Pass holder: {request.first_name} {request.last_name}".strip(),
-            f"Pass type: {request.pass_type}",
-            f"Community: {request.company or 'TechTalk Community'}",
-            f"Access information: {request.notes or 'Use your pass ID at the community entrance.'}",
-            "Status: Issued",
-        ],
-        request.pass_id,
-        request.qr_data,
-    )
+    if user and user.email_verified and user.is_active:
+        background_tasks.add_task(
+            send_registration_email_background,
+            "pass_request",
+            request.id,
+            request_id_context.get() or "unavailable",
+        )
+    else:
+        request.email_delivery_status = "not_eligible"
+        db.commit()
     return {**pass_request_response(request), 'detail': 'Pass generated successfully'}
 
 @app.patch('/admin/pass-requests/{request_id}/approve')
-def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def approve_pass_request(
+    request_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     request = one(db, PassRequest, request_id)
+    pass_needs_email = not request.pass_id or request.email_pass_id != request.pass_id
     request.pass_id = request.pass_id or f"TT26-{request.id:06d}"
     request.issued_at = datetime.utcnow()
     if request.pass_type.lower() == 'visitor-pass':
@@ -771,6 +870,14 @@ def approve_pass_request(request_id: int, db: Session = Depends(get_db), _: User
     request.status = 'approved'
     db.commit()
     db.refresh(request)
+    if request.user_id and pass_needs_email:
+        background_tasks.add_task(
+            send_registration_email_background,
+            "pass_request",
+            request.id,
+            request_id_context.get() or "unavailable",
+            pass_issued=True,
+        )
     return pass_request_response(request)
 
 @app.patch('/admin/pass-requests/{request_id}/reject')
@@ -815,6 +922,17 @@ def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User
 @app.get('/users/me/pass-requests')
 def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return [pass_request_response(request) for request in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
+
+
+@app.get('/users/me/course-applications')
+def my_course_applications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return [
+        item(application)
+        for application in db.query(CourseApplication)
+        .filter_by(user_id=user.id)
+        .order_by(CourseApplication.created_at.desc())
+        .all()
+    ]
 
 @app.get('/admin/pass-requests')
 def admin_pass_requests(db: Session = Depends(get_db), _: User = Depends(require_admin)):
@@ -1416,25 +1534,10 @@ def create_registration(
     db.refresh(x)
     add_notification(db, user.id, 'event_update', 'Event registration confirmed', f'You are registered for the {body.event_type.replace("_", " ")} event.')
     background_tasks.add_task(
-        send_pass_email_background,
-        user.id,
-        user.email,
-        "registration_confirmation",
-        f"Your Event Pass — {event.title}",
-        [
-            f"User name: {user.name}",
-            f"Event: {event.title}",
-            f"Event date: {event.date.isoformat()}",
-            f"Event time: {event.time.isoformat() if event.time else 'To be announced'}",
-            f"Venue/location: {event.location or 'To be announced'}",
-            f"Event description: {event.description or 'See your TechTalk event page for details.'}",
-            f"Pass holder: {user.name}",
-            f"Registration ID: {x.registration_number}",
-            f"Pass ID: {x.pass_id}",
-            f"Event instructions: {event.agenda or 'Bring this pass and QR information for entry.'}",
-        ],
-        x.pass_id,
-        x.qr_data,
+        send_registration_email_background,
+        "registration",
+        x.id,
+        request_id_context.get() or "unavailable",
     )
     return item(x)
 
@@ -1450,6 +1553,113 @@ def register_for_founder_meet(event_id: int, background_tasks: BackgroundTasks, 
 def my_registrations(db:Session=Depends(get_db), user:User=Depends(get_current_user)):
     return [item(reg) for reg in db.query(Registration).filter_by(user_id=user.id).order_by(Registration.registered_at.desc()).all()]
 
+
+@app.get('/users/me/passes')
+def my_passes(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    passes = []
+    for request in db.query(PassRequest).filter_by(user_id=user.id).all():
+        passes.append({
+            "kind": "pass_request",
+            "id": request.id,
+            "title": request.pass_type,
+            "status": request.status,
+            "pass_id": request.pass_id,
+            "qr_data": request.qr_data,
+            "qr_image_data_uri": qr_data_uri(request.qr_data),
+            "email": request.email,
+            "email_delivery_status": request.email_delivery_status,
+            "email_sent_at": request.email_sent_at,
+            "created_at": request.created_at,
+            "date": None,
+            "time": None,
+            "venue": request.company or "TechTalk Community",
+        })
+    for application in db.query(CourseApplication).filter_by(user_id=user.id).all():
+        passes.append({
+            "kind": "course_application",
+            "id": application.id,
+            "title": application.course_title,
+            "status": application.status,
+            "pass_id": application.pass_id,
+            "qr_data": application.qr_data,
+            "qr_image_data_uri": qr_data_uri(application.qr_data),
+            "email": application.email,
+            "email_delivery_status": application.email_delivery_status,
+            "email_sent_at": application.email_sent_at,
+            "created_at": application.created_at,
+            "date": None,
+            "time": None,
+            "venue": "Online course",
+        })
+    for registration in db.query(Registration).filter_by(user_id=user.id).all():
+        event_model = Summit if registration.event_type == "summit" else FounderMeet
+        event = db.get(event_model, registration.event_id)
+        passes.append({
+            "kind": "registration",
+            "id": registration.id,
+            "title": event.title if event else "Event no longer available",
+            "status": registration.status,
+            "pass_id": registration.pass_id,
+            "qr_data": registration.qr_data,
+            "qr_image_data_uri": qr_data_uri(registration.qr_data),
+            "email": user.email,
+            "email_delivery_status": registration.email_delivery_status,
+            "email_sent_at": registration.email_sent_at,
+            "created_at": registration.registered_at,
+            "date": event.date if event else None,
+            "time": event.time if event else None,
+            "venue": (
+                (getattr(event, "venue", None) or event.location) if event else None
+            ),
+            "description": event.description if event else None,
+        })
+    return sorted(passes, key=lambda entry: entry["created_at"] or datetime.min, reverse=True)
+
+
+@app.post('/users/me/registrations/{kind}/{registration_id}/resend')
+def resend_registration_confirmation(
+    kind: Literal["registration", "course_application", "pass_request"],
+    registration_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    model = {
+        "registration": Registration,
+        "course_application": CourseApplication,
+        "pass_request": PassRequest,
+    }[kind]
+    registration = db.query(model).filter_by(id=registration_id).one_or_none()
+    if registration is None:
+        raise HTTPException(404, detail="Registration not found.")
+    if registration.user_id != user.id:
+        raise HTTPException(403, detail="You can only resend your own registration email.")
+    if not user.email_verified or not user.is_active:
+        raise HTTPException(403, detail="A verified account is required to resend this email.")
+    last_attempt = registration.email_last_attempt_at
+    if last_attempt:
+        seconds_since_attempt = (datetime.utcnow() - last_attempt).total_seconds()
+        if seconds_since_attempt < REGISTRATION_EMAIL_RETRY_SECONDS:
+            retry_after = max(1, int(REGISTRATION_EMAIL_RETRY_SECONDS - seconds_since_attempt))
+            raise HTTPException(
+                429,
+                detail="Please wait a few minutes before requesting another confirmation email.",
+                headers={"Retry-After": str(retry_after)},
+            )
+    background_tasks.add_task(
+        send_registration_email_background,
+        kind,
+        registration.id,
+        request_id_context.get() or "unavailable",
+        resend=True,
+    )
+    return {
+        "id": registration.id,
+        "kind": kind,
+        "email": getattr(registration, "email", None) or user.email,
+        "email_delivery_status": "queued",
+        "detail": "A confirmation email resend has been queued.",
+    }
 
 @app.get('/registrations/{registration_id}/pass')
 def registration_pass(registration_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

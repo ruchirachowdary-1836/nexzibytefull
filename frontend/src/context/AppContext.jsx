@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
-import { api } from "../lib/api.js";
+import { api, waitForRegistrationEmail } from "../lib/api.js";
 import { authService } from "../lib/auth.js";
 import { checkBackendHealth } from "../lib/backend.js";
 
@@ -14,6 +14,7 @@ export function AppProvider({ children }) {
   const [backendOnline, setBackendOnline] = useState(null);
   const [activePass, setActivePass] = useState(null);
   const [passesList, setPassesList] = useState([]);
+  const [registrationNotice, setRegistrationNotice] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [userDrafts, setUserDrafts] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -80,13 +81,42 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!user) return;
-    api.myPassRequests().then((items) => {
+    api.myPasses().then((items) => {
       const mapped = items.map(mapPass);
       setPassesList(mapped);
       setActivePass(mapped.find((pass) => pass.passId) || null);
     }).catch(() => {});
     api.getMyPosts().then(setUserPosts).catch(() => {});
   }, [user]);
+
+  const updateRegistrationNotice = async (kind, registration, fallbackEmail, fallbackTitle) => {
+    let saved = {
+      kind,
+      id: registration.id,
+      email: registration.email || fallbackEmail || user?.email || "",
+      title: registration.title || fallbackTitle || "your registration",
+      email_delivery_status: registration.email_delivery_status || "queued",
+    };
+    try {
+      const current = await waitForRegistrationEmail(kind, registration.id);
+      const passes = await api.myPasses();
+      const mapped = passes.map(mapPass);
+      setPassesList(mapped);
+      setActivePass(mapped.find((pass) => pass.passId) || null);
+      if (current) {
+        saved = {
+          ...saved,
+          email: current.email || saved.email,
+          title: current.title || saved.title,
+          email_delivery_status: current.email_delivery_status || saved.email_delivery_status,
+        };
+      }
+    } catch {
+      saved.email_delivery_status = "unknown";
+    }
+    setRegistrationNotice(saved);
+    return saved;
+  };
 
   const login = async (credentials) => {
     const authenticatedUser = await authService.login(credentials);
@@ -135,8 +165,14 @@ export function AppProvider({ children }) {
     const mapped = mapPass(response);
     setPassesList((previous) => [mapped, ...previous.filter((pass) => pass.id !== mapped.id)]);
     setActivePass(mapped.passId ? mapped : null);
+    await updateRegistrationNotice(
+      "pass_request",
+      { ...response, title: response.pass_type },
+      response.email,
+      response.pass_type,
+    );
     setPassModalOpen(false);
-    showToast(mapped.passId ? "Pass issued successfully." : "Pass submitted for staff approval. QR access will appear after approval.");
+    showToast("Your registration was saved. Check the confirmation message for delivery status.");
     return response;
   };
 
@@ -200,6 +236,7 @@ export function AppProvider({ children }) {
     notifications, setNotifications, markNotificationRead, markAllNotificationsRead,
     unreadNotificationCount: notifications.filter((item) => !item.read).length,
     savedPosts, setSavedPosts, toggleSavePost, activePass, setActivePass, passesList, registerPass,
+    registrationNotice, setRegistrationNotice, updateRegistrationNotice,
     checkInPass, resetCheckIn, passModalOpen, setPassModalOpen, selectedPassType, setSelectedPassType,
     openPassModal: (type = "visitor-pass") => { setSelectedPassType(type); setPassModalOpen(true); },
     videoModalOpen, setVideoModalOpen, articleModalOpen, setArticleModalOpen, selectedArticle,
@@ -218,17 +255,25 @@ export function AppProvider({ children }) {
 
 function mapPass(pass) {
   return {
+    kind: pass.kind || "pass_request",
     id: pass.id,
     passId: pass.pass_id,
     qrData: pass.qr_data,
+    qrImageDataUri: pass.qr_image_data_uri,
     holder: pass.holder || `${pass.first_name || ""} ${pass.last_name || ""}`.trim(),
     email: pass.email,
-    passType: String(pass.pass_type || "").toUpperCase(),
+    passType: String(pass.pass_type || pass.title || pass.kind || "").toUpperCase(),
     price: pass.amount,
     organization: pass.company,
     role: pass.role,
     status: pass.status,
     expiresAt: pass.expires_at,
+    emailDeliveryStatus: pass.email_delivery_status,
+    event: pass.title || pass.pass_type,
+    date: pass.date,
+    time: pass.time,
+    venue: pass.venue,
+    title: pass.title,
     validation: ["approved", "issued"].includes(pass.status) ? "Issued" : "Pending approval",
   };
 }
