@@ -106,10 +106,13 @@ export default function AuthPage({ defaultMode = "login" }) {
     try {
       const authenticated = await login({ email: loginEmail.trim(), password: loginPassword });
       if (authenticated.verification_required) {
-        showToast(`✓ ${authenticated.detail}`);
+        showToast(`📧 ${authenticated.detail}`);
         navigate(`/verify-email?email=${encodeURIComponent(authenticated.email || loginEmail.trim())}&purpose=signin`, {
           replace: true,
-          state: { from: location.state?.from || null },
+          state: {
+            from: location.state?.from || null,
+            message: authenticated.detail,
+          },
         });
         return;
       }

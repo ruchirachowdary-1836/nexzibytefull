@@ -22,7 +22,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        request_id = request_id_context.get()
+        request_id = getattr(record, "request_id", "") or request_id_context.get()
         if request_id:
             payload["request_id"] = request_id
         for key in ("method", "path", "status_code", "duration_ms"):

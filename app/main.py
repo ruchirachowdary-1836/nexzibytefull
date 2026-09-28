@@ -1,6 +1,5 @@
 from datetime import date, datetime, time, timedelta
 import asyncio
-import hmac
 import logging
 import datetime as datetime_module
 from contextlib import asynccontextmanager
@@ -18,6 +17,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 import qrcode
 import sib_api_v3_sdk
@@ -39,6 +39,7 @@ from .observability import (
     SecurityHeadersMiddleware,
     configure_logging,
     metrics_text,
+    request_id_context,
     run_cleanup,
 )
 
@@ -250,7 +251,7 @@ def fix_alembic(
     configured_secret = settings.alembic_repair_secret
     if not configured_secret:
         raise HTTPException(status_code=503, detail='Alembic repair is not enabled.')
-    if not repair_key or not hmac.compare_digest(
+    if not repair_key or not secrets.compare_digest(
         repair_key.encode('utf-8'), configured_secret.encode('utf-8')
     ):
         raise HTTPException(status_code=404, detail='Not found.')
@@ -399,7 +400,10 @@ def fix_alembic(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception('temporary_alembic_repair_failed')
+        logger.error(
+            'temporary_alembic_repair_failed error_type=%s',
+            type(exc).__name__,
+        )
         raise HTTPException(
             status_code=500,
             detail='Alembic repair failed. Check service logs before retrying.',
@@ -411,7 +415,7 @@ def fix_alembic(
             )
             lock_connection.commit()
         except Exception:
-            logger.exception('temporary_alembic_repair_lock_release_failed')
+            logger.error('temporary_alembic_repair_lock_release_failed')
         lock_connection.close()
 
 
@@ -599,6 +603,21 @@ def add_notification(db: Session, user_id: int, notification_type: str, title: s
 
 
 def user_profile_payload(user: User, db: Session):
+    try:
+        return _build_user_profile_payload(user, db)
+    except SQLAlchemyError as exc:
+        request_id = request_id_context.get()
+        logger.exception(
+            "user_profile_query_failed",
+            extra={"request_id": request_id or "unavailable"},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Member profile data is temporarily unavailable. Please try again shortly.",
+        ) from exc
+
+
+def _build_user_profile_payload(user: User, db: Session):
     skills = [row.skill for row in db.query(UserSkill).filter_by(user_id=user.id).all()]
     links = [item(row) for row in db.query(UserLink).filter_by(user_id=user.id).all()]
     posts = [make_post_payload(post, db, user) for post in db.query(Post).filter(Post.author_id == user.id, Post.is_archived.is_(False)).order_by(Post.created_at.desc()).all()]

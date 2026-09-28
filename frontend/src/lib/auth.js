@@ -1,5 +1,14 @@
 import { apiRequest } from "./api.js";
-import { getNeonSession, neonAuthEnabled, neonClient, signInWithEmail, signInWithGoogle, signUpWithEmail } from "./neon.js";
+import {
+  hasVerifiedNeonToken,
+  neonAuthEnabled,
+  neonClient,
+  resendNeonVerification,
+  signInWithEmail,
+  signInWithGoogle,
+  signUpWithEmail,
+  waitForVerifiedNeonSession,
+} from "./neon.js";
 
 export const authService = {
   async register({ name, email, password, role, referral_contact, accept_terms }) {
@@ -23,33 +32,54 @@ export const authService = {
       result = await signInWithEmail({ email, password });
     } catch (error) {
       if (/verify|verification|email.*verified|not verified/i.test(error.message || "")) {
-        return {
-          verification_required: true,
-          email,
-          detail: "Please verify your email before continuing.",
-        };
+        return this.sendVerificationForSignIn(email);
       }
       throw error;
     }
     const signedInUser = result?.user || result?.session?.user || null;
-    if (signedInUser && signedInUser.emailVerified === false) {
-      return {
-        verification_required: true,
-        email: signedInUser.email || email,
-        detail: "Please verify your email before continuing.",
-      };
+    const session = await waitForVerifiedNeonSession({ attempts: 4, delayMs: 250 });
+    const signedInEmail = typeof signedInUser?.email === "string"
+      ? signedInUser.email
+      : email;
+    const expectedEmail = signedInEmail.trim().toLowerCase();
+    const sessionEmail = typeof session?.user?.email === "string"
+      ? session.user.email.trim().toLowerCase()
+      : "";
+    if (
+      !session ||
+      sessionEmail !== expectedEmail
+    ) {
+      return this.sendVerificationForSignIn(signedInEmail);
     }
-    return this.me();
+    return this.me(session);
   },
 
-  me(session = null) {
+  async sendVerificationForSignIn(email) {
+    let detail = "Your email is not verified. We sent a new verification code; enter it to continue.";
+    try {
+      await resendNeonVerification(email);
+    } catch (error) {
+      detail = `Your email is not verified. We could not resend the code (${error.message}). You can retry from the verification screen.`;
+    }
+    return {
+      verification_required: true,
+      email,
+      detail,
+    };
+  },
+
+  async me(session = null) {
     if (neonAuthEnabled) {
-      return (session ? Promise.resolve(session) : getNeonSession())
-        .then((currentSession) => ({
-          session: currentSession,
-          user: normalizeNeonUser(currentSession?.user),
-        }))
-        .then(({ session: currentSession, user }) => hydrateNeonProfile(user, currentSession));
+      const currentSession = session && hasVerifiedNeonToken(session)
+        ? session
+        : await waitForVerifiedNeonSession();
+      if (!currentSession) {
+        throw new Error("Email verification is required before accessing this account.");
+      }
+      return hydrateNeonProfile(
+        normalizeNeonUser(currentSession.user),
+        currentSession,
+      );
     }
     return apiRequest("/auth/session");
   },
@@ -90,8 +120,14 @@ function normalizeNeonUser(user) {
 
 async function hydrateNeonProfile(neonUser, session = null) {
   try {
-    let currentSession = session || (await getNeonSession());
+    let currentSession = session;
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (!currentSession) {
+        currentSession = await waitForVerifiedNeonSession();
+      }
+      if (!currentSession) {
+        throw new Error("Email verification is required before accessing this account.");
+      }
       const sessionUser = currentSession?.user || currentSession;
       const normalized = normalizeNeonUser(sessionUser);
       try {
@@ -110,7 +146,7 @@ async function hydrateNeonProfile(neonUser, session = null) {
           error?.message === "Email verification is required before accessing this account";
         if (!isVerificationPropagation || attempt === 2) throw error;
         await new Promise((resolve) => window.setTimeout(resolve, 1000));
-        currentSession = await getNeonSession();
+        currentSession = await waitForVerifiedNeonSession();
       }
     }
     throw new Error("Unable to load the authenticated member profile.");

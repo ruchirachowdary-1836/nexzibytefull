@@ -23,7 +23,13 @@ export default function LoginModal() {
       const authenticatedUser = await login({ email: email.trim(), password });
       if (authenticatedUser?.verification_required) {
         setLoginModalOpen(false);
-        navigate(`/verify-email?email=${encodeURIComponent(authenticatedUser.email || email.trim())}&purpose=signin`, { replace: true });
+        navigate(
+          `/verify-email?email=${encodeURIComponent(authenticatedUser.email || email.trim())}&purpose=signin`,
+          {
+            replace: true,
+            state: { message: authenticatedUser.detail },
+          },
+        );
         return;
       }
       setLoginModalOpen(false);

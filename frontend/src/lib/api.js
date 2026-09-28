@@ -4,6 +4,9 @@ import { getNeonToken, neonAuthEnabled } from "./neon.js";
 export async function apiRequest(path, options = {}, allowRefresh = true) {
   const { useNeonToken = false, neonSession = null, ...requestOptions } = options;
   const token = (useNeonToken || neonAuthEnabled) ? await getNeonToken(neonSession) : null;
+  if (neonAuthEnabled && /^\/users\/me(?:\/|$)/.test(path) && !token) {
+    throw new Error("Email verification is required before accessing this account.");
+  }
   const response = await fetch(`${API_URL}${path}`, {
     ...requestOptions,
     headers: {

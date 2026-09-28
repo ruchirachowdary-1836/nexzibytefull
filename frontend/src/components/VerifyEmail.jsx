@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2, MailCheck, RefreshCw, XCircle } from "lucide-react";
-import { getNeonSession, resendNeonVerification, verifyNeonEmail, waitForNeonSession } from "../lib/neon.js";
+import { resendNeonVerification, verifyNeonEmail, waitForVerifiedNeonSession } from "../lib/neon.js";
 import { useApp } from "../context/AppContext.jsx";
 
 const CODE_LENGTH = 6;
@@ -18,14 +18,16 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [message, setMessage] = useState("We've sent a verification code to your email.");
+  const [message, setMessage] = useState(
+    location.state?.message || "We've sent a verification code to your email.",
+  );
   const [error, setError] = useState("");
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    getNeonSession().then((session) => {
-      if (mounted && session?.user?.emailVerified) {
+    waitForVerifiedNeonSession({ attempts: 1 }).then((session) => {
+      if (mounted && session) {
         setVerified(true);
       }
     }).catch(() => {});
@@ -52,8 +54,8 @@ export default function VerifyEmail() {
     setError("");
     try {
       await verifyNeonEmail(email, code);
-      const session = await waitForNeonSession();
-      if (session?.user) {
+      const session = await waitForVerifiedNeonSession();
+      if (session) {
         const profile = await hydrateCurrentUser(session);
         setUser(profile);
         const destination = location.state?.from;
@@ -65,7 +67,7 @@ export default function VerifyEmail() {
         );
         return;
       }
-      throw new Error("Your email was verified, but the Neon Auth session is not ready yet.");
+      throw new Error("Your email was verified, but a refreshed verified session is not ready yet. Please wait a moment and try again.");
     } catch (verificationError) {
       setError(verificationError.message || "Unable to verify your email. Please try again.");
     } finally {

@@ -60,7 +60,7 @@ def _claims(email: str, verification_claim: dict) -> dict:
     }
 
 
-def test_users_me_accepts_email_verified_claim(neon_profile_auth):
+def test_users_me_accepts_verified_email_password_login(neon_profile_auth):
     private_key, email = neon_profile_auth
     response = TestClient(app).get(
         "/users/me",
@@ -70,7 +70,7 @@ def test_users_me_accepts_email_verified_claim(neon_profile_auth):
 
 
 @pytest.mark.parametrize("verification_claim", [{"emailVerified": False}, {}])
-def test_users_me_rejects_missing_or_false_email_verified_claim(neon_profile_auth, verification_claim):
+def test_users_me_rejects_unverified_email_password_login(neon_profile_auth, verification_claim):
     private_key, email = neon_profile_auth
     response = TestClient(app).get(
         "/users/me",
@@ -78,15 +78,38 @@ def test_users_me_rejects_missing_or_false_email_verified_claim(neon_profile_aut
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Email verification is required before accessing this account"
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(neon_auth_user_id="neon-user-claims").one()
+        assert user.email_verified is False
+        assert user.is_active is False
 
 
-def test_users_me_syncs_external_subject_and_email_verified(neon_profile_auth):
+def test_users_me_syncs_verified_user_row_on_first_login(neon_profile_auth):
     private_key, _ = neon_profile_auth
     email = "new-neon-user@example.com"
     response = TestClient(app).get(
         "/users/me",
         headers={"Authorization": f"Bearer {_token(private_key, _claims(email, {'emailVerified': True}))}"},
     )
+    assert response.status_code == 200
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(neon_auth_user_id="neon-user-claims").one()
+        assert user.email == email
+        assert user.neon_auth_user_id == "neon-user-claims"
+        assert user.email_verified is True
+        assert user.is_active is True
+
+
+def test_users_me_accepts_google_style_verified_claim(neon_profile_auth):
+    private_key, _ = neon_profile_auth
+    email = "google-user@example.com"
+    response = TestClient(app).get(
+        "/users/me",
+        headers={
+            "Authorization": f"Bearer {_token(private_key, _claims(email, {'emailVerified': True, 'provider': 'google'}))}"
+        },
+    )
+
     assert response.status_code == 200
     with SessionLocal() as db:
         user = db.query(User).filter_by(neon_auth_user_id="neon-user-claims").one()

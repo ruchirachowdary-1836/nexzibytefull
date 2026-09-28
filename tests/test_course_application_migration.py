@@ -1,0 +1,71 @@
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect, text
+
+from app.config import settings
+
+
+def test_upgrade_from_0018_merge_head_adds_course_application_pass_fields(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "migration-test.db"
+    monkeypatch.setattr(settings, "database_url", None)
+    monkeypatch.setattr(settings, "db_url", f"sqlite:///{database_path.as_posix()}")
+
+    engine = create_engine(settings.db_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE TABLE alembic_version "
+                "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO alembic_version (version_num) "
+                "VALUES ('0018_merge_heads')"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE TABLE course_applications ("
+                "id INTEGER PRIMARY KEY, "
+                "user_id INTEGER, "
+                "course_id VARCHAR(120) NOT NULL, "
+                "course_title VARCHAR(200) NOT NULL, "
+                "name VARCHAR(120) NOT NULL, "
+                "email VARCHAR(255) NOT NULL, "
+                "phone VARCHAR(40) NOT NULL, "
+                "interest_role VARCHAR(150), "
+                "experience_level VARCHAR(120), "
+                "notes TEXT, "
+                "status VARCHAR(30) NOT NULL, "
+                "created_at DATETIME NOT NULL)"
+            )
+        )
+
+    config = Config("alembic.ini")
+    config.set_main_option("path_separator", "os")
+    try:
+        command.upgrade(config, "head")
+        with engine.connect() as connection:
+            columns = {
+                column["name"]
+                for column in inspect(connection).get_columns("course_applications")
+            }
+            indexes = {
+                index["name"]
+                for index in inspect(connection).get_indexes("course_applications")
+            }
+            revision = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+
+        assert revision == "0019_course_app_pass_fields"
+        assert {"pass_id", "qr_data", "issued_at"} <= columns
+        assert {
+            "ix_course_applications_pass_id",
+            "ix_course_applications_qr_data",
+        } <= indexes
+    finally:
+        engine.dispose()

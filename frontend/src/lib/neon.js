@@ -1,5 +1,8 @@
 import { createClient } from "@neondatabase/neon-js";
 import { BetterAuthVanillaAdapter } from "@neondatabase/neon-js/auth/vanilla/adapters";
+import { hasVerifiedNeonToken } from "./session-claims.js";
+
+export { hasVerifiedNeonToken };
 
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
@@ -31,13 +34,29 @@ export const neonClient = neonAuthEnabled
 export async function getNeonToken(session = null) {
   if (!neonClient) return null;
   const currentSession = session || (await getNeonSession());
+  if (!hasVerifiedNeonToken(currentSession)) return null;
   return currentSession?.session?.token || currentSession?.token || null;
 }
 
-export async function getNeonSession() {
+export async function getNeonSession({ forceFetch = false } = {}) {
   if (!neonClient) return null;
-  const result = await neonClient.auth.getSession();
+  const result = await neonClient.auth.getSession(
+    forceFetch
+      ? { fetchOptions: { headers: { "X-Force-Fetch": "true" } } }
+      : undefined,
+  );
   return result?.data || result || null;
+}
+
+export async function waitForVerifiedNeonSession({ attempts = 12, delayMs = 500 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const session = await getNeonSession({ forceFetch: true });
+    if (hasVerifiedNeonToken(session)) return session;
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
 }
 
 export async function signUpWithEmail({ email, password, name }) {
