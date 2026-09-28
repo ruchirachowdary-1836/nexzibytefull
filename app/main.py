@@ -316,6 +316,33 @@ def readiness(db: Session = Depends(get_db)):
     return {'status': 'ready'}
 
 
+@app.get('/internal/db-info', include_in_schema=False)
+def database_info(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    try:
+        row = db.execute(
+            text(
+                'SELECT current_database() AS current_database, '
+                'current_schema() AS current_schema, '
+                'version() AS postgresql_server_version'
+            )
+        ).mappings().one()
+    except Exception as exc:
+        logger.error('database_info_query_failed error_type=%s', type(exc).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail='Database diagnostics are unavailable.',
+        ) from exc
+    return {
+        'current_database': row['current_database'],
+        'current_schema': row['current_schema'],
+        'postgresql_server_version': row['postgresql_server_version'],
+        'database_connected': True,
+    }
+
+
 @app.post('/internal/fix-alembic', include_in_schema=False)
 def fix_alembic(
     repair_key: str | None = Header(default=None, alias='X-Alembic-Repair-Key'),
