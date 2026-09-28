@@ -4,8 +4,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # Render free services cannot use pre-deploy commands, so migrate at start.
-    startCommand: sh -c 'python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT'
+    # Temporary: keep the API available for the guarded one-time Alembic repair.
+    startCommand: sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'
     healthCheckPath: /health
     envVars:
       - key: DB_URL
@@ -25,6 +25,8 @@ services:
       - key: NEON_AUTH_ISSUER
         value: https://ep-mute-resonance-ay0g7clj.neonauth.c-5.us-east-2.aws.neon.tech
       - key: NEON_AUTH_AUDIENCE
+        sync: false
+      - key: ALEMBIC_REPAIR_SECRET
         sync: false
       - key: BREVO_API_KEY
         sync: false

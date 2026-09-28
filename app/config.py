@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     neon_auth_jwks_url: str | None = None
     neon_auth_issuer: str | None = None
     neon_auth_audience: str | None = None
+    alembic_repair_secret: str | None = None
     bcrypt_rounds: int = 12
     password_min_length: int = 12
     hibp_enabled: bool = True

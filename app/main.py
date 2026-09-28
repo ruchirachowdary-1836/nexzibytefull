@@ -1,14 +1,18 @@
 from datetime import date, datetime, time, timedelta
 import asyncio
+import hmac
 import logging
 import datetime as datetime_module
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 import secrets
 import hashlib
 import json
 from collections import Counter
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
+from alembic import command
+from alembic.config import Config as AlembicConfig
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -237,6 +241,178 @@ def readiness(db: Session = Depends(get_db)):
         logger.exception('readiness_check_failed')
         raise HTTPException(status_code=503, detail='database unavailable') from exc
     return {'status': 'ready'}
+
+
+@app.post('/internal/fix-alembic', include_in_schema=False)
+def fix_alembic(
+    repair_key: str | None = Header(default=None, alias='X-Alembic-Repair-Key'),
+):
+    configured_secret = settings.alembic_repair_secret
+    if not configured_secret:
+        raise HTTPException(status_code=503, detail='Alembic repair is not enabled.')
+    if not repair_key or not hmac.compare_digest(
+        repair_key.encode('utf-8'), configured_secret.encode('utf-8')
+    ):
+        raise HTTPException(status_code=404, detail='Not found.')
+    if engine.dialect.name != 'postgresql':
+        raise HTTPException(status_code=503, detail='Alembic repair requires PostgreSQL.')
+
+    old_revision = '0018_merge_neon_auth_and_registration_heads'
+    merge_revision = '0018_merge_heads'
+    head_revision = '0019_course_app_pass_fields'
+    required_columns = {'pass_id', 'qr_data', 'issued_at'}
+    required_indexes = {
+        'ix_course_applications_pass_id',
+        'ix_course_applications_qr_data',
+    }
+    base_columns = {
+        'id', 'user_id', 'course_id', 'course_title', 'name', 'email',
+        'phone', 'interest_role', 'experience_level', 'notes', 'status',
+        'created_at',
+    }
+    lock_id = 728431905917
+    lock_connection = engine.connect()
+
+    try:
+        lock_connection.execute(
+            text('SELECT pg_advisory_lock(:lock_id)'), {'lock_id': lock_id}
+        )
+        lock_connection.commit()
+
+        with lock_connection.begin():
+            inspector = inspect(lock_connection)
+            if not inspector.has_table('alembic_version') or not inspector.has_table(
+                'course_applications'
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail='Database is not in the expected repair state.',
+                )
+
+            before_versions = lock_connection.execute(
+                text('SELECT version_num FROM alembic_version FOR UPDATE')
+            ).scalars().all()
+            before_columns = {
+                column['name']
+                for column in inspector.get_columns('course_applications')
+            }
+            before_indexes = {
+                index['name']
+                for index in inspector.get_indexes('course_applications')
+            }
+            missing_base = base_columns - before_columns
+            if missing_base:
+                raise HTTPException(
+                    status_code=409,
+                    detail='course_applications does not match the expected pre-migration schema.',
+                )
+
+            if (
+                before_versions == [old_revision]
+                and not (before_columns & required_columns)
+                and not (before_indexes & required_indexes)
+            ):
+                result = lock_connection.execute(
+                    text(
+                        'UPDATE alembic_version SET version_num = :merge_revision '
+                        'WHERE version_num = :old_revision'
+                    ),
+                    {
+                        'merge_revision': merge_revision,
+                        'old_revision': old_revision,
+                    },
+                )
+                if result.rowcount != 1:
+                    raise HTTPException(
+                        status_code=409,
+                        detail='Alembic version changed unexpectedly; no repair was applied.',
+                    )
+                starting_state = 'legacy_merge_revision'
+            elif (
+                before_versions == [merge_revision]
+                and not (before_columns & required_columns)
+                and not (before_indexes & required_indexes)
+            ):
+                starting_state = 'current_merge_revision'
+            elif (
+                before_versions == [head_revision]
+                and required_columns <= before_columns
+                and required_indexes <= before_indexes
+            ):
+                return {
+                    'status': 'already_applied',
+                    'before': {
+                        'alembic_version': before_versions,
+                        'course_applications_columns': sorted(before_columns),
+                    },
+                    'after': {
+                        'alembic_version': before_versions,
+                        'course_applications_columns': sorted(before_columns),
+                    },
+                }
+            else:
+                raise HTTPException(
+                    status_code=409,
+                    detail='Database is not in the exact expected Alembic repair state.',
+                )
+
+        alembic_config = AlembicConfig(
+            str(Path(__file__).resolve().parent.parent / 'alembic.ini')
+        )
+        command.upgrade(alembic_config, 'head')
+
+        with engine.connect() as verify_connection:
+            after_versions = verify_connection.execute(
+                text('SELECT version_num FROM alembic_version')
+            ).scalars().all()
+            after_columns = sorted(
+                column['name']
+                for column in inspect(verify_connection).get_columns(
+                    'course_applications'
+                )
+            )
+            after_indexes = {
+                index['name']
+                for index in inspect(verify_connection).get_indexes(
+                    'course_applications'
+                )
+            }
+        if (
+            after_versions != [head_revision]
+            or not required_columns <= set(after_columns)
+            or not required_indexes <= after_indexes
+        ):
+            raise RuntimeError('Alembic upgrade completed without the expected schema.')
+
+        return {
+            'status': 'repaired_and_upgraded',
+            'starting_state': starting_state,
+            'before': {
+                'alembic_version': before_versions,
+                'course_applications_columns': sorted(before_columns),
+            },
+            'after': {
+                'alembic_version': after_versions,
+                'course_applications_columns': after_columns,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception('temporary_alembic_repair_failed')
+        raise HTTPException(
+            status_code=500,
+            detail='Alembic repair failed. Check service logs before retrying.',
+        ) from exc
+    finally:
+        try:
+            lock_connection.execute(
+                text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id}
+            )
+            lock_connection.commit()
+        except Exception:
+            logger.exception('temporary_alembic_repair_lock_release_failed')
+        lock_connection.close()
 
 
 @app.get('/metrics', tags=['System'], response_class=PlainTextResponse)
