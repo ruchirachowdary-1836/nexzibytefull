@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,10 +17,11 @@ class Settings(BaseSettings):
     )
     frontend_url: str = "https://techtalk-frontend-acvb.onrender.com"
     visitor_promotion_date: str | None = None
+    admin_report_email: str | None = None
+    admin_report_hour_utc: int = Field(default=9, ge=0, le=23)
     neon_auth_jwks_url: str | None = None
     neon_auth_issuer: str | None = None
     neon_auth_audience: str | None = None
-    alembic_repair_secret: str | None = None
     bcrypt_rounds: int = 12
     password_min_length: int = 12
     hibp_enabled: bool = True

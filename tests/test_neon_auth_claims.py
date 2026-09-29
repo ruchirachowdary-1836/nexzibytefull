@@ -1,6 +1,7 @@
 import base64
 import json
 import time
+from datetime import datetime, timedelta
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -10,7 +11,12 @@ from fastapi.testclient import TestClient
 from app.auth import get_current_user
 from app.config import settings
 from app.database import Base, SessionLocal, engine
-from app.main import app
+from app.main import (
+    app,
+    ensure_auth_columns,
+    ensure_registration_phone_column,
+    ensure_user_profile_columns,
+)
 from app.models import User
 
 
@@ -28,6 +34,9 @@ def _token(private_key: Ed25519PrivateKey, claims: dict) -> str:
 @pytest.fixture()
 def neon_profile_auth(monkeypatch):
     Base.metadata.create_all(engine)
+    ensure_user_profile_columns()
+    ensure_registration_phone_column()
+    ensure_auth_columns()
     db = SessionLocal()
     email = "neon-claims@example.com"
     db.query(User).filter(User.email == email).delete()
@@ -130,6 +139,46 @@ def test_users_me_rejects_expired_and_not_yet_valid_tokens(neon_profile_auth):
             headers={"Authorization": f"Bearer {_token(private_key, claims)}"},
         )
         assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("seconds_from_expiry", "expected_status"),
+    [(60, 200), (0, 401), (-1, 401)],
+)
+def test_visitor_session_expires_at_exact_ten_minute_boundary(
+    neon_profile_auth, monkeypatch, seconds_from_expiry, expected_status
+):
+    private_key, email = neon_profile_auth
+    fixed_now = datetime(2025, 5, 1, 12, 0, 0)
+
+    class FrozenDateTime(datetime):
+        @classmethod
+        def utcnow(cls):
+            return fixed_now
+
+    monkeypatch.setattr("app.auth.datetime", FrozenDateTime)
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(email=email).one()
+        user.visitor_access_only = True
+        user.visitor_activated_at = fixed_now - timedelta(minutes=10)
+        user.visitor_expires_at = fixed_now + timedelta(seconds=seconds_from_expiry)
+        db.commit()
+
+    token = _token(
+        private_key,
+        _claims(email, {"emailVerified": True}),
+    )
+    client = TestClient(app)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/users/me", headers=headers)
+    assert response.status_code == expected_status
+
+    optional_response = client.get("/posts", headers=headers)
+    assert optional_response.status_code == expected_status
+    if expected_status == 401:
+        with SessionLocal() as db:
+            user = db.query(User).filter_by(email=email).one()
+            assert user.is_active is False
 
 
 def test_users_me_enforces_configured_audience(neon_profile_auth, monkeypatch):

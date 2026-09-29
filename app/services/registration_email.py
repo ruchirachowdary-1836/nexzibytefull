@@ -146,5 +146,8 @@ def send_registration_email(kind, user, registration, **details) -> None:
         html_content=message_content.html_content,
         text_content=message_content.text_content,
     )
-    with sib_api_v3_sdk.ApiClient(configuration) as api_client:
+    api_client = sib_api_v3_sdk.ApiClient(configuration)
+    try:
         sib_api_v3_sdk.TransactionalEmailsApi(api_client).send_transac_email(message)
+    finally:
+        api_client.rest_client.pool_manager.clear()

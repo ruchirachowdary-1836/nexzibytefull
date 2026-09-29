@@ -18,6 +18,7 @@ class User(Base):
     neon_auth_user_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -35,6 +36,9 @@ class User(Base):
     leetcode_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     instagram_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    visitor_access_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    visitor_activated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    visitor_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -301,6 +305,7 @@ class Registration(Base):
     __tablename__ = 'registrations'; __table_args__ = (UniqueConstraint('user_id', 'event_type', 'event_id'),)
     id: Mapped[int] = mapped_column(primary_key=True); user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     event_type: Mapped[str] = mapped_column(String(20)); event_id: Mapped[int] = mapped_column(Integer)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default='registered')
     registration_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     pass_id: Mapped[str] = mapped_column(String(40), unique=True, index=True)
@@ -350,6 +355,19 @@ class StaticTestimonial(StaticContentFields, Base):
 
 class StaticFaq(StaticContentFields, Base):
     __tablename__ = 'static_faqs'
+
+
+class AdminReportRun(Base):
+    __tablename__ = 'admin_report_runs'
+    __table_args__ = (UniqueConstraint('cadence', 'period_start', 'period_end'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cadence: Mapped[str] = mapped_column(String(16))
+    period_start: Mapped[date] = mapped_column(Date)
+    period_end: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(20), default='sending')
+    attempted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
 
 class Notification(Base):

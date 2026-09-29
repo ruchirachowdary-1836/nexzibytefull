@@ -1,6 +1,8 @@
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
+
+import pytest
 
 os.environ["DB_URL"] = "sqlite:///./test_techtalk.db"
 
@@ -12,9 +14,13 @@ from sqlalchemy.pool import StaticPool
 
 from app import main as main_module
 from app.auth import get_current_user, get_optional_user
+from app.config import settings
 from app.database import Base, get_db
 from app.models import CourseApplication, PassRequest, Registration, Summit, User
-from app.services.registration_email import build_registration_email
+from app.services.registration_email import (
+    build_registration_email,
+    send_registration_email,
+)
 
 
 def test_registration_email_contains_issued_pass_and_escaped_values():
@@ -67,6 +73,47 @@ def test_registration_email_says_pass_is_pending():
     assert "not been issued yet" in email.text_content
     assert "data:image/png;base64," not in email.html_content
     assert email.subject == "We received your application: FastAPI"
+
+
+def test_registration_email_submits_through_brevo_sdk(monkeypatch):
+    captured = {}
+
+    class FakeEmailsApi:
+        def __init__(self, _client):
+            pass
+
+        def send_transac_email(self, message):
+            captured["message"] = message
+
+    monkeypatch.setattr(main_module.settings, "brevo_api_key", "test-api-key")
+    monkeypatch.setattr(main_module.settings, "brevo_sender_email", "sender@example.com")
+    monkeypatch.setattr(main_module.settings, "brevo_sender_name", "TechTalk")
+    monkeypatch.setattr(
+        "app.services.registration_email.sib_api_v3_sdk.TransactionalEmailsApi",
+        FakeEmailsApi,
+    )
+    send_registration_email(
+        "registration",
+        SimpleNamespace(
+            name="Asha",
+            email="asha@example.com",
+            is_active=True,
+            email_verified=True,
+        ),
+        SimpleNamespace(
+            email="asha@example.com",
+            status="registered",
+            pass_id="NEX-EVT-123456",
+            qr_data=None,
+        ),
+        title="TechTalk Summit",
+        event_date=None,
+        event_time=None,
+        venue="Online",
+        description="Registration confirmation.",
+    )
+    assert captured["message"].to[0].email == "asha@example.com"
+    assert captured["message"].subject == "You're registered: TechTalk Summit"
 
 
 def test_issuing_a_pass_later_sends_new_pass_even_during_retry_window(
@@ -233,7 +280,11 @@ def test_event_registration_persists_server_generated_pass_and_email_state(
 
         response = client.post(
             "/registrations",
-            json={"event_type": "summit", "event_id": event_id},
+            json={
+                "event_type": "summit",
+                "event_id": event_id,
+                "phone": "+1-555-0199",
+            },
         )
         assert response.status_code == 201
         payload = response.json()
@@ -250,6 +301,7 @@ def test_event_registration_persists_server_generated_pass_and_email_state(
             assert saved.event_id == event_id
             assert saved.status == "registered"
             assert saved.registered_at is not None
+            assert saved.phone == "+1-555-0199"
             assert saved.pass_id == payload["pass_id"]
             assert saved.qr_data
             assert saved.email_delivery_status == "sent"
@@ -494,6 +546,112 @@ def test_admin_can_filter_view_and_resend_registration_email(
         active_user["value"].role = "user"
         forbidden = client.get("/admin/registrations")
         assert forbidden.status_code == 403
+    finally:
+        close_client(client, engine)
+
+
+def test_visitor_pass_activation_is_promotion_day_only_and_expires_in_ten_minutes(
+    monkeypatch, tmp_path
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    try:
+        with test_session() as db:
+            user = User(
+                name="Visitor User",
+                email="visitor-activation@example.com",
+                is_active=True,
+                email_verified=True,
+            )
+            db.add(user)
+            db.flush()
+            request = PassRequest(
+                user_id=user.id,
+                first_name="Visitor",
+                last_name="User",
+                email=user.email,
+                pass_type="visitor-pass",
+                amount="Free",
+                status="approved",
+                pass_id="TT26-000777",
+                qr_data="pending-visitor-qr",
+            )
+            db.add(request)
+            db.commit()
+            db.refresh(user)
+            db.refresh(request)
+            active_user["value"] = user
+            request_id = request.id
+
+        today = datetime.now(timezone.utc).date().isoformat()
+        monkeypatch.setattr(settings, "visitor_promotion_date", today)
+        response = client.post(
+            f"/users/me/pass-requests/{request_id}/activate-visitor"
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result["visitor_expires_at"]
+        with test_session() as db:
+            saved_user = db.get(User, active_user["value"].id)
+            saved_pass = db.get(PassRequest, request_id)
+            assert saved_user.visitor_access_only is True
+            assert (
+                saved_user.visitor_expires_at - saved_user.visitor_activated_at
+                == timedelta(minutes=10)
+            )
+            assert saved_pass.expires_at == saved_user.visitor_expires_at
+            assert saved_pass.qr_data != "pending-visitor-qr"
+        duplicate = client.post(
+            f"/users/me/pass-requests/{request_id}/activate-visitor"
+        )
+        assert duplicate.status_code == 409
+    finally:
+        close_client(client, engine)
+
+
+@pytest.mark.parametrize("day_offset", [-1, 1])
+def test_visitor_pass_activation_rejected_outside_promotion_day(
+    monkeypatch, tmp_path, day_offset
+):
+    client, test_session, active_user, engine = make_client(monkeypatch, tmp_path)
+    try:
+        with test_session() as db:
+            user = User(
+                name="Visitor User",
+                email="visitor-outside@example.com",
+                is_active=True,
+                email_verified=True,
+            )
+            db.add(user)
+            db.flush()
+            request = PassRequest(
+                user_id=user.id,
+                first_name="Visitor",
+                last_name="User",
+                email=user.email,
+                pass_type="visitor-pass",
+                amount="Free",
+                status="approved",
+                pass_id="TT26-000778",
+                qr_data="pending-visitor-qr",
+            )
+            db.add(request)
+            db.commit()
+            db.refresh(user)
+            db.refresh(request)
+            active_user["value"] = user
+            request_id = request.id
+
+        promotion_date = (
+            datetime.now(timezone.utc).date() + timedelta(days=day_offset)
+        ).isoformat()
+        monkeypatch.setattr(settings, "visitor_promotion_date", promotion_date)
+        response = client.post(
+            f"/users/me/pass-requests/{request_id}/activate-visitor"
+        )
+        assert response.status_code == 403
+        with test_session() as db:
+            saved_user = db.get(User, active_user["value"].id)
+            assert saved_user.visitor_activated_at is None
     finally:
         close_client(client, engine)
 

@@ -332,9 +332,12 @@ flowchart TB
   `python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Health check: `/health`
 - Required production variables include `DB_URL`, `JWT_SECRET`,
-  `CORS_ORIGINS`, and `FRONTEND_URL`.
-- Neon Auth variables are supported by the code but are not present in the checked
-  `render.yaml` configuration.
+  `CORS_ORIGINS`, `FRONTEND_URL`, and the Neon Auth JWKS URL and issuer.
+- Configure `VISITOR_PROMOTION_DATE` as a UTC `YYYY-MM-DD` value to enable
+  visitor-pass activation. For scheduled reports, configure
+  `ADMIN_REPORT_EMAIL` and `ADMIN_REPORT_HOUR_UTC` (0-23).
+- Brevo report and registration email submission uses the existing
+  `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` variables.
 
 ### Frontend Render service
 

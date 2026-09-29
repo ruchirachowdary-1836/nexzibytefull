@@ -26,6 +26,7 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 "VALUES ('0018_merge_heads')"
             )
         )
+        connection.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY)"))
         connection.execute(
             text(
                 "CREATE TABLE course_applications ("
@@ -86,9 +87,19 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 "static_faqs",
             }
             created_tables = set(inspect(connection).get_table_names())
+            user_columns = {
+                column["name"] for column in inspect(connection).get_columns("users")
+            }
 
-        assert revision == "0028_static_faqs"
+        assert revision == "0030_visitor_trial_session"
         assert static_tables <= created_tables
+        assert {
+            "phone",
+            "visitor_access_only",
+            "visitor_activated_at",
+            "visitor_expires_at",
+        } <= user_columns
+        assert "phone" in other_tables["registrations"]
         assert {"pass_id", "qr_data", "issued_at"} <= columns
         assert {
             "email_sent_at",

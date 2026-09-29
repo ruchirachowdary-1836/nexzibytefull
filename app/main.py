@@ -3,15 +3,12 @@ import asyncio
 import logging
 import datetime as datetime_module
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Literal
 import secrets
 import hashlib
 import json
 from collections import Counter
-from alembic import command
-from alembic.config import Config as AlembicConfig
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -31,6 +28,12 @@ from .services.events import (
     update_event,
 )
 from .services.registration_email import qr_data_uri, send_registration_email
+from .services.admin_reports import (
+    build_admin_report,
+    previous_period,
+    send_admin_report_email,
+    send_due_scheduled_reports,
+)
 from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
 from .observability import (
     ObservabilityMiddleware,
@@ -215,17 +218,38 @@ async def lifespan(_: FastAPI):
         # schema changes are owned exclusively by Alembic in the Render command.
         Base.metadata.create_all(bind=engine)
         ensure_user_profile_columns()
+        ensure_registration_phone_column()
         ensure_pass_issue_columns()
         ensure_auth_columns()
         ensure_check_ins_table()
     stop_event = asyncio.Event()
     cleanup_task = asyncio.create_task(run_cleanup(stop_event, cleanup_expired_records, settings.cleanup_interval_seconds))
+    report_task = asyncio.create_task(run_admin_report_scheduler(stop_event))
     try:
         yield
     finally:
         stop_event.set()
         await cleanup_task
+        await report_task
         engine.dispose()
+
+
+async def run_admin_report_scheduler(stop_event: asyncio.Event) -> None:
+    if not settings.admin_report_email:
+        logger.warning("scheduled_admin_reports_disabled reason=ADMIN_REPORT_EMAIL_unset")
+        return
+    while not stop_event.is_set():
+        try:
+            await asyncio.to_thread(send_due_scheduled_reports)
+        except Exception as exc:
+            logger.error(
+                "scheduled_admin_report_failed error_type=%s",
+                type(exc).__name__,
+            )
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=60)
+        except asyncio.TimeoutError:
+            continue
 
 
 app = FastAPI(title='NexziByte TechTalk API', version='1.0.0', lifespan=lifespan)
@@ -266,6 +290,10 @@ def ensure_user_profile_columns():
     columns = {column['name'] for column in inspect(engine).get_columns('users')}
     additions = {
         'profile_image': 'VARCHAR(500)',
+        'phone': 'VARCHAR(40)',
+        'visitor_access_only': 'BOOLEAN DEFAULT FALSE',
+        'visitor_activated_at': 'TIMESTAMP',
+        'visitor_expires_at': 'TIMESTAMP',
         'professional_role': 'VARCHAR(120)',
         'website': 'VARCHAR(500)',
         'linkedin_url': 'VARCHAR(500)',
@@ -302,6 +330,14 @@ def ensure_pass_issue_columns():
     with engine.begin() as connection:
         for name, column_type in missing:
             connection.execute(text(f'ALTER TABLE pass_requests ADD COLUMN {name} {column_type}'))
+
+
+def ensure_registration_phone_column():
+    columns = {column['name'] for column in inspect(engine).get_columns('registrations')}
+    if 'phone' not in columns:
+        with engine.begin() as connection:
+            connection.execute(text('ALTER TABLE registrations ADD COLUMN phone VARCHAR(40)'))
+
 
 def ensure_auth_columns():
     columns = {column['name'] for column in inspect(engine).get_columns('users')}
@@ -357,260 +393,6 @@ def database_info(
         'postgresql_server_version': row['postgresql_server_version'],
         'database_connected': True,
     }
-
-
-@app.post('/internal/fix-alembic', include_in_schema=False)
-def fix_alembic(
-    repair_key: str | None = Header(default=None, alias='X-Alembic-Repair-Key'),
-):
-    configured_secret = settings.alembic_repair_secret
-    if not configured_secret:
-        raise HTTPException(status_code=503, detail='Alembic repair is not enabled.')
-    if not repair_key or not secrets.compare_digest(
-        repair_key.encode('utf-8'), configured_secret.encode('utf-8')
-    ):
-        raise HTTPException(status_code=404, detail='Not found.')
-    if engine.dialect.name != 'postgresql':
-        raise HTTPException(status_code=503, detail='Alembic repair requires PostgreSQL.')
-
-    old_revision = '0018_merge_neon_auth_and_registration_heads'
-    merge_revision = '0018_merge_heads'
-    pass_fields_revision = '0019_course_app_pass_fields'
-    head_revision = '0020_registration_emails'
-    required_columns = {'pass_id', 'qr_data', 'issued_at'}
-    email_columns = {
-        'email_sent_at',
-        'email_last_attempt_at',
-        'email_pass_id',
-        'email_delivery_status',
-    }
-    tracked_tables = ('registrations', 'course_applications', 'pass_requests')
-    required_indexes = {
-        'ix_course_applications_pass_id',
-        'ix_course_applications_qr_data',
-    }
-    base_columns = {
-        'id', 'user_id', 'course_id', 'course_title', 'name', 'email',
-        'phone', 'interest_role', 'experience_level', 'notes', 'status',
-        'created_at',
-    }
-    lock_id = 728431905917
-    lock_connection = engine.connect()
-
-    try:
-        lock_connection.execute(
-            text('SELECT pg_advisory_lock(:lock_id)'), {'lock_id': lock_id}
-        )
-        lock_connection.commit()
-
-        with lock_connection.begin():
-            inspector = inspect(lock_connection)
-            if not inspector.has_table('alembic_version') or not inspector.has_table(
-                'course_applications'
-            ):
-                raise HTTPException(
-                    status_code=409,
-                    detail='Database is not in the expected repair state.',
-                )
-
-            before_versions = lock_connection.execute(
-                text('SELECT version_num FROM alembic_version FOR UPDATE')
-            ).scalars().all()
-            before_columns = {
-                column['name']
-                for column in inspector.get_columns('course_applications')
-            }
-            before_indexes = {
-                index['name']
-                for index in inspector.get_indexes('course_applications')
-            }
-            before_tracked_columns = {
-                table_name: (
-                    {column['name'] for column in inspector.get_columns(table_name)}
-                    if inspector.has_table(table_name)
-                    else None
-                )
-                for table_name in tracked_tables
-            }
-            missing_base = base_columns - before_columns
-            if missing_base:
-                raise HTTPException(
-                    status_code=409,
-                    detail='course_applications does not match the expected pre-migration schema.',
-                )
-
-            if (
-                before_versions == [old_revision]
-                and not (before_columns & required_columns)
-                and not (before_indexes & required_indexes)
-            ):
-                result = lock_connection.execute(
-                    text(
-                        'UPDATE alembic_version SET version_num = :merge_revision '
-                        'WHERE version_num = :old_revision'
-                    ),
-                    {
-                        'merge_revision': merge_revision,
-                        'old_revision': old_revision,
-                    },
-                )
-                if result.rowcount != 1:
-                    raise HTTPException(
-                        status_code=409,
-                        detail='Alembic version changed unexpectedly; no repair was applied.',
-                    )
-                starting_state = 'legacy_merge_revision'
-            elif (
-                before_versions == [merge_revision]
-                and not (before_columns & required_columns)
-                and not (before_indexes & required_indexes)
-            ):
-                starting_state = 'current_merge_revision'
-            elif (
-                before_versions == [pass_fields_revision]
-                and required_columns <= before_columns
-                and required_indexes <= before_indexes
-            ):
-                starting_state = 'pass_fields_revision'
-            elif (
-                before_versions == [head_revision]
-                and required_columns <= before_columns
-                and required_indexes <= before_indexes
-                and all(
-                    columns is None or email_columns <= columns
-                    for columns in before_tracked_columns.values()
-                )
-            ):
-                return {
-                    'status': 'already_applied',
-                    'before': {
-                        'alembic_version': before_versions,
-                        'course_applications_columns': sorted(before_columns),
-                    },
-                    'after': {
-                        'alembic_version': before_versions,
-                        'course_applications_columns': sorted(before_columns),
-                    },
-                }
-            else:
-                raise HTTPException(
-                    status_code=409,
-                    detail='Database is not in the exact expected Alembic repair state.',
-                )
-
-        alembic_config = AlembicConfig(
-            str(Path(__file__).resolve().parent.parent / 'alembic.ini')
-        )
-        command.upgrade(alembic_config, 'head')
-
-        with engine.connect() as verify_connection:
-            after_versions = verify_connection.execute(
-                text('SELECT version_num FROM alembic_version')
-            ).scalars().all()
-            after_columns = sorted(
-                column['name']
-                for column in inspect(verify_connection).get_columns(
-                    'course_applications'
-                )
-            )
-            after_indexes = {
-                index['name']
-                for index in inspect(verify_connection).get_indexes(
-                    'course_applications'
-                )
-            }
-            after_inspector = inspect(verify_connection)
-            after_tracked_columns = {
-                table_name: (
-                    {column['name'] for column in after_inspector.get_columns(table_name)}
-                    if after_inspector.has_table(table_name)
-                    else None
-                )
-                for table_name in tracked_tables
-            }
-        if (
-            after_versions != [head_revision]
-            or not required_columns <= set(after_columns)
-            or not required_indexes <= after_indexes
-            or any(
-                columns is not None and not email_columns <= columns
-                for columns in after_tracked_columns.values()
-            )
-        ):
-            raise RuntimeError('Alembic upgrade completed without the expected schema.')
-
-        return {
-            'status': 'repaired_and_upgraded',
-            'starting_state': starting_state,
-            'before': {
-                'alembic_version': before_versions,
-                'course_applications_columns': sorted(before_columns),
-            },
-            'after': {
-                'alembic_version': after_versions,
-                'course_applications_columns': after_columns,
-            },
-        }
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error(
-            'temporary_alembic_repair_failed error_type=%s',
-            type(exc).__name__,
-        )
-        raise HTTPException(
-            status_code=500,
-            detail='Alembic repair failed. Check service logs before retrying.',
-        ) from exc
-    finally:
-        try:
-            lock_connection.execute(
-                text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id}
-            )
-            lock_connection.commit()
-        except Exception:
-            logger.error('temporary_alembic_repair_lock_release_failed')
-        lock_connection.close()
-
-
-@app.get('/internal/alembic-state', include_in_schema=False)
-def read_alembic_state(
-    repair_key: str | None = Header(default=None, alias='X-Alembic-Repair-Key'),
-):
-    configured_secret = settings.alembic_repair_secret
-    if not configured_secret:
-        raise HTTPException(status_code=503, detail='Alembic diagnostics are not enabled.')
-    if not repair_key or not secrets.compare_digest(
-        repair_key.encode('utf-8'), configured_secret.encode('utf-8')
-    ):
-        raise HTTPException(status_code=404, detail='Not found.')
-
-    result = {
-        'database_host': engine.url.host,
-        'database_url_setting': (
-            'DATABASE_URL' if settings.database_url else 'DB_URL'
-        ),
-        'alembic_version_exists': False,
-        'alembic_versions': [],
-    }
-    try:
-        with engine.connect() as connection:
-            inspector = inspect(connection)
-            result['alembic_version_exists'] = inspector.has_table('alembic_version')
-            if result['alembic_version_exists']:
-                result['alembic_versions'] = connection.execute(
-                    text('SELECT version_num FROM alembic_version ORDER BY version_num')
-                ).scalars().all()
-    except Exception as exc:
-        logger.error(
-            'alembic_state_diagnostic_failed error_type=%s',
-            type(exc).__name__,
-        )
-        raise HTTPException(
-            status_code=503,
-            detail='Alembic state diagnostics are unavailable.',
-        ) from exc
-    return result
 
 
 @app.get('/metrics', tags=['System'], response_class=PlainTextResponse)
@@ -679,10 +461,14 @@ class SpeakerIn(BaseModel):
 class EventIn(BaseModel):
     title: str = Field(min_length=1, max_length=200); description: str | None = None; banner: str | None = None; date: date; time: datetime_module.time | None = None; location: str | None = None; agenda: str | None = None; speaker_ids: list[int] = []
     venue: str | None = None; founder_information: str | None = None; networking_info: str | None = None
-class RegistrationIn(BaseModel): event_type: Literal['summit', 'founder_meet']; event_id: int
+class RegistrationIn(BaseModel):
+    event_type: Literal['summit', 'founder_meet']
+    event_id: int
+    phone: str | None = Field(default=None, max_length=40)
 class ProfileUpdateIn(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=40)
     bio: str | None = None
     location: str | None = None
     profile_image: str | None = None
@@ -742,6 +528,12 @@ class PassRequestIn(BaseModel):
     referral_contact: str | None = Field(default=None, max_length=40)
 
 
+class AdminReportRequest(BaseModel):
+    cadence: Literal['weekly', 'monthly', 'yearly'] = 'weekly'
+    start_date: date | None = None
+    end_date: date | None = None
+
+
 def item(obj):
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
     return data
@@ -779,6 +571,14 @@ def attach_speakers(db, event, speaker_ids):
     speakers = [one(db, Speaker, sid) for sid in speaker_ids]
     event.speakers = speakers
 def get_event(db, event_type, event_id): return one(db, Summit if event_type == 'summit' else FounderMeet, event_id)
+
+
+def is_visitor_promotion_day() -> bool:
+    return bool(
+        settings.visitor_promotion_date
+        and datetime.now(datetime_module.timezone.utc).date().isoformat()
+        == settings.visitor_promotion_date
+    )
 
 def ensure_user_settings(db: Session, user: User):
     settings_record = db.query(UserSettings).filter_by(user_id=user.id).first()
@@ -983,9 +783,9 @@ def approve_pass_request(
     request.pass_id = request.pass_id or f"TT26-{request.id:06d}"
     request.issued_at = datetime.utcnow()
     if request.pass_type.lower() == 'visitor-pass':
-        if not settings.visitor_promotion_date or date.today().isoformat() != settings.visitor_promotion_date:
+        if not is_visitor_promotion_day():
             raise HTTPException(400, detail='Visitor passes can only be approved on the promotion date.')
-        request.expires_at = datetime.utcnow() + timedelta(minutes=10)
+        request.expires_at = None
     else:
         request.expires_at = None
     request.qr_data = sign_pass_payload(request.pass_id, request.expires_at)
@@ -1028,6 +828,8 @@ def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User
         raise HTTPException(400, detail='Pass is invalid.')
     if request.status not in ('approved', 'issued'):
         raise HTTPException(400, detail='Pass is not active.')
+    if request.pass_type.lower() == 'visitor-pass' and request.expires_at is None:
+        raise HTTPException(400, detail='Visitor pass has not been activated.')
     if request.expires_at and request.expires_at <= datetime.utcnow():
         request.status = 'expired'
         db.commit()
@@ -1044,6 +846,53 @@ def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User
 @app.get('/users/me/pass-requests')
 def my_pass_requests(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return [pass_request_response(request) for request in db.query(PassRequest).filter_by(user_id=user.id).order_by(PassRequest.created_at.desc()).all()]
+
+
+@app.post('/users/me/pass-requests/{request_id}/activate-visitor')
+def activate_visitor_pass(
+    request_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not is_visitor_promotion_day():
+        raise HTTPException(403, detail='Visitor passes can only be activated on the promotion date.')
+    request = one(db, PassRequest, request_id)
+    if request.user_id != user.id:
+        raise HTTPException(404, detail='Visitor pass not found.')
+    user_record = db.get(User, user.id)
+    if user_record is None:
+        raise HTTPException(401, detail='Authenticated user is no longer available.')
+    if request.pass_type.lower() != 'visitor-pass':
+        raise HTTPException(400, detail='This pass is not a visitor pass.')
+    if request.status not in ('approved', 'issued') or not request.pass_id:
+        raise HTTPException(409, detail='Visitor pass must be approved before activation.')
+    if user_record.visitor_activated_at is not None or user_record.visitor_access_only:
+        raise HTTPException(409, detail='The visitor pass has already been activated.')
+
+    activated_at = datetime.utcnow()
+    expires_at = activated_at + timedelta(minutes=10)
+    user_record.visitor_access_only = True
+    user_record.visitor_activated_at = activated_at
+    user_record.visitor_expires_at = expires_at
+    request.expires_at = expires_at
+    request.qr_data = sign_pass_payload(request.pass_id, expires_at)
+    db.commit()
+    db.refresh(user_record)
+    db.refresh(request)
+    logger.info(
+        "visitor_pass_activated",
+        extra={
+            "request_id": request_id_context.get() or "unavailable",
+            "user_id": user_record.id,
+            "pass_request_id": request.id,
+            "expires_at": expires_at.isoformat(),
+        },
+    )
+    return {
+        **pass_request_response(request),
+        "visitor_activated_at": activated_at,
+        "visitor_expires_at": expires_at,
+    }
 
 
 @app.get('/users/me/course-applications')
@@ -1139,6 +988,7 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         user.email = normalized_email
     fields = {
         'name': body.name,
+        'phone': body.phone,
         'bio': body.bio,
         'location': body.location,
         'profile_image': body.profile_image,
@@ -1702,6 +1552,8 @@ def create_registration(
         raise HTTPException(409, detail='Already registered for this event')
 
     temporary_pass_id = f"PENDING-{secrets.token_hex(12).upper()}"
+    registration_data = body.model_dump()
+    registration_data["phone"] = body.phone or user.phone
     registration = Registration(
         user_id=user.id,
         registration_number=f"REG-{secrets.token_hex(5).upper()}",
@@ -1710,7 +1562,7 @@ def create_registration(
         email_delivery_status=(
             "pending" if user.is_active and user.email_verified else "not_eligible"
         ),
-        **body.model_dump(),
+        **registration_data,
     )
     db.add(registration)
     try:
@@ -2088,6 +1940,56 @@ def admin_events(db: Session = Depends(get_db), _: User = Depends(require_admin)
         'summits': [event_response(x) for x in db.query(Summit).order_by(Summit.date.asc()).all()],
         'founder_meets': [event_response(x) for x in db.query(FounderMeet).order_by(FounderMeet.date.asc()).all()],
     }
+
+
+@app.post('/admin/reports/send-now')
+def admin_send_report_now(
+    body: AdminReportRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    if bool(body.start_date) != bool(body.end_date):
+        raise HTTPException(422, detail='Provide both start_date and end_date, or neither.')
+    if body.start_date and body.end_date:
+        start_date, end_date = body.start_date, body.end_date
+    else:
+        start_date, end_date = previous_period(
+            body.cadence, datetime.now(datetime_module.timezone.utc).date()
+        )
+    try:
+        report = build_admin_report(db, start_date, end_date)
+    except ValueError as exc:
+        raise HTTPException(422, detail=str(exc)) from exc
+    try:
+        send_admin_report_email(report)
+    except Exception as exc:
+        logger.error(
+            "admin_report_manual_send_failed",
+            extra={
+                "request_id": request_id_context.get() or "unavailable",
+                "admin_user_id": admin.id,
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise HTTPException(
+            502, detail='The report email could not be submitted. Please retry later.'
+        ) from exc
+    logger.info(
+        "admin_report_manual_send_submitted",
+        extra={
+            "request_id": request_id_context.get() or "unavailable",
+            "admin_user_id": admin.id,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        },
+    )
+    return {
+        'status': 'submitted',
+        'start_date': start_date,
+        'end_date': end_date,
+        'counts': report.counts,
+    }
+
 
 @app.get('/admin/registrations')
 def admin_registrations(

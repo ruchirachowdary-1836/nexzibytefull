@@ -43,6 +43,17 @@ Run `python -m app.seed.seed_data` for sample content, then `pytest` for the smo
 3. Deploy the `main` branch. The Render start command runs `alembic upgrade head` before Uvicorn starts.
 4. After the first successful deploy, run `python -m app.seed.seed_data` once with the same Neon `DB_URL` to load the demo data.
 
+For scheduled admin reports, configure `ADMIN_REPORT_EMAIL` and the UTC hour
+`ADMIN_REPORT_HOUR_UTC` (0-23). Reports are sent through the existing Brevo
+settings: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME`.
+The admin-only `POST /admin/reports/send-now` endpoint sends a report for the
+previous weekly, monthly, or yearly period, or for an explicit date range.
+
+Visitor-pass activation is limited to the UTC date configured in
+`VISITOR_PROMOTION_DATE` (`YYYY-MM-DD`). The pass must be approved and linked
+to the signed-in, email-verified user; its server-enforced session expires ten
+minutes after activation.
+
 After Render deploys the service, API documentation is available at
 `https://techtalk-backend-shob.onrender.com/docs`.
 
