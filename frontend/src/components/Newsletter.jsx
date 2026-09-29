@@ -1,17 +1,28 @@
 import React, { useState } from "react";
 import { Sparkles, Mail, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const { showToast } = useApp();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) return;
-    setSubscribed(true);
-    showToast(`🎉 Subscribed! Weekly technology dispatches will arrive at ${email}`);
+    setSubmitting(true);
+    setError("");
+    try {
+      await api.subscribeNewsletter(email.trim());
+      setSubscribed(true);
+      showToast("You are subscribed to NexziByte TechTalk.");
+    } catch (submitError) {
+      setError(submitError.message || "Your subscription could not be saved.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -57,11 +68,12 @@ export default function Newsletter() {
                 className="newsletter-input"
                 aria-label="Email address"
               />
-              <button type="submit" className="btn btn-primary">
-                Subscribe
+              <button type="submit" className="btn btn-primary" disabled={submitting}>
+                {submitting ? "Subscribing…" : "Subscribe"}
               </button>
             </form>
           )}
+          {error && <p role="alert" className="form-error-message">{error}</p>}
         </div>
       </div>
     </section>

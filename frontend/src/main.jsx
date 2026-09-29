@@ -7,10 +7,11 @@ import {
 } from "lucide-react";
 
 import { AppProvider, useApp } from "./context/AppContext.jsx";
-import { 
-  CATEGORIES, TECHNICAL_ARTICLES, UPCOMING_EVENTS, SPEAKERS, 
+import {
+  CATEGORIES, UPCOMING_EVENTS, SPEAKERS,
   PASSES, FEATURED_SUMMIT, FOUNDER_MEETS_DATA 
 } from "./data/mockData.js";
+import { useStaticCatalog } from "./lib/use-static-catalog.js";
 import "./styles.css";
 
 // Reusable Components
@@ -51,6 +52,7 @@ import MemberDashboard from "./components/MemberDashboard.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import MyPasses from "./components/MyPasses.jsx";
 import RegistrationConfirmation from "./components/RegistrationConfirmation.jsx";
+import ContactForm from "./components/ContactForm.jsx";
 
 // Modals
 import PassRegistrationModal from "./components/PassRegistrationModal.jsx";
@@ -81,6 +83,7 @@ function HomePage() {
       <Testimonials />
       <CommunityImpact />
       <FinalCTA />
+      <ContactForm />
       <FAQ />
       <Newsletter />
     </main>
@@ -94,6 +97,7 @@ function ExploreFeedPage() {
   const [activeCategory, setActiveCategory] = useState(activeCatParam);
   const [searchFilter, setSearchFilter] = useState("");
   const { openArticleReader } = useApp();
+  const { items: articles, loading, error } = useStaticCatalog("articles");
 
   useEffect(() => {
     if (activeCatParam) {
@@ -111,7 +115,7 @@ function ExploreFeedPage() {
     }
   };
 
-  const filteredArticles = TECHNICAL_ARTICLES.filter((art) => {
+  const filteredArticles = articles.filter((art) => {
     const matchesCat = activeCategory === "all" || art.category.toLowerCase().includes(activeCategory.toLowerCase());
     const matchesSearch = !searchFilter || 
       art.title.toLowerCase().includes(searchFilter.toLowerCase()) || 
@@ -151,7 +155,7 @@ function ExploreFeedPage() {
               onClick={() => handleCategorySelect("all")}
               className={`btn btn-sm ${activeCategory === "all" ? "btn-primary" : "btn-secondary"}`}
             >
-              All Topics ({TECHNICAL_ARTICLES.length})
+              All Topics ({articles.length})
             </button>
             {CATEGORIES.map((cat) => (
               <button
@@ -165,6 +169,10 @@ function ExploreFeedPage() {
             ))}
           </div>
         </div>
+
+        {loading && <p role="status">Loading articles…</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && !error && articles.length === 0 && <p>No articles are available yet.</p>}
 
         {/* Articles Grid */}
         <div className="articles-grid">

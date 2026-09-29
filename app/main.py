@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timedelta
 from typing import Literal
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
@@ -30,6 +30,7 @@ from .models import (
     Category,
     CheckIn,
     Comment,
+    ContactInquiry,
     CourseApplication,
     EmailLog,
     FounderMeet,
@@ -49,6 +50,7 @@ from .models import (
     StaticFaq,
     StaticFounderMeet,
     StaticInternship,
+    StaticPricingTier,
     StaticSpeaker,
     StaticTestimonial,
     Summit,
@@ -67,6 +69,7 @@ from .observability import (
     run_cleanup,
 )
 from .security import (
+    rate_limit,
     sign_pass_payload,
     validate_pass_payload,
 )
@@ -76,6 +79,7 @@ from .services.admin_reports import (
     send_admin_report_email,
     send_due_scheduled_reports,
 )
+from .services.contact_email import send_contact_notifications
 from .services.events import (
     event_response,
     event_state,
@@ -545,6 +549,29 @@ class PartnershipInquiryIn(BaseModel):
     email: EmailStr
     partnership_type: str = Field(min_length=1, max_length=80)
     details: str = Field(min_length=1, max_length=3000)
+
+
+class ContactInquiryIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: EmailStr
+    phone: str | None = Field(default=None, max_length=40)
+    subject: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=5000)
+
+    @field_validator("name", "subject", "message")
+    @classmethod
+    def trim_required_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank.")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def trim_phone(cls, value: str | None) -> str | None:
+        return (value.strip() or None) if value is not None else None
+
+
 class NewsletterSubscribeIn(BaseModel):
     email: EmailStr
 class CourseApplicationIn(BaseModel):
@@ -721,6 +748,72 @@ def create_partnership_inquiry(body: PartnershipInquiryIn, db: Session = Depends
     db.commit()
     db.refresh(inquiry)
     return {'id': inquiry.id, 'detail': 'Partnership inquiry received'}
+
+
+@app.post("/contact-inquiries", status_code=201)
+def create_contact_inquiry(
+    body: ContactInquiryIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limit(f"contact:{client_ip}", limit=5, window=3600):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many contact requests. Please try again in an hour.",
+        )
+
+    inquiry = ContactInquiry(
+        name=body.name,
+        email=str(body.email).lower().strip(),
+        phone=body.phone,
+        subject=body.subject,
+        message=body.message,
+    )
+    db.add(inquiry)
+    try:
+        db.commit()
+        db.refresh(inquiry)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.error(
+            "contact_inquiry_save_failed request_id=%s error_type=%s",
+            request_id_context.get() or "unavailable",
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Your message could not be saved. Please try again.",
+        ) from exc
+
+    try:
+        email_notifications = send_contact_notifications(
+            {
+                "name": inquiry.name,
+                "email": inquiry.email,
+                "phone": inquiry.phone,
+                "subject": inquiry.subject,
+                "message": inquiry.message,
+            },
+            request_id_context.get() or "unavailable",
+        )
+    except Exception as exc:
+        email_notifications = {
+            "submitter_confirmation": "failed",
+            "admin_notification": "failed",
+        }
+        logger.error(
+            "contact_email_dispatch_failed request_id=%s error_type=%s",
+            request_id_context.get() or "unavailable",
+            type(exc).__name__,
+        )
+    return {
+        "id": inquiry.id,
+        "status": inquiry.status,
+        "email_notifications": email_notifications,
+        "detail": "Your inquiry was received.",
+    }
+
 
 @app.post('/newsletter/subscribe', status_code=201)
 def subscribe_to_newsletter(body: NewsletterSubscribeIn, db: Session = Depends(get_db)):
@@ -1253,6 +1346,7 @@ STATIC_CONTENT_MODELS = {
     'articles': StaticArticle,
     'testimonials': StaticTestimonial,
     'faqs': StaticFaq,
+    'pricing': StaticPricingTier,
 }
 
 
@@ -1617,6 +1711,10 @@ def create_registration(
         **registration_data,
     )
     db.add(registration)
+    if body.phone and not user.phone:
+        user_record = db.get(User, user.id)
+        if user_record is not None and not user_record.phone:
+            user_record.phone = body.phone
     try:
         db.flush()
         logger.info(

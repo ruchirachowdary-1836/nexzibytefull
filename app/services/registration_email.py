@@ -129,10 +129,21 @@ def send_registration_email(kind, user, registration, **details) -> None:
     message_content = build_registration_email(
         kind, user, registration, **details
     )
+    send_transactional_message(
+        recipient=message_content.recipient,
+        subject=message_content.subject,
+        html_content=message_content.html_content,
+        text_content=message_content.text_content,
+    )
+
+
+def send_transactional_message(
+    *, recipient: str, subject: str, html_content: str, text_content: str
+) -> None:
     api_key = (settings.brevo_api_key or "").strip()
     sender_email = (settings.brevo_sender_email or "").strip()
     sender_name = (settings.brevo_sender_name or "").strip()
-    if not all((api_key, sender_email, sender_name, message_content.recipient)):
+    if not all((api_key, sender_email, sender_name, recipient)):
         raise RuntimeError("Brevo email configuration is incomplete.")
 
     configuration = sib_api_v3_sdk.Configuration()
@@ -141,10 +152,10 @@ def send_registration_email(kind, user, registration, **details) -> None:
         sender=sib_api_v3_sdk.SendSmtpEmailSender(
             email=sender_email, name=sender_name
         ),
-        to=[sib_api_v3_sdk.SendSmtpEmailTo(email=message_content.recipient)],
-        subject=message_content.subject,
-        html_content=message_content.html_content,
-        text_content=message_content.text_content,
+        to=[sib_api_v3_sdk.SendSmtpEmailTo(email=recipient)],
+        subject=subject,
+        html_content=html_content,
+        text_content=text_content,
     )
     api_client = sib_api_v3_sdk.ApiClient(configuration)
     try:

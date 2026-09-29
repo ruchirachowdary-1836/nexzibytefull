@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Sparkles, Send, CheckCircle2, Mic, Calendar, User, Mail, Building, FileText } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function HostEventModal({ isOpen, onClose, defaultType = "host" }) {
   const { showToast } = useApp();
@@ -23,7 +24,7 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.topic) {
       showToast("Please fill out your name, email, and topic.");
@@ -31,11 +32,27 @@ export default function HostEventModal({ isOpen, onClose, defaultType = "host" }
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    const [first_name, ...lastNameParts] = formData.name.trim().split(/\s+/);
+    try {
+      await api.submitPartnershipInquiry({
+        first_name,
+        last_name: lastNameParts.join(" ") || first_name,
+        email: formData.email.trim(),
+        partnership_type: modalType === "host" ? "event_host" : "speaker_application",
+        details: [
+          `Organization: ${formData.org || "Not provided"}`,
+          `Preferred format: ${formData.format}`,
+          `Topic: ${formData.topic}`,
+          formData.message,
+        ].filter(Boolean).join("\n"),
+      });
       setSubmitted(true);
       showToast(modalType === "host" ? "Event proposal submitted!" : "Speaker application received!");
-    }, 750);
+    } catch (error) {
+      showToast(error.message || "Your proposal could not be saved. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleReset = () => {

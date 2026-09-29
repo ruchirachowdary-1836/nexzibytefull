@@ -393,7 +393,7 @@ export default function Navbar() {
                   <button 
                     type="button"
                     className="nav-editorial-dropdown-item"
-                    onClick={() => handleNavigation("/#join-techtalk", "join-techtalk")}
+                    onClick={() => handleNavigation("/#contact-us", "contact-us")}
                     role="menuitem"
                   >
                     <div className="dropdown-editorial-content">
@@ -656,7 +656,7 @@ export default function Navbar() {
             <button 
               type="button" 
               className="mobile-nav-link-dark" 
-              onClick={() => handleNavigation("/#join-techtalk", "join-techtalk")}
+              onClick={() => handleNavigation("/#contact-us", "contact-us")}
             >
               Contact Us
             </button>

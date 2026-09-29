@@ -78,7 +78,7 @@ export default function Footer() {
               <li><Link to="/courses" className="footer-link">Courses</Link></li>
               <li><Link to="/courses" className="footer-link">Internships</Link></li>
               <li><a href="/#community-intro" className="footer-link">About</a></li>
-              <li><a href="/#join-techtalk" className="footer-link">Contact</a></li>
+              <li><a href="/#contact-us" className="footer-link">Contact</a></li>
             </ul>
           </div>
 
@@ -164,7 +164,7 @@ export default function Footer() {
           <div style={{ display: "flex", gap: "20px", fontSize: "0.8125rem" }}>
             <a href="#" style={{ color: "var(--text-secondary)" }}>Privacy Policy</a>
             <a href="#" style={{ color: "var(--text-secondary)" }}>Terms of Service</a>
-            <a href="#" style={{ color: "var(--text-secondary)" }}>Contact Us</a>
+            <a href="/#contact-us" style={{ color: "var(--text-secondary)" }}>Contact Us</a>
           </div>
 
           <div className="footer-social-row">
