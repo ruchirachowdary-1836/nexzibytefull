@@ -573,6 +573,46 @@ def fix_alembic(
         lock_connection.close()
 
 
+@app.get('/internal/alembic-state', include_in_schema=False)
+def read_alembic_state(
+    repair_key: str | None = Header(default=None, alias='X-Alembic-Repair-Key'),
+):
+    configured_secret = settings.alembic_repair_secret
+    if not configured_secret:
+        raise HTTPException(status_code=503, detail='Alembic diagnostics are not enabled.')
+    if not repair_key or not secrets.compare_digest(
+        repair_key.encode('utf-8'), configured_secret.encode('utf-8')
+    ):
+        raise HTTPException(status_code=404, detail='Not found.')
+
+    result = {
+        'database_host': engine.url.host,
+        'database_url_setting': (
+            'DATABASE_URL' if settings.database_url else 'DB_URL'
+        ),
+        'alembic_version_exists': False,
+        'alembic_versions': [],
+    }
+    try:
+        with engine.connect() as connection:
+            inspector = inspect(connection)
+            result['alembic_version_exists'] = inspector.has_table('alembic_version')
+            if result['alembic_version_exists']:
+                result['alembic_versions'] = connection.execute(
+                    text('SELECT version_num FROM alembic_version ORDER BY version_num')
+                ).scalars().all()
+    except Exception as exc:
+        logger.error(
+            'alembic_state_diagnostic_failed error_type=%s',
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail='Alembic state diagnostics are unavailable.',
+        ) from exc
+    return result
+
+
 @app.get('/metrics', tags=['System'], response_class=PlainTextResponse)
 def metrics():
     return metrics_text()
