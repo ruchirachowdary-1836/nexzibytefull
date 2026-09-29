@@ -8,8 +8,9 @@ decisions differently.
 
 import base64
 import json
+import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from urllib.request import urlopen
 
@@ -17,10 +18,11 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from jose import JWTError, jwt
 from .config import settings
 from .database import get_db
 from .models import User
@@ -32,6 +34,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/session")
 optional_oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/auth/session", auto_error=False
 )
+logger = logging.getLogger(__name__)
 
 
 def hash_password(password: str):
@@ -55,7 +58,7 @@ def _neon_keys(url: str):
         payload = json.load(response)
     keys = payload.get("keys")
     if not isinstance(keys, list):
-        raise ValueError("JWKS response does not contain a key list")
+        raise TypeError("JWKS response does not contain a key list")
     return keys
 
 
@@ -164,16 +167,23 @@ def _sync_user(db: Session, claims: dict) -> User | None:
         and (
             user.visitor_activated_at is None
             or user.visitor_expires_at is None
-            or datetime.utcnow() >= user.visitor_expires_at
+            or datetime.now(timezone.utc).replace(tzinfo=None) >= user.visitor_expires_at
         )
     )
     user.is_active = verified and not visitor_expired
     try:
         db.commit()
         db.refresh(user)
-    except Exception:
+    except SQLAlchemyError as exc:
         db.rollback()
-        return None
+        logger.error(
+            "neon_profile_sync_failed error_type=%s",
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Account profile synchronization is temporarily unavailable",
+        ) from exc
     return user
 
 
@@ -183,10 +193,29 @@ def get_current_user(
     """Canonical bearer-token verification, identity sync, and authorization."""
     claims = decode_neon_claims(token)
     user = _sync_user(db, claims) if claims else None
-    if user is None or not user.is_active or not user.email_verified:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="A valid verified sign-in session is required",
+        )
+    if user.visitor_access_only and (
+        user.visitor_activated_at is None
+        or user.visitor_expires_at is None
+        or datetime.now(timezone.utc).replace(tzinfo=None) >= user.visitor_expires_at
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="The visitor pass session has expired",
+        )
+    if not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email verification is required before accessing this account",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is inactive",
         )
     return user
 
@@ -204,7 +233,7 @@ def get_optional_user(
     if user and user.visitor_access_only and (
         user.visitor_activated_at is None
         or user.visitor_expires_at is None
-        or datetime.utcnow() >= user.visitor_expires_at
+        or datetime.now(timezone.utc).replace(tzinfo=None) >= user.visitor_expires_at
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

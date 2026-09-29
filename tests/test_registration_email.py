@@ -17,6 +17,7 @@ from app.auth import get_current_user, get_optional_user
 from app.config import settings
 from app.database import Base, get_db
 from app.models import CourseApplication, PassRequest, Registration, Summit, User
+from app.security import sign_pass_payload, validate_pass_payload
 from app.services.registration_email import (
     build_registration_email,
     send_registration_email,
@@ -114,6 +115,24 @@ def test_registration_email_submits_through_brevo_sdk(monkeypatch):
     )
     assert captured["message"].to[0].email == "asha@example.com"
     assert captured["message"].subject == "You're registered: TechTalk Summit"
+
+
+def test_pass_qr_expiry_is_utc_and_exact_to_timestamp_precision(monkeypatch):
+    expires_at = datetime(2030, 1, 1, 12, 0, 0, 500000)
+    qr_data = sign_pass_payload("NEX-EVT-123456", expires_at)
+    monkeypatch.setattr(
+        "app.security.time.time",
+        lambda: expires_at.replace(tzinfo=timezone.utc).timestamp() - 0.0001,
+    )
+    payload = validate_pass_payload(qr_data)
+    assert payload["exp"] == expires_at.replace(tzinfo=timezone.utc).timestamp()
+
+    monkeypatch.setattr(
+        "app.security.time.time",
+        lambda: expires_at.replace(tzinfo=timezone.utc).timestamp(),
+    )
+    with pytest.raises(ValueError, match="Invalid pass payload"):
+        validate_pass_payload(qr_data)
 
 
 def test_issuing_a_pass_later_sends_new_pass_even_during_retry_window(

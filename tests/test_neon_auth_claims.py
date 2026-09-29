@@ -7,10 +7,12 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.config import settings
-from app.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, engine, get_db
 from app.main import (
     app,
     ensure_auth_columns,
@@ -156,6 +158,10 @@ def test_visitor_session_expires_at_exact_ten_minute_boundary(
         def utcnow(cls):
             return fixed_now
 
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now.replace(tzinfo=tz) if tz else fixed_now
+
     monkeypatch.setattr("app.auth.datetime", FrozenDateTime)
     with SessionLocal() as db:
         user = db.query(User).filter_by(email=email).one()
@@ -176,9 +182,47 @@ def test_visitor_session_expires_at_exact_ten_minute_boundary(
     optional_response = client.get("/posts", headers=headers)
     assert optional_response.status_code == expected_status
     if expected_status == 401:
+        assert response.json()["detail"] == "The visitor pass session has expired"
         with SessionLocal() as db:
             user = db.query(User).filter_by(email=email).one()
             assert user.is_active is False
+
+
+def test_neon_profile_database_failure_is_not_misreported_as_unverified(
+    neon_profile_auth, monkeypatch
+):
+    private_key, email = neon_profile_auth
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(email=email).one()
+        user.email_verified = True
+        user.is_active = True
+        db.commit()
+
+    class FailingCommitSession(Session):
+        def commit(self):
+            raise SQLAlchemyError("simulated database outage")
+
+    def failing_db():
+        db = FailingCommitSession(bind=engine)
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = failing_db
+    response = TestClient(app).get(
+        "/users/me",
+        headers={
+            "Authorization": f"Bearer {_token(private_key, _claims(email, {'emailVerified': True}))}"
+        },
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Account profile synchronization is temporarily unavailable"
+    )
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(email=email).one()
+        assert user.neon_auth_user_id is None
 
 
 def test_users_me_enforces_configured_audience(neon_profile_auth, monkeypatch):

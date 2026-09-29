@@ -18,6 +18,12 @@ export async function apiRequest(path, options = {}, allowRefresh = true) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const method = requestOptions.method || "GET";
+    if (
+      response.status === 401 &&
+      /visitor pass session has expired/i.test(data.detail || "")
+    ) {
+      window.dispatchEvent(new Event("visitor-session-expired"));
+    }
     throw new Error(data.detail || `HTTP ${response.status} for ${method} ${path}`);
   }
   return data;
@@ -58,6 +64,7 @@ export const api = {
   submitPassRequest: (payload) => apiRequest("/pass-requests", { method: "POST", body: JSON.stringify(payload) }),
   myPassRequests: () => apiRequest("/users/me/pass-requests"),
   myPasses: () => apiRequest("/users/me/passes"),
+  activateVisitorPass: (id) => apiRequest(`/users/me/pass-requests/${id}/activate-visitor`, { method: "POST" }),
   waitForRegistrationEmail,
   resendRegistrationEmail: (kind, id) => apiRequest(`/users/me/registrations/${encodeURIComponent(kind)}/${id}/resend`, { method: "POST" }),
   registerForEvent: (eventType, eventId) => apiRequest("/registrations", { method: "POST", body: JSON.stringify({ event_type: eventType, event_id: eventId }) }),

@@ -1,13 +1,14 @@
-import hashlib
 import base64
+import binascii
+import hashlib
 import hmac
 import json
+import math
 import secrets
-import binascii
 import threading
 import time
-from datetime import datetime
 from collections import defaultdict, deque
+from datetime import timezone
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -16,7 +17,9 @@ from .config import settings
 
 def sign_pass_payload(pass_id: str, expires_at) -> str:
     """Create a compact, tamper-evident QR payload."""
-    payload = {"v": 1, "pid": pass_id, "exp": int(expires_at.timestamp()) if expires_at else None,
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    payload = {"v": 1, "pid": pass_id, "exp": expires_at.timestamp() if expires_at else None,
                "nonce": secrets.token_urlsafe(12)}
     encoded = base64.urlsafe_b64encode(
         json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
@@ -38,11 +41,18 @@ def validate_pass_payload(value: str) -> dict:
         decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
         payload = json.loads(decoded)
         if not isinstance(payload, dict):
-            raise ValueError("Invalid pass payload")
+            raise TypeError("Invalid pass payload")
         if payload.get("v") != 1 or not payload.get("pid") or not payload.get("nonce"):
             raise ValueError("Invalid pass payload")
-        if payload.get("exp") is not None and int(payload["exp"]) <= int(datetime.utcnow().timestamp()):
-            raise ValueError("Pass has expired")
+        expiry = payload.get("exp")
+        if expiry is not None:
+            if (
+                not isinstance(expiry, (int, float))
+                or isinstance(expiry, bool)
+                or not math.isfinite(expiry)
+                or expiry <= time.time()
+            ):
+                raise ValueError("Pass has expired")
         return payload
     except (ValueError, KeyError, TypeError, AttributeError, OverflowError, json.JSONDecodeError, binascii.Error) as exc:
         raise ValueError("Invalid pass payload") from exc

@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
 import { api, waitForRegistrationEmail } from "../lib/api.js";
 import { authService } from "../lib/auth.js";
 import { checkBackendHealth } from "../lib/backend.js";
+import { visitorSecondsRemaining } from "../lib/visitor-session.js";
 
 const AppContext = createContext(null);
 
@@ -15,6 +16,7 @@ export function AppProvider({ children }) {
   const [activePass, setActivePass] = useState(null);
   const [passesList, setPassesList] = useState([]);
   const [registrationNotice, setRegistrationNotice] = useState(null);
+  const [visitorTimeRemaining, setVisitorTimeRemaining] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [userDrafts, setUserDrafts] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -37,13 +39,24 @@ export function AppProvider({ children }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const showToast = (message) => {
+  const showToast = useCallback((message) => {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), 4500);
-  };
+  }, []);
+
+  const logout = useCallback(() => {
+    authService.logout();
+    setUser(null);
+    setActivePass(null);
+    setPassesList([]);
+    setVisitorTimeRemaining(null);
+  }, []);
 
   useEffect(() => {
-    checkBackendHealth().then(setBackendOnline);
+    checkBackendHealth().then((online) => {
+      setBackendOnline(online);
+      if (!online) showToast("The API is currently unavailable. Some features may not work.");
+    });
     if (!authService.hasToken()) {
       setAuthReady(true);
       return;
@@ -77,7 +90,39 @@ export function AppProvider({ children }) {
       };
       hydrateSession();
     }
-  }, []);
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!user?.visitor_access_only) {
+      setVisitorTimeRemaining(null);
+      return undefined;
+    }
+    let expired = false;
+    const updateRemaining = () => {
+      const remaining = visitorSecondsRemaining(user.visitor_expires_at);
+      setVisitorTimeRemaining(remaining);
+      if (remaining === 0 && !expired) {
+        expired = true;
+        logout();
+        showToast("Your 10-minute visitor pass has expired. Please sign in again.");
+      }
+    };
+    const handleExpiredSession = () => {
+      if (expired) return;
+      expired = true;
+      logout();
+      showToast("Your 10-minute visitor pass has expired. Please sign in again.");
+    };
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 250);
+    window.addEventListener("focus", updateRemaining);
+    window.addEventListener("visitor-session-expired", handleExpiredSession);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", updateRemaining);
+      window.removeEventListener("visitor-session-expired", handleExpiredSession);
+    };
+  }, [user, logout, showToast]);
 
   useEffect(() => {
     if (!user) return;
@@ -85,9 +130,9 @@ export function AppProvider({ children }) {
       const mapped = items.map(mapPass);
       setPassesList(mapped);
       setActivePass(mapped.find((pass) => pass.passId) || null);
-    }).catch(() => {});
-    api.getMyPosts().then(setUserPosts).catch(() => {});
-  }, [user]);
+    }).catch((error) => showToast(error.message || "Your passes could not be loaded."));
+    api.getMyPosts().then(setUserPosts).catch((error) => showToast(error.message || "Your posts could not be loaded."));
+  }, [user, showToast]);
 
   const updateRegistrationNotice = async (kind, registration, fallbackEmail, fallbackTitle) => {
     let saved = {
@@ -143,11 +188,28 @@ export function AppProvider({ children }) {
     return authenticatedUser;
   };
 
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    setActivePass(null);
-    setPassesList([]);
+  const activateVisitorPass = async (id) => {
+    const response = await api.activateVisitorPass(id);
+    const mapped = mapPass(response);
+    setPassesList((current) => {
+      const exists = current.some(
+        (pass) => pass.kind === mapped.kind && pass.id === mapped.id,
+      );
+      return exists
+        ? current.map((pass) => (
+          pass.kind === mapped.kind && pass.id === mapped.id
+            ? { ...pass, ...mapped }
+            : pass
+        ))
+        : [mapped, ...current];
+    });
+    setUser((current) => current ? {
+      ...current,
+      visitor_access_only: true,
+      visitor_activated_at: response.visitor_activated_at,
+      visitor_expires_at: response.visitor_expires_at,
+    } : current);
+    return response;
   };
 
   const registerPass = async ({ attendeeName, email, passType, amount, notes, organization, role, phone, referralContact }) => {
@@ -237,7 +299,7 @@ export function AppProvider({ children }) {
     unreadNotificationCount: notifications.filter((item) => !item.read).length,
     savedPosts, setSavedPosts, toggleSavePost, activePass, setActivePass, passesList, registerPass,
     registrationNotice, setRegistrationNotice, updateRegistrationNotice,
-    checkInPass, resetCheckIn, passModalOpen, setPassModalOpen, selectedPassType, setSelectedPassType,
+    checkInPass, resetCheckIn, activateVisitorPass, visitorTimeRemaining, passModalOpen, setPassModalOpen, selectedPassType, setSelectedPassType,
     openPassModal: (type = "visitor-pass") => { setSelectedPassType(type); setPassModalOpen(true); },
     videoModalOpen, setVideoModalOpen, articleModalOpen, setArticleModalOpen, selectedArticle,
     openArticleReader: (article) => { setSelectedArticle(article); setArticleModalOpen(true); },

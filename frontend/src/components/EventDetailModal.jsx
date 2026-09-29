@@ -54,7 +54,14 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
             ));
           }
         })
-        .catch(() => {});
+        .catch((pollError) => {
+          setRegistration((current) => (
+            current ? { ...current, email_delivery_status: "unknown" } : current
+          ));
+          setRegistrationError(
+            `Registration was saved, but email status could not be checked. Check My Passes shortly. ${pollError.message || ""}`.trim(),
+          );
+        });
     } catch (error) {
       setRegistrationError(error.message || "Registration could not be completed. Please try again.");
       showToast(error.message || "Registration could not be completed. Please try again.");

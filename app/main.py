@@ -1,40 +1,63 @@
-from datetime import date, datetime, time, timedelta
 import asyncio
-import logging
 import datetime as datetime_module
-from contextlib import asynccontextmanager
-from typing import Literal
-import secrets
-import hashlib
 import json
+import logging
+import secrets
 from collections import Counter
+from contextlib import asynccontextmanager
+from datetime import date, datetime, time, timedelta
+from typing import Literal
+
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+
+from .auth import (
+    get_current_user,
+    get_optional_user,
+    hash_password,
+    require_admin,
+    verify_password,
+)
 from .config import allowed_origins, settings
-from .database import Base, engine, get_db, SessionLocal
-from .models import *
-from .auth import get_current_user, get_optional_user, hash_password, require_admin, verify_password
-from .services.events import (
-    event_response,
-    event_state,
-    list_events,
-    make_event,
-    update_event,
+from .database import Base, SessionLocal, engine, get_db
+from .models import (
+    AuditLog,
+    Category,
+    CheckIn,
+    Comment,
+    CourseApplication,
+    EmailLog,
+    FounderMeet,
+    NewsletterSubscriber,
+    Notification,
+    PartnershipInquiry,
+    PassRequest,
+    Post,
+    Reaction,
+    RefreshToken,
+    Registration,
+    SavedPost,
+    Speaker,
+    StaticArticle,
+    StaticCourse,
+    StaticEvent,
+    StaticFaq,
+    StaticFounderMeet,
+    StaticInternship,
+    StaticSpeaker,
+    StaticTestimonial,
+    Summit,
+    Tag,
+    User,
+    UserLink,
+    UserSettings,
+    UserSkill,
 )
-from .services.registration_email import qr_data_uri, send_registration_email
-from .services.admin_reports import (
-    build_admin_report,
-    previous_period,
-    send_admin_report_email,
-    send_due_scheduled_reports,
-)
-from .security import password_policy, rate_limit, sign_pass_payload, validate_pass_payload
 from .observability import (
     ObservabilityMiddleware,
     SecurityHeadersMiddleware,
@@ -43,6 +66,24 @@ from .observability import (
     request_id_context,
     run_cleanup,
 )
+from .security import (
+    sign_pass_payload,
+    validate_pass_payload,
+)
+from .services.admin_reports import (
+    build_admin_report,
+    previous_period,
+    send_admin_report_email,
+    send_due_scheduled_reports,
+)
+from .services.events import (
+    event_response,
+    event_state,
+    list_events,
+    make_event,
+    update_event,
+)
+from .services.registration_email import qr_data_uri, send_registration_email
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -277,7 +318,6 @@ def cleanup_expired_records() -> None:
             PassRequest.expires_at < now,
             PassRequest.status.in_(['approved', 'issued']),
         ).update({'status': 'expired'}, synchronize_session=False)
-        stale_cutoff = now - timedelta(days=settings.stale_account_days)
         db.commit()
     except Exception:
         db.rollback()
@@ -362,7 +402,7 @@ def root():
 def readiness(db: Session = Depends(get_db)):
     try:
         db.execute(text('SELECT 1'))
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         logger.exception('readiness_check_failed')
         raise HTTPException(status_code=503, detail='database unavailable') from exc
     return {'status': 'ready'}
@@ -381,7 +421,7 @@ def database_info(
                 'version() AS postgresql_server_version'
             )
         ).mappings().one()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         logger.error('database_info_query_failed error_type=%s', type(exc).__name__)
         raise HTTPException(
             status_code=503,
@@ -876,7 +916,22 @@ def activate_visitor_pass(
     user_record.visitor_expires_at = expires_at
     request.expires_at = expires_at
     request.qr_data = sign_pass_payload(request.pass_id, expires_at)
-    db.commit()
+    try:
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.error(
+            "visitor_pass_activation_failed",
+            extra={
+                "request_id": request_id_context.get() or "unavailable",
+                "user_id": user_record.id,
+                "pass_request_id": request.id,
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise HTTPException(
+            500, detail="Visitor pass activation could not be completed"
+        ) from exc
     db.refresh(user_record)
     db.refresh(request)
     logger.info(
@@ -890,8 +945,9 @@ def activate_visitor_pass(
     )
     return {
         **pass_request_response(request),
-        "visitor_activated_at": activated_at,
-        "visitor_expires_at": expires_at,
+        "qr_image_data_uri": qr_data_uri(request.qr_data),
+        "visitor_activated_at": activated_at.isoformat() + "Z",
+        "visitor_expires_at": expires_at.isoformat() + "Z",
     }
 
 
@@ -999,8 +1055,6 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         'github_url': body.github_url,
         'twitter_url': body.twitter_url,
         'devto_url': body.devto_url,
-        'leetcode_url': body.leetcode_url,
-        'instagram_url': body.instagram_url,
         'leetcode_url': body.leetcode_url,
         'instagram_url': body.instagram_url,
     }
@@ -1279,9 +1333,7 @@ def list_posts(category: int | None = None, status: str | None = None, author: i
     if search:
         term = f'%{search.lower()}%'
         q = q.filter(or_(func.lower(Post.title).like(term), func.lower(Post.content).like(term), func.lower(Post.tags).like(term)))
-    if sort == 'latest':
-        q = q.order_by(Post.created_at.desc())
-    elif sort == 'popular':
+    if sort == 'latest' or sort == 'popular':
         q = q.order_by(Post.created_at.desc())
     else:
         q = q.order_by(Post.created_at.desc())
@@ -1477,7 +1529,7 @@ def summit_sponsors(event_id:int,db:Session=Depends(get_db)):
     return {'sponsors': []}
 @app.get('/summits/{event_id}/related')
 def summit_related(event_id:int,db:Session=Depends(get_db), limit: int = Query(3, ge=1, le=12)):
-    event = one(db, Summit, event_id)
+    one(db, Summit, event_id)
     items = db.query(Summit).filter(Summit.id != event_id, Summit.is_published.is_(True)).order_by(Summit.date.asc()).limit(limit).all()
     return [event_response(item) for item in items]
 @app.put('/summits/{event_id}')
@@ -1513,7 +1565,7 @@ def founder_meet_speakers_detail(event_id:int,db:Session=Depends(get_db)):
     return {'speakers': [item(s) for s in event.speakers]}
 @app.get('/founder-meets/{event_id}/related')
 def founder_meet_related(event_id:int,db:Session=Depends(get_db), limit: int = Query(3, ge=1, le=12)):
-    event = one(db, FounderMeet, event_id)
+    one(db, FounderMeet, event_id)
     items = db.query(FounderMeet).filter(FounderMeet.id != event_id, FounderMeet.is_published.is_(True)).order_by(FounderMeet.date.asc()).limit(limit).all()
     return [event_response(item) for item in items]
 @app.put('/founder-meets/{event_id}')
@@ -1684,10 +1736,12 @@ def my_passes(db: Session = Depends(get_db), user: User = Depends(get_current_us
             "kind": "pass_request",
             "id": request.id,
             "title": request.pass_type,
+            "pass_type": request.pass_type,
             "status": request.status,
             "pass_id": request.pass_id,
             "qr_data": request.qr_data,
             "qr_image_data_uri": qr_data_uri(request.qr_data),
+            "expires_at": request.expires_at,
             "email": request.email,
             "email_delivery_status": request.email_delivery_status,
             "email_sent_at": request.email_sent_at,
@@ -1701,6 +1755,7 @@ def my_passes(db: Session = Depends(get_db), user: User = Depends(get_current_us
             "kind": "course_application",
             "id": application.id,
             "title": application.course_title,
+            "pass_type": "course_application",
             "status": application.status,
             "pass_id": application.pass_id,
             "qr_data": application.qr_data,
@@ -1720,6 +1775,7 @@ def my_passes(db: Session = Depends(get_db), user: User = Depends(get_current_us
             "kind": "registration",
             "id": registration.id,
             "title": event.title if event else "Event no longer available",
+            "pass_type": f"{registration.event_type.replace('_', ' ')} pass",
             "status": registration.status,
             "pass_id": registration.pass_id,
             "qr_data": registration.qr_data,
@@ -1960,6 +2016,18 @@ def admin_send_report_now(
         report = build_admin_report(db, start_date, end_date)
     except ValueError as exc:
         raise HTTPException(422, detail=str(exc)) from exc
+    except SQLAlchemyError as exc:
+        logger.error(
+            "admin_report_manual_query_failed",
+            extra={
+                "request_id": request_id_context.get() or "unavailable",
+                "admin_user_id": admin.id,
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise HTTPException(
+            503, detail="Report data is temporarily unavailable."
+        ) from exc
     try:
         send_admin_report_email(report)
     except Exception as exc:
@@ -2042,7 +2110,7 @@ def admin_registrations(
     rows = query.order_by(Registration.registered_at.desc()).offset(offset).limit(limit).all()
     results = []
     for registration, user in rows:
-        event = (
+        event_record = (
             db.get(Summit if registration.event_type == 'summit' else FounderMeet, registration.event_id)
         )
         results.append({
@@ -2050,7 +2118,7 @@ def admin_registrations(
             'user_id': registration.user_id,
             'user_name': user.name,
             'email': user.email,
-            'event_name': event.title if event else 'Event no longer available',
+            'event_name': event_record.title if event_record else 'Event no longer available',
             'event_type': registration.event_type,
             'event_id': registration.event_id,
             'status': registration.status,

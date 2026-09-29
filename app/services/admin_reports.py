@@ -338,15 +338,14 @@ def send_scheduled_report(cadence: str, start_date: date, end_date: date) -> boo
     db = SessionLocal()
     try:
         report = build_admin_report(db, start_date, end_date)
-    finally:
-        db.close()
-    try:
         send_admin_report_email(report)
         _finish_scheduled_report(run_id, sent=True)
         return True
     except Exception as exc:
         _finish_scheduled_report(run_id, sent=False, error_type=type(exc).__name__)
         raise
+    finally:
+        db.close()
 
 
 def send_due_scheduled_reports(now: datetime | None = None) -> int:
