@@ -13,6 +13,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
   const [registration, setRegistration] = useState(null);
   const [registrationError, setRegistrationError] = useState("");
   const [emailResending, setEmailResending] = useState(false);
+  const [phone, setPhone] = useState(user?.phone || "");
 
   useEffect(() => {
     setSubmitting(false);
@@ -20,7 +21,8 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
     setRegistration(null);
     setRegistrationError("");
     setEmailResending(false);
-  }, [isOpen, event?.event_type, event?.id]);
+    setPhone(user?.phone || "");
+  }, [isOpen, event?.event_type, event?.id, user?.phone]);
 
   if (!isOpen || !event) return null;
 
@@ -37,7 +39,7 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
     setSubmitting(true);
     setRegistrationError("");
     try {
-      const created = await api.registerForEvent(event.event_type, Number(event.id));
+      const created = await api.registerForEvent(event.event_type, Number(event.id), phone.trim());
       setRegistration({
         ...created,
         email: user.email,
@@ -270,6 +272,19 @@ export default function EventDetailModal({ event, isOpen, onClose, autoFocusRegi
                       <div className="event-form-input" aria-label="Signed in account">
                         {user?.name || "Signed-in member"} · {user?.email || "Sign in required"}
                       </div>
+                      <label className="event-form-group">
+                        <span className="event-form-label">Contact number *</span>
+                        <input
+                          className="event-form-input"
+                          type="tel"
+                          name="phone"
+                          autoComplete="tel"
+                          maxLength={40}
+                          required
+                          value={phone}
+                          onChange={(inputEvent) => setPhone(inputEvent.target.value)}
+                        />
+                      </label>
                     </div>
 
                     {registrationError && <p role="alert">{registrationError}</p>}

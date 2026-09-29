@@ -5,6 +5,7 @@ import {
   Building2, Calendar, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { api } from "../lib/api.js";
 
 export default function InternshipModal() {
   const { 
@@ -28,6 +29,7 @@ export default function InternshipModal() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [appId, setAppId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Close on Escape key press
   useEffect(() => {
@@ -49,20 +51,42 @@ export default function InternshipModal() {
       }));
       setSubmitted(false);
       setActiveTab(internshipInitialTab || "overview");
-      setAppId(`NXB-INT-${Math.floor(100000 + Math.random() * 900000)}`);
+      setAppId("");
     }
   }, [selectedInternship, internshipInitialTab]);
 
   if (!internshipModalOpen || !selectedInternship) return null;
 
-  const handleSubmitApplication = (e) => {
+  const handleSubmitApplication = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) {
       showToast("Please fill in your name, email, and phone number.");
       return;
     }
-    setSubmitted(true);
-    showToast(`🎉 Application for ${selectedInternship.title} submitted! Ref ID: ${appId}`);
+    setSubmitting(true);
+    try {
+      const application = await api.submitCourseApplication({
+        course_id: `internship-${String(selectedInternship.id || selectedInternship.slug || selectedInternship.title)}`,
+        course_title: selectedInternship.title,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        interest_role: formData.role || selectedInternship.title,
+        experience_level: formData.gradYear,
+        notes: [
+          `College: ${formData.college || "Not provided"}`,
+          `LinkedIn: ${formData.linkedin || "Not provided"}`,
+          formData.notes,
+        ].filter(Boolean).join("\n"),
+      });
+      setAppId(String(application.id));
+      setSubmitted(true);
+      showToast(`Application for ${selectedInternship.title} was saved.`);
+    } catch (error) {
+      showToast(error.message || "Your internship application could not be saved.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -418,9 +442,10 @@ export default function InternshipModal() {
                     <button 
                       type="submit" 
                       className="btn btn-primary"
+                      disabled={submitting}
                     >
                       <Send size={15} />
-                      <span>Submit Internship Application</span>
+                      <span>{submitting ? "Submitting…" : "Submit Internship Application"}</span>
                     </button>
                   </div>
                 </form>

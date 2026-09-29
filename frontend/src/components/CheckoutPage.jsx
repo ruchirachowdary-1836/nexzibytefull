@@ -7,7 +7,7 @@ import {
   Landmark, AlertCircle, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { PASSES } from "../data/mockData.js";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 import { PassQRCodeSVG } from "./DigitalPass.jsx";
 
 // Popular Indian Banks Data for Net Banking
@@ -85,9 +85,6 @@ const PASS_DETAILS = {
     id: "student-pass",
     type: "Student Pass",
     badge: "Student & Researcher",
-    basePrice: 99,
-    originalPrice: 499,
-    discountTag: "80% Subsidized",
     accentColor: "#059669",
     icon: GraduationCap,
     heroTitle: "Student Tech Accreditation Program",
@@ -125,9 +122,6 @@ const PASS_DETAILS = {
     id: "founder-pass",
     type: "Founder VIP Pass",
     badge: "Founder & CXO Circle",
-    basePrice: 499,
-    originalPrice: 1999,
-    discountTag: "75% Launch Offer",
     accentColor: "#D97706",
     icon: Briefcase,
     heroTitle: "Founder & CXO VIP Accreditation",
@@ -165,9 +159,6 @@ const PASS_DETAILS = {
     id: "delegation-pass",
     type: "Corporate Delegation Pass",
     badge: "Corporate Delegate",
-    basePrice: 250,
-    originalPrice: 999,
-    discountTag: "Corporate Tier",
     accentColor: "#E11D48",
     icon: Building,
     heroTitle: "Corporate Enterprise Delegation Pass",
@@ -207,7 +198,8 @@ export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
   const { passId: routePassId } = useParams();
   const navigate = useNavigate();
-  const { registerPass, showToast, activePass } = useApp();
+  const { registerPass, showToast, activePass, user } = useApp();
+  const { items: pricingTiers, loading: pricingLoading, error: pricingError } = useStaticCatalog("pricing");
 
   // Determine initial selected pass
   const queryPass = searchParams.get("pass") || routePassId || "student-pass";
@@ -222,11 +214,11 @@ export default function CheckoutPage() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Form Fields (Right Column)
-  const [email, setEmail] = useState("lalitha@nexzibyte.com");
-  const [phone, setPhone] = useState("9876543210");
-  const [fullName, setFullName] = useState("Lalitha Mindhi");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [fullName, setFullName] = useState(user?.name || "");
   const [country, setCountry] = useState("India");
-  const [state, setState] = useState("Telangana");
+  const [state, setState] = useState("");
   const [address, setAddress] = useState("Hitech City, Madhapur");
   const [pincode, setPincode] = useState("500081");
   const [organization, setOrganization] = useState("NexziByte Ecosystem");
@@ -240,7 +232,7 @@ export default function CheckoutPage() {
   // Net Banking specific fields
   const [selectedBank, setSelectedBank] = useState("hdfc");
   const [customBank, setCustomBank] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState("Lalitha Mindhi");
+  const [accountHolderName, setAccountHolderName] = useState(user?.name || "");
 
   // UPI specific fields
   const [upiMethod, setUpiMethod] = useState("id"); // "id" | "qr"
@@ -285,18 +277,34 @@ export default function CheckoutPage() {
     }
   }, [queryPass, normalizedPass]);
 
-  const activePassConfig = PASS_DETAILS[selectedPass] || PASS_DETAILS["student-pass"];
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email || "");
+      setPhone(user.phone || "");
+      setFullName(user.name || "");
+      setAccountHolderName(user.name || "");
+    }
+  }, [user]);
+
+  const pricingTier = pricingTiers.find((tier) => tier.id === selectedPass);
+  const activePassConfig = {
+    ...(PASS_DETAILS[selectedPass] || PASS_DETAILS["student-pass"]),
+    type: pricingTier?.type || "Pass",
+    badge: pricingTier?.badge || "",
+    discountTag: pricingTier?.discountTag || "",
+  };
   const isDelegation = selectedPass === "delegation-pass";
 
   // Dynamic pricing calculations (in INR ₹)
-  // Delegate Pass: 1 member = ₹250; 2+ members = ₹200 per member
+  const unitPrice = pricingTier?.priceNum || 0;
+  const groupPrice = pricingTier?.groupPriceNum || unitPrice;
   const effectivePricePerMember = isDelegation 
-    ? (delegationMembers === 1 ? 250 : 200) 
-    : activePassConfig.basePrice;
+    ? (delegationMembers === 1 ? unitPrice : groupPrice)
+    : unitPrice;
 
   const baseAmount = isDelegation 
-    ? (delegationMembers === 1 ? 250 : delegationMembers * 200) 
-    : activePassConfig.basePrice;
+    ? (delegationMembers === 1 ? unitPrice : delegationMembers * groupPrice)
+    : unitPrice;
 
   let discountAmount = 0;
   if (appliedCoupon) {
@@ -350,24 +358,26 @@ export default function CheckoutPage() {
   };
 
   // Handle Payment Submission
-  const handlePay = (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
     if (!agreeTerms) {
       showToast("Please agree to the Terms of Service & Privacy Policy.");
       return;
     }
 
-    if (!email || !fullName) {
-      showToast("Please provide your email and full name.");
+    if (!email || !phone || !fullName) {
+      showToast("Please provide your email, phone number, and full name.");
+      return;
+    }
+    if (!pricingTier) {
+      showToast(pricingError || "Pass pricing is unavailable. Please try again shortly.");
       return;
     }
 
     setIsProcessing(true);
-
-    const generatedTxn = `TXN-IN-${Math.floor(10000000 + Math.random() * 90000000)}`;
-    setTransactionRef(generatedTxn);
-
-    setTimeout(() => {
+    try {
+      const generatedTxn = `TXN-IN-${Math.floor(10000000 + Math.random() * 90000000)}`;
+      setTransactionRef(generatedTxn);
       // Determine payment method label
       let methodLabel = "Net Banking (Indian Bank)";
       let bankResolved = "";
@@ -389,9 +399,10 @@ export default function CheckoutPage() {
         ? `${studentDegree} • Student` 
         : (selectedPass === "founder-pass" ? `${role} (${ventureStage})` : role);
 
-      const passCreated = registerPass({
+      const passCreated = await registerPass({
         attendeeName: isDelegation ? `${fullName} (${delegationMembers} Attendees)` : fullName,
         email,
+        phone,
         passType: selectedPass,
         amount: `₹${totalAmount}`,
         organization: orgField,
@@ -416,7 +427,10 @@ export default function CheckoutPage() {
       setIsProcessing(false);
       setIsCompleted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 1200);
+    } catch (error) {
+      showToast(error.message || "Your pass registration could not be saved.");
+      setIsProcessing(false);
+    }
   };
 
   return (

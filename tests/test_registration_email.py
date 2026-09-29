@@ -327,6 +327,8 @@ def test_event_registration_persists_server_generated_pass_and_email_state(
             assert saved.email_sent_at is not None
             assert saved.email_last_attempt_at is not None
             assert saved.email_pass_id == saved.pass_id
+            saved_user = db.get(User, saved.user_id)
+            assert saved_user.phone == "+1-555-0199"
         assert len(submitted) == 1
         assert submitted[0][0][1].email == "attendee@example.com"
     finally:
@@ -702,6 +704,7 @@ def test_registration_is_saved_when_brevo_fails(monkeypatch, tmp_path, caplog):
                 "email": "riya@example.com",
                 "pass_type": "visitor-pass",
                 "amount": "FREE",
+                "phone": "555-0111",
             },
         )
         assert response.status_code == 201
@@ -709,6 +712,8 @@ def test_registration_is_saved_when_brevo_fails(monkeypatch, tmp_path, caplog):
         with test_session() as db:
             saved = db.get(PassRequest, response.json()["id"])
             assert saved is not None
+            assert saved.email == "riya@example.com"
+            assert saved.phone == "555-0111"
             assert saved.email_delivery_status == "failed"
         failure = next(
             record
@@ -756,6 +761,7 @@ def test_course_application_sends_to_verified_account_email(monkeypatch, tmp_pat
         with test_session() as db:
             saved = db.get(CourseApplication, response.json()["id"])
             assert saved.email == "verified@example.com"
+            assert saved.phone == "555-0100"
             assert saved.email_delivery_status == "sent"
     finally:
         close_client(client, engine)
