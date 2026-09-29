@@ -85,13 +85,15 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 "static_articles",
                 "static_testimonials",
                 "static_faqs",
+                "static_pricing_tiers",
+                "contact_inquiries",
             }
             created_tables = set(inspect(connection).get_table_names())
             user_columns = {
                 column["name"] for column in inspect(connection).get_columns("users")
             }
 
-        assert revision == "0030_visitor_trial_session"
+        assert revision == "0032_contact_inquiries"
         assert static_tables <= created_tables
         assert {
             "phone",

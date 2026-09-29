@@ -143,6 +143,18 @@ class PartnershipInquiry(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ContactInquiry(Base):
+    __tablename__ = "contact_inquiries"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    subject: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="new")
+
+
 class CourseApplication(Base):
     __tablename__ = 'course_applications'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -367,6 +379,10 @@ class StaticTestimonial(StaticContentFields, Base):
 
 class StaticFaq(StaticContentFields, Base):
     __tablename__ = 'static_faqs'
+
+
+class StaticPricingTier(StaticContentFields, Base):
+    __tablename__ = "static_pricing_tiers"
 
 
 class AdminReportRun(Base):
