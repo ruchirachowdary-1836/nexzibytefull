@@ -71,6 +71,7 @@ const exported = {
   ),
   articles: rows(mockData.TECHNICAL_ARTICLES, "mockData.TECHNICAL_ARTICLES"),
   testimonials: rows(mockData.TESTIMONIALS, "mockData.TESTIMONIALS"),
+  pricing: rows(mockData.PASSES, "mockData.PASSES"),
   faqs,
 };
 

@@ -6,27 +6,22 @@ import {
   CornerDownRight, Copy, Check, ChevronRight, Tag, BookOpen,
   Eye, Terminal, Award
 } from "lucide-react";
-import { TECHNICAL_ARTICLES } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 
 export default function PostDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userPosts, savedPosts, toggleSavePost, user, showToast } = useApp();
+  const { items: articles, loading: articlesLoading, error: articlesError } = useStaticCatalog("articles");
 
-  // Find article across all mock data sets
   const article = useMemo(() => {
-    // 1. Check user dispatches first
     const fromUser = userPosts.find((p) => p.id === id);
     if (fromUser) return fromUser;
-
-    // 2. Check technical articles
-    const fromArticles = TECHNICAL_ARTICLES.find((a) => a.id === id);
+    const fromArticles = articles.find((a) => String(a.id) === id);
     if (fromArticles) return fromArticles;
-
-    // 3. Fallback to default
-    return userPosts[0] || TECHNICAL_ARTICLES[0];
-  }, [id, userPosts]);
+    return userPosts[0] || articles[0] || { id: "", title: "", category: "" };
+  }, [id, userPosts, articles]);
 
   // Reactions State (Interactive claps / likes)
   const [likesCount, setLikesCount] = useState(
@@ -109,9 +104,8 @@ export default function PostDetailsPage() {
     showToast("💬 Your comment has been published to the discussion thread!");
   };
 
-  // Related dispatches (3 items not matching current article)
   const relatedDispatches = useMemo(() => {
-    const combined = [...userPosts, ...TECHNICAL_ARTICLES];
+    const combined = [...userPosts, ...articles];
     const unique = [];
     const seen = new Set();
     for (const item of combined) {
@@ -122,7 +116,17 @@ export default function PostDetailsPage() {
       if (unique.length >= 3) break;
     }
     return unique;
-  }, [article.id, userPosts]);
+  }, [article.id, userPosts, articles]);
+
+  if (articlesLoading && userPosts.length === 0) {
+    return <main className="section-padding"><div className="container" role="status">Loading article…</div></main>;
+  }
+  if (articlesError && userPosts.length === 0) {
+    return <main className="section-padding"><div className="container" role="alert">{articlesError}</div></main>;
+  }
+  if (!article.id) {
+    return <main className="section-padding"><div className="container">This article is not available.</div></main>;
+  }
 
   return (
     <div className="post-details-page-wrapper">

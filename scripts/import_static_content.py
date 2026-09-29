@@ -25,6 +25,7 @@ from app.models import (
     StaticFaq,
     StaticFounderMeet,
     StaticInternship,
+    StaticPricingTier,
     StaticSpeaker,
     StaticTestimonial,
 )
@@ -39,6 +40,7 @@ MODEL_BY_CATALOG = {
     "articles": StaticArticle,
     "testimonials": StaticTestimonial,
     "faqs": StaticFaq,
+    "pricing": StaticPricingTier,
 }
 ALLOWED_TABLES = {model.__tablename__ for model in MODEL_BY_CATALOG.values()}
 

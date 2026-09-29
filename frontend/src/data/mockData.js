@@ -1075,6 +1075,8 @@ export const PASSES = [
     badge: "FREE ENTRY",
     price: "FREE",
     priceNum: 0,
+    originalPrice: 0,
+    discountTag: "Free",
     currency: "",
     description: "Experience TechTalk, connect with the community and attend selected open sessions.",
     features: [
@@ -1095,6 +1097,8 @@ export const PASSES = [
     badge: "STUDENT & RESEARCHER",
     price: "₹99",
     priceNum: 99,
+    originalPrice: 499,
+    discountTag: "80% Subsidized",
     currency: "₹",
     description: "Subsidized accreditation for college students, researchers, and aspiring tech developers.",
     features: [
@@ -1116,6 +1120,8 @@ export const PASSES = [
     badge: "FOUNDER & CXO CIRCLE",
     price: "₹499",
     priceNum: 499,
+    originalPrice: 1999,
+    discountTag: "75% Launch Offer",
     currency: "₹",
     description: "For startup founders, co-founders, and entrepreneurs seeking capital, collaboration, and enterprise pilots.",
     features: [
@@ -1138,6 +1144,8 @@ export const PASSES = [
     price: "₹250 / ₹200",
     priceNum: 250,
     groupPriceNum: 200,
+    originalPrice: 999,
+    discountTag: "Corporate Tier",
     currency: "₹",
     description: "For corporate delegates, software architects, engineering managers, and teams. ₹250 for 1 member, ₹200 per member for 2+ members.",
     features: [

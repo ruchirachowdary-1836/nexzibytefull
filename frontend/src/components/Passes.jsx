@@ -1,12 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Sparkles, ArrowRight, ShieldCheck, Zap, Landmark } from "lucide-react";
-import { PASSES } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 
 export default function Passes() {
   const { openPassModal } = useApp();
   const navigate = useNavigate();
+  const { items: passes, loading, error } = useStaticCatalog("pricing");
 
   const getPassBadgeClass = (id) => {
     switch (id) {
@@ -41,7 +42,12 @@ export default function Passes() {
         </div>
 
         <div className="passes-grid-4">
-          {PASSES.map((pass) => (
+          {loading && <p role="status">Loading pass options…</p>}
+          {error && <p role="alert">{error}</p>}
+          {!loading && !error && passes.length === 0 && (
+            <p role="status">Pass options are not available yet.</p>
+          )}
+          {passes.map((pass) => (
             <div 
               key={pass.id} 
               className={`pass-card pass-theme-${pass.color || "purple"} ${pass.highlight ? "pass-highlighted" : ""}`}

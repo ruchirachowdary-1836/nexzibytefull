@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { TECHNICAL_ARTICLES, UPCOMING_EVENTS } from "../data/mockData.js";
+import { UPCOMING_EVENTS } from "../data/mockData.js";
 import { COURSES } from "../data/coursesData.js";
 import { INTERNSHIPS } from "../data/internshipsData.js";
 import { api, waitForRegistrationEmail } from "../lib/api.js";
@@ -25,7 +25,7 @@ export function AppProvider({ children }) {
   const [selectedPassType, setSelectedPassType] = useState("visitor-pass");
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [articleModalOpen, setArticleModalOpen] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState(TECHNICAL_ARTICLES[0]);
+  const [selectedArticle, setSelectedArticle] = useState(null);
   const [summitModalOpen, setSummitModalOpen] = useState(false);
   const [selectedSummit, setSelectedSummit] = useState(UPCOMING_EVENTS[0]);
   const [courseModalOpen, setCourseModalOpen] = useState(false);

@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { TESTIMONIALS } from "../data/mockData.js";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 
 export default function Testimonials() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { items: testimonials, loading, error } = useStaticCatalog("testimonials");
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev === 0 ? TESTIMONIALS.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
   };
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev === TESTIMONIALS.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
   };
 
-  // Optional subtle auto-rotation
   useEffect(() => {
+    if (testimonials.length < 2) return undefined;
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev === TESTIMONIALS.length - 1 ? 0 : prev + 1));
+      setCurrentIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
     }, 7000);
     return () => clearInterval(timer);
-  }, []);
+  }, [testimonials.length]);
 
-  const current = TESTIMONIALS[currentIndex];
+  const current = testimonials[currentIndex];
 
   return (
     <section className="section-padding testimonials-section" id="testimonials">
@@ -37,7 +38,10 @@ export default function Testimonials() {
           </p>
         </div>
 
-        <div className="testimonials-slider-box">
+        {loading && <p role="status">Loading community stories…</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && !error && testimonials.length === 0 && <p>No community stories are available yet.</p>}
+        {current && <div className="testimonials-slider-box">
           <div className="testimonial-card">
             <Quote 
               size={42} 
@@ -76,7 +80,7 @@ export default function Testimonials() {
             </button>
 
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              {TESTIMONIALS.map((_, idx) => (
+              {testimonials.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -104,7 +108,7 @@ export default function Testimonials() {
               <ChevronRight size={20} />
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </section>
   );

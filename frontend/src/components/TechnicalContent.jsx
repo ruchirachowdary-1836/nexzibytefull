@@ -1,11 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight, Clock, User, BookOpen } from "lucide-react";
-import { TECHNICAL_ARTICLES } from "../data/mockData.js";
 import { useApp } from "../context/AppContext.jsx";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 
 export default function TechnicalContent() {
   const { openArticleReader } = useApp();
+  const { items: articles, loading, error } = useStaticCatalog("articles");
 
   return (
     <section className="section-padding technical-content-section" id="technical-content">
@@ -28,8 +29,11 @@ export default function TechnicalContent() {
           </Link>
         </div>
 
+        {loading && <p role="status">Loading articles…</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && !error && articles.length === 0 && <p>No articles are available yet.</p>}
         <div className="articles-grid">
-          {TECHNICAL_ARTICLES.map((art) => (
+          {articles.map((art) => (
             <div 
               key={art.id} 
               className="article-card"

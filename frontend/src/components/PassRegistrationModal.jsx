@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, CheckCircle2, Ticket, ShieldCheck, CreditCard, Sparkles, GraduationCap, Briefcase, Building, UserCheck, Landmark } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
-import { PASSES } from "../data/mockData.js";
+import { useStaticCatalog } from "../lib/use-static-catalog.js";
 
 export default function PassRegistrationModal() {
   const { 
@@ -14,6 +14,7 @@ export default function PassRegistrationModal() {
     user,
     showToast,
   } = useApp();
+  const { items: passes, error: passesError } = useStaticCatalog("pricing");
   const navigate = useNavigate();
 
   const [name, setName] = useState(user?.name || "");
@@ -34,65 +35,38 @@ export default function PassRegistrationModal() {
   const isFounder = activeType === "founder-pass";
   const isDelegation = activeType === "delegation-pass";
 
-  // Price & label lookup
-  const getPassDetails = () => {
-    switch (activeType) {
-      case "student-pass":
-        return {
-          title: "Claim Your Student Pass",
-          price: "₹99",
-          amount: "₹99",
-          badge: "Student & Researcher",
-          btnColor: "btn-teal",
-          accentColor: "#059669",
-          btnIcon: GraduationCap,
-          btnText: "Claim Student Pass — ₹99",
-          subtext: "Valid College / Student ID required at check-in counter."
-        };
-      case "founder-pass":
-        return {
-          title: "Apply for Founder VIP Pass",
-          price: "₹499",
-          amount: "₹499",
-          badge: "Founder & CXO Circle",
-          btnColor: "btn-amber",
-          accentColor: "#D97706",
-          btnIcon: Briefcase,
-          btnText: "Secure Founder Pass — ₹499",
-          subtext: "Chatham House rules. Zero vanity metrics. Authentic peer network."
-        };
-      case "delegation-pass": {
-        const total = delegationMembers === 1 ? 250 : delegationMembers * 200;
-        return {
-          title: "Get Corporate Delegation Pass",
-          price: `₹${total}`,
-          amount: `₹${total}`,
-          badge: "Corporate Delegate",
-          btnColor: "btn-coral",
-          accentColor: "var(--coral)",
-          btnIcon: CreditCard,
-          btnText: `Complete Purchase — ₹${total} (${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"})`,
-          subtext: delegationMembers === 1
-            ? "₹250 for 1 member • Register 2+ members to unlock ₹200/member group rate!"
-            : `🎉 Group Rate Applied: ₹200 per member (${delegationMembers} attendees = ₹${total}, save ₹${delegationMembers * 50}!)`
-        };
+  const selectedPlan = passes.find((pass) => pass.id === activeType);
+  const unitPrice = selectedPlan?.priceNum || 0;
+  const groupPrice = selectedPlan?.groupPriceNum || unitPrice;
+  const totalPrice = isDelegation
+    ? (delegationMembers === 1 ? unitPrice : delegationMembers * groupPrice)
+    : unitPrice;
+  const formattedPrice = totalPrice === 0 ? "FREE" : `₹${totalPrice}`;
+  const currentDetails = selectedPlan
+    ? {
+        title: `Claim Your ${selectedPlan.type}`,
+        price: formattedPrice,
+        amount: formattedPrice,
+        badge: selectedPlan.badge,
+        btnColor: isVisitor ? "btn-primary" : isStudent ? "btn-teal" : isFounder ? "btn-amber" : "btn-coral",
+        accentColor: "var(--primary-purple)",
+        btnIcon: isStudent ? GraduationCap : isFounder ? Briefcase : isDelegation ? CreditCard : Ticket,
+        btnText: isDelegation
+          ? `${selectedPlan.type} — ${formattedPrice} (${delegationMembers} ${delegationMembers === 1 ? "Attendee" : "Attendees"})`
+          : selectedPlan.buttonText,
+        subtext: selectedPlan.subtext,
       }
-      default:
-        return {
-          title: "Claim Your Free Visitor Pass",
-          price: "FREE",
-          amount: "FREE",
-          badge: "Community Visitor",
-          btnColor: "btn-primary",
-          accentColor: "var(--primary-purple)",
-          btnIcon: Ticket,
-          btnText: "Claim Free Visitor Pass",
-          subtext: "100% Free with instant digital QR pass generation."
-        };
-    }
-  };
-
-  const currentDetails = getPassDetails();
+    : {
+        title: "Pass pricing unavailable",
+        price: "—",
+        amount: "—",
+        badge: "",
+        btnColor: "btn-primary",
+        accentColor: "var(--primary-purple)",
+        btnIcon: Ticket,
+        btnText: "Unavailable",
+        subtext: "",
+      };
 
   if (!passModalOpen) return null;
 
@@ -101,6 +75,10 @@ export default function PassRegistrationModal() {
     if (!user?.email) {
       showToast("Please sign in before requesting a pass.");
       navigate("/login");
+      return;
+    }
+    if (!selectedPlan) {
+      showToast(passesError || "Pass options are not available yet. Please try again shortly.");
       return;
     }
     const registeredEmail = user.email;
@@ -169,8 +147,8 @@ export default function PassRegistrationModal() {
           >
             <div className="tab-pill-icon"><Ticket size={14} /></div>
             <div className="tab-pill-info">
-              <span className="tab-pill-name">Visitor Pass</span>
-              <span className="tab-pill-price">FREE</span>
+              <span className="tab-pill-name">{passes.find((pass) => pass.id === "visitor-pass")?.type || "Visitor Pass"}</span>
+              <span className="tab-pill-price">{passes.find((pass) => pass.id === "visitor-pass")?.price || "—"}</span>
             </div>
           </button>
 
@@ -183,8 +161,8 @@ export default function PassRegistrationModal() {
           >
             <div className="tab-pill-icon"><GraduationCap size={14} /></div>
             <div className="tab-pill-info">
-              <span className="tab-pill-name">Student Pass</span>
-              <span className="tab-pill-price">₹99</span>
+              <span className="tab-pill-name">{passes.find((pass) => pass.id === "student-pass")?.type || "Student Pass"}</span>
+              <span className="tab-pill-price">{passes.find((pass) => pass.id === "student-pass")?.price || "—"}</span>
             </div>
           </button>
 
@@ -197,8 +175,8 @@ export default function PassRegistrationModal() {
           >
             <div className="tab-pill-icon"><Briefcase size={14} /></div>
             <div className="tab-pill-info">
-              <span className="tab-pill-name">Founder Pass</span>
-              <span className="tab-pill-price">₹499</span>
+              <span className="tab-pill-name">{passes.find((pass) => pass.id === "founder-pass")?.type || "Founder Pass"}</span>
+              <span className="tab-pill-price">{passes.find((pass) => pass.id === "founder-pass")?.price || "—"}</span>
             </div>
           </button>
 
@@ -211,8 +189,8 @@ export default function PassRegistrationModal() {
           >
             <div className="tab-pill-icon"><Building size={14} /></div>
             <div className="tab-pill-info">
-              <span className="tab-pill-name">Delegation Pass</span>
-              <span className="tab-pill-price">from ₹200</span>
+              <span className="tab-pill-name">{passes.find((pass) => pass.id === "delegation-pass")?.type || "Delegation Pass"}</span>
+              <span className="tab-pill-price">{passes.find((pass) => pass.id === "delegation-pass")?.price || "—"}</span>
             </div>
           </button>
         </div>
@@ -351,12 +329,14 @@ export default function PassRegistrationModal() {
                         color: "#FFFFFF",
                         fontWeight: 700 
                       }}>
-                        {delegationMembers >= 2 ? "Group Rate: ₹200 / member" : "Single: ₹250"}
+                        {delegationMembers >= 2
+                          ? `Group Rate: ₹${groupPrice} / member`
+                          : `Single: ₹${unitPrice}`}
                       </span>
                     </strong>
                     <p style={{ margin: "3px 0 0", fontSize: "0.775rem", color: "var(--text-secondary)" }}>
                       {delegationMembers === 1 
-                        ? "1 Member = ₹250. Add 2+ members to unlock the ₹200 per member group discount!" 
+                        ? `1 Member = ₹${unitPrice}. Add 2+ members to unlock the ₹${groupPrice} per member group discount!`
                         : `🎉 Group Discount Applied: ₹200 × ${delegationMembers} members = ₹${delegationMembers * 200} (You save ₹${delegationMembers * 50})`}
                     </p>
                   </div>
@@ -409,7 +389,7 @@ export default function PassRegistrationModal() {
                         cursor: "pointer"
                       }}
                     >
-                      {num} {num === 1 ? "member (₹250)" : `members (₹${num * 200})`}
+                      {num} {num === 1 ? `member (₹${unitPrice})` : `members (₹${num * groupPrice})`}
                     </button>
                   ))}
                 </div>

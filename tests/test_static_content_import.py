@@ -5,7 +5,7 @@ from sqlalchemy.pool import StaticPool
 
 from app import main as main_module
 from app.database import Base, get_db
-from app.models import StaticCourse, StaticSpeaker, User
+from app.models import StaticCourse, StaticPricingTier, StaticSpeaker, User
 from scripts.import_static_content import import_content, validate_database_url
 
 
@@ -30,6 +30,13 @@ def sample_catalogs():
         "events": [],
         "articles": [],
         "testimonials": [],
+        "pricing": [
+            {
+                "source_key": "mockData.PASSES:student-pass",
+                "payload": {"id": "student-pass", "price": "₹99", "priceNum": 99},
+                "sort_order": 0,
+            }
+        ],
         "faqs": [],
     }
 
@@ -44,6 +51,7 @@ def test_static_models_are_new_tables_only():
         "static_articles",
         "static_testimonials",
         "static_faqs",
+        "static_pricing_tiers",
     } <= set(Base.metadata.tables)
 
 
@@ -76,8 +84,10 @@ def test_import_dry_run_then_twice_is_idempotent_and_keeps_users_untouched():
             assert first_run["static_speakers"]["inserted"] == 1
             assert second_run["static_courses"]["skipped"] == 1
             assert second_run["static_speakers"]["skipped"] == 1
+            assert second_run["static_pricing_tiers"]["skipped"] == 1
             assert session.query(StaticCourse).count() == 1
             assert session.query(StaticSpeaker).count() == 1
+            assert session.query(StaticPricingTier).count() == 1
             assert session.query(User).count() == users_before
 
             stored = session.query(StaticCourse).one().payload_json
@@ -132,6 +142,13 @@ def test_public_static_content_get_endpoint(monkeypatch):
                     sort_order=0,
                 )
             )
+            session.add(
+                StaticPricingTier(
+                    source_key="mockData.PASSES:student-pass",
+                    payload_json={"id": "student-pass", "price": "₹99"},
+                    sort_order=0,
+                )
+            )
             session.commit()
 
         with TestClient(main_module.app) as client:
@@ -142,6 +159,9 @@ def test_public_static_content_get_endpoint(monkeypatch):
             speakers_response = client.get("/content/speakers")
             assert speakers_response.status_code == 200
             assert speakers_response.json()[0]["name"] == "Ada Example"
+            pricing_response = client.get("/content/pricing")
+            assert pricing_response.status_code == 200
+            assert pricing_response.json()[0]["price"] == "₹99"
             assert client.get("/content/not-a-catalog").status_code == 404
     finally:
         main_module.app.dependency_overrides.pop(get_db, None)
