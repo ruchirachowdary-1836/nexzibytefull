@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..models import FounderMeet, Speaker, Summit
+from ..models import Speaker, Summit
 
 
 def item(obj):

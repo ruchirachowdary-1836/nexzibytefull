@@ -1,8 +1,20 @@
-from datetime import datetime, date, time
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, Text, Time, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .database import Base
+from datetime import date, datetime, time
 
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Time,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .database import Base
 
 summit_speakers = __import__('sqlalchemy').Table('summit_speakers', Base.metadata,
     __import__('sqlalchemy').Column('summit_id', ForeignKey('summits.id'), primary_key=True),

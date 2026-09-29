@@ -1,7 +1,7 @@
 import base64
+import html
 from dataclasses import dataclass
 from datetime import date, time
-import html
 from io import BytesIO
 
 import qrcode

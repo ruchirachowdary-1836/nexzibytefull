@@ -1,8 +1,10 @@
 """Run `python -m app.seed.seed_data` to create a compact, realistic demo dataset."""
 from datetime import date, timedelta
-from app.database import Base, SessionLocal, engine
+
 from app.auth import hash_password
+from app.database import Base, SessionLocal, engine
 from app.models import Category, FounderMeet, Post, Registration, Speaker, Summit, User
+
 
 def seed():
     Base.metadata.create_all(engine); db=SessionLocal()
