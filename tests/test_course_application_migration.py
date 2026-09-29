@@ -75,8 +75,20 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
             revision = connection.execute(
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
+            static_tables = {
+                "static_courses",
+                "static_speakers",
+                "static_internships",
+                "static_founder_meets",
+                "static_events",
+                "static_articles",
+                "static_testimonials",
+                "static_faqs",
+            }
+            created_tables = set(inspect(connection).get_table_names())
 
-        assert revision == "0020_registration_emails"
+        assert revision == "0028_static_faqs"
+        assert static_tables <= created_tables
         assert {"pass_id", "qr_data", "issued_at"} <= columns
         assert {
             "email_sent_at",

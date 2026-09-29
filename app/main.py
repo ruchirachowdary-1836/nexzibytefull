@@ -1299,6 +1299,46 @@ def home_data(db: Session = Depends(get_db)):
         'featured_speakers': get_featured_speakers(db=db),
     }
 
+
+STATIC_CONTENT_MODELS = {
+    'courses': StaticCourse,
+    'speakers': StaticSpeaker,
+    'internships': StaticInternship,
+    'founder-meets': StaticFounderMeet,
+    'events': StaticEvent,
+    'articles': StaticArticle,
+    'testimonials': StaticTestimonial,
+    'faqs': StaticFaq,
+}
+
+
+@app.get('/content/{catalog}')
+def static_content_catalog(
+    catalog: str,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    model = STATIC_CONTENT_MODELS.get(catalog)
+    if model is None:
+        raise HTTPException(404, detail='Content catalog not found.')
+    records = (
+        db.query(model)
+        .order_by(model.sort_order.asc(), model.id.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            **record.payload_json,
+            'content_record_id': record.id,
+            'source_key': record.source_key,
+        }
+        for record in records
+    ]
+
+
 @app.put('/categories/{category_id}')
 def update_category(category_id: int, body: CategoryIn, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     x = one(db, Category, category_id); set_values(x, body.model_dump(), {'name','slug','description'}); db.commit(); return item(x)

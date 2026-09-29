@@ -18,4 +18,19 @@ Use a hosted PostgreSQL database such as Neon for deployment. Set its connection
 DB_URL=postgresql://user:password@your-neon-host/neondb?sslmode=require
 ```
 
-The Render startup command runs Alembic to create the schema automatically. You may then run `python -m app.seed.seed_data` to add demo data.
+The Render startup command applies Alembic migrations automatically. The demo seeder is for disposable development databases only.
+
+## Frontend static-content catalogs
+
+Frontend course, speaker, internship, founder-meet, event, article, testimonial, and FAQ snapshots are stored in the isolated `static_*` tables created by revisions `0021` through `0028`. Each row preserves the source object as JSON, with a stable source key and display order. The importer writes only these eight tables; it does not modify users, registrations, applications, pass requests, or existing content tables.
+
+To preview or import, first use a disposable/local SQLite database already migrated through revision `0028_static_faqs`, then pass its URL explicitly:
+
+```powershell
+python scripts/import_static_content.py --database-url sqlite:///./static-content-local.db --dry-run
+python scripts/import_static_content.py --database-url sqlite:///./static-content-local.db
+```
+
+The importer refuses non-SQLite URLs and does not read `.env` or the application's default database URL. The dry run reports expected inserts/updates/skips without writing rows. Re-running the real import is idempotent. Do not point it at production; production import has not been authorized or run.
+
+`python -m app.seed.seed_data` is a separate demo seeder that creates sample users and registrations. Do not use it to import website content.

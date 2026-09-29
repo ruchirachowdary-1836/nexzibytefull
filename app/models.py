@@ -1,5 +1,5 @@
 from datetime import datetime, date, time
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, Text, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -310,6 +310,46 @@ class Registration(Base):
     email_pass_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email_delivery_status: Mapped[str] = mapped_column(String(20), default='pending')
     registered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class StaticContentFields:
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    payload_json: Mapped[dict] = mapped_column(JSON)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class StaticCourse(StaticContentFields, Base):
+    __tablename__ = 'static_courses'
+
+
+class StaticSpeaker(StaticContentFields, Base):
+    __tablename__ = 'static_speakers'
+
+
+class StaticInternship(StaticContentFields, Base):
+    __tablename__ = 'static_internships'
+
+
+class StaticFounderMeet(StaticContentFields, Base):
+    __tablename__ = 'static_founder_meets'
+
+
+class StaticEvent(StaticContentFields, Base):
+    __tablename__ = 'static_events'
+
+
+class StaticArticle(StaticContentFields, Base):
+    __tablename__ = 'static_articles'
+
+
+class StaticTestimonial(StaticContentFields, Base):
+    __tablename__ = 'static_testimonials'
+
+
+class StaticFaq(StaticContentFields, Base):
+    __tablename__ = 'static_faqs'
 
 
 class Notification(Base):
