@@ -53,6 +53,8 @@ import AdminDashboard from "./components/AdminDashboard.jsx";
 import MyPasses from "./components/MyPasses.jsx";
 import RegistrationConfirmation from "./components/RegistrationConfirmation.jsx";
 import ContactForm from "./components/ContactForm.jsx";
+import StaffDashboard from "./components/StaffDashboard.jsx";
+import { roleRouteRedirect } from "./lib/role-access.js";
 
 // Modals
 import PassRegistrationModal from "./components/PassRegistrationModal.jsx";
@@ -310,6 +312,50 @@ function ProtectedRoute({ children }) {
   );
 }
 
+function RoleProtectedRoute({ children, allowedRoles }) {
+  const { isLoggedIn, authReady, refreshCurrentUser } = useApp();
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!authReady || !isLoggedIn) {
+      setLoading(false);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    setError("");
+    refreshCurrentUser()
+      .then((profile) => {
+        if (active) setRole(profile.role);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message || "Your access level could not be verified.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [authReady, isLoggedIn, location.key, refreshCurrentUser]);
+
+  if (!authReady || loading) {
+    return <div className="section-padding"><div className="container"><p role="status">Verifying your access…</p></div></div>;
+  }
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  if (error) {
+    return <div className="section-padding"><div className="container"><p role="alert">{error}</p></div></div>;
+  }
+  const redirectTo = roleRouteRedirect(role, allowedRoles);
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
+  }
+  return children;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    MAIN APPLICATION ROUTER & WRAPPER
    ══════════════════════════════════════════════════════════════════ */
@@ -345,9 +391,10 @@ function App() {
         <Route path="/resources" element={<ProtectedRoute><ExploreFeedPage /></ProtectedRoute>} />
         <Route path="/about" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/partner" element={<ProtectedRoute><PassesPage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><MemberDashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><RoleProtectedRoute allowedRoles={["user"]}><MemberDashboard /></RoleProtectedRoute></ProtectedRoute>} />
         <Route path="/my-passes" element={<ProtectedRoute><MyPasses /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><RoleProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></RoleProtectedRoute></ProtectedRoute>} />
+        <Route path="/staff/dashboard" element={<ProtectedRoute><RoleProtectedRoute allowedRoles={["staff", "admin"]}><StaffDashboard /></RoleProtectedRoute></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
         <Route path="/summits" element={<ProtectedRoute><SummitsPage /></ProtectedRoute>} />
         <Route path="/summits/:id" element={<ProtectedRoute><SummitDetailsPage /></ProtectedRoute>} />
@@ -362,7 +409,7 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout/:passId" element={<CheckoutPage />} />
         <Route path="/payment" element={<CheckoutPage />} />
-        <Route path="/scanner" element={<ProtectedRoute><ScannerPage /></ProtectedRoute>} />
+        <Route path="/scanner" element={<ProtectedRoute><RoleProtectedRoute allowedRoles={["staff", "admin"]}><ScannerPage /></RoleProtectedRoute></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
         <Route path="*" element={<HomePage />} />
       </Routes>

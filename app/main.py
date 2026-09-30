@@ -21,6 +21,8 @@ from .auth import (
     get_optional_user,
     hash_password,
     require_admin,
+    require_member,
+    require_staff,
     verify_password,
 )
 from .config import allowed_origins, settings
@@ -456,6 +458,9 @@ class RegisterIn(BaseModel):
 
 class PassRejectionIn(BaseModel):
     reason: str = Field(min_length=3, max_length=1000)
+
+class UserRoleUpdateIn(BaseModel):
+    role: Literal["user", "staff", "admin"]
 
 class CheckInIn(BaseModel):
     qr_data: str = Field(min_length=20, max_length=1000)
@@ -951,7 +956,7 @@ def reject_pass_request(request_id: int, body: PassRejectionIn, db: Session = De
 
 
 @app.post('/admin/check-ins', status_code=201)
-def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User = Depends(require_admin)):
+def check_in_pass(body: CheckInIn, db: Session = Depends(get_db), operator: User = Depends(require_staff)):
     try:
         payload = validate_pass_payload(body.qr_data)
     except ValueError as exc:
@@ -1080,7 +1085,7 @@ def admin_email_logs(
     ]
 
 @app.get('/dashboard/member')
-def member_dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def member_dashboard(db: Session = Depends(get_db), user: User = Depends(require_member)):
     return {
         'user': user_item(user),
         'activity': user_profile_payload(user, db)['activity'],
@@ -1956,7 +1961,7 @@ class QRVerifyIn(BaseModel):
 
 
 @app.post('/qr/verify')
-def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def verify_registration_qr(body: QRVerifyIn, db: Session = Depends(get_db), _: User = Depends(require_staff)):
     try:
         payload = validate_pass_payload(body.token)
     except ValueError:
@@ -2057,12 +2062,56 @@ def admin_dashboard(db: Session = Depends(get_db), _: User = Depends(require_adm
         'Newsletter Subscribers': db.query(func.count(NewsletterSubscriber.id)).filter(NewsletterSubscriber.is_active.is_(True)).scalar(),
     }
 
+@app.get('/staff/dashboard')
+def staff_dashboard(db: Session = Depends(get_db), _: User = Depends(require_staff)):
+    summits = db.query(Summit).order_by(Summit.date.asc()).all()
+    founder_meets = db.query(FounderMeet).order_by(FounderMeet.date.asc()).all()
+    registration_counts = {
+        (event_type, event_id): count
+        for event_type, event_id, count in db.query(
+            Registration.event_type,
+            Registration.event_id,
+            func.count(Registration.id),
+        ).group_by(Registration.event_type, Registration.event_id).all()
+    }
+    events = [
+        {
+            **event_response(event),
+            "event_type": event_type,
+            "registration_count": registration_counts.get((event_type, event.id), 0),
+        }
+        for event_type, rows in (("summit", summits), ("founder_meet", founder_meets))
+        for event in rows
+    ]
+    return {
+        "events": events,
+        "total_registrations": sum(registration_counts.values()),
+        "check_in_count": db.query(func.count(CheckIn.id)).scalar() or 0,
+        "check_in_count_scope": "pass requests",
+        "has_event_data": bool(events),
+    }
+
 @app.get('/admin/users')
 def admin_users(search: str | None = None, limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), db: Session = Depends(get_db), _: User = Depends(require_admin)):
     q = db.query(User)
     if search:
         q = q.filter(or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%')))
     return {'total': q.count(), 'items': [user_item(x) for x in q.offset(offset).limit(limit)]}
+
+@app.post('/admin/users/{user_id}/role')
+def update_user_role(
+    user_id: int,
+    body: UserRoleUpdateIn,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    if user_id == admin.id:
+        raise HTTPException(403, detail="Admins cannot change their own role.")
+    target = one(db, User, user_id)
+    target.role = body.role
+    db.commit()
+    db.refresh(target)
+    return user_item(target)
 
 @app.put('/admin/users/{user_id}/status')
 def admin_user_status(user_id: int, active: bool = Query(...), db: Session = Depends(get_db), _: User = Depends(require_admin)):

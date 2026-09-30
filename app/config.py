@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     )
     frontend_url: str = "https://techtalk-frontend-acvb.onrender.com"
     visitor_promotion_date: str | None = None
+    initial_admin_email: str | None = None
     admin_report_email: str | None = None
     contact_notify_email: str | None = None
     admin_report_hour_utc: int = Field(default=9, ge=0, le=23)

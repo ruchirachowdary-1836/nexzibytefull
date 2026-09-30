@@ -6,6 +6,7 @@ import {
   ArrowLeft, Check, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { roleHomePath } from "../lib/role-access.js";
 import { requestNeonPasswordReset } from "../lib/neon.js";
 
 export function TechTalkMinimalLogo({ size = 1 }) {
@@ -62,16 +63,10 @@ export default function AuthPage({ defaultMode = "login" }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (isLoggedIn && location.pathname !== "/profile") {
-      const destination = location.state?.from;
-      navigate(
-        destination?.pathname
-          ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}`
-          : "/profile",
-        { replace: true }
-      );
+    if (isLoggedIn && ["/login", "/register"].includes(location.pathname)) {
+      navigate(roleHomePath(user?.role), { replace: true });
     }
-  }, [isLoggedIn, location.pathname, location.state, navigate]);
+  }, [isLoggedIn, location.pathname, user?.role, navigate]);
 
   useEffect(() => {
     if (!location.state?.message || accessMessageShown.current) return;
@@ -117,8 +112,7 @@ export default function AuthPage({ defaultMode = "login" }) {
         return;
       }
         showToast(`✓ Welcome back, ${authenticated.name || "Member"}! You are signed in.`);
-        const destination = location.state?.from;
-        navigate(destination?.pathname ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}` : "/profile");
+        navigate(roleHomePath(authenticated.role), { replace: true });
     } catch (error) {
       showToast(`⚠️ ${error.message}`);
     }

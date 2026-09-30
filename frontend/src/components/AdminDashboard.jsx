@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useApp } from "../context/AppContext.jsx";
 
-const STAFF_ROLES = ["admin", "staff", "hr", "super_admin"];
-
 export default function AdminDashboard() {
   const { user } = useApp();
+  const isAdmin = user?.role === "admin";
   const [dashboard, setDashboard] = useState(null);
   const [registrations, setRegistrations] = useState({ total: 0, items: [] });
   const [filters, setFilters] = useState({});
@@ -30,13 +29,13 @@ export default function AdminDashboard() {
   }, [filters]);
 
   useEffect(() => {
-    if (!user || !STAFF_ROLES.includes(user.role)) return;
+    if (!isAdmin) return;
     api.getAdminDashboard().then(setDashboard).catch((requestError) => setError(requestError.message));
-  }, [user]);
+  }, [isAdmin]);
 
   useEffect(() => {
-    if (user && STAFF_ROLES.includes(user.role)) loadRegistrations();
-  }, [user, loadRegistrations]);
+    if (isAdmin) loadRegistrations();
+  }, [isAdmin, loadRegistrations]);
 
   const updateDraft = (key) => (event) => {
     setDraftFilters((current) => ({ ...current, [key]: event.target.value }));
@@ -73,8 +72,8 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!user || !STAFF_ROLES.includes(user.role)) {
-    return <div className="section-padding"><div className="container"><h1 className="section-heading">Staff access only</h1><p className="section-subtitle">This dashboard is restricted to authorized staff members.</p><Link className="btn btn-primary" to="/dashboard">Open member dashboard</Link></div></div>;
+  if (!isAdmin) {
+    return <div className="section-padding"><div className="container"><h1 className="section-heading">Admin access only</h1><p className="section-subtitle">This dashboard is restricted to administrators.</p><Link className="btn btn-primary" to="/dashboard">Open member dashboard</Link></div></div>;
   }
 
   return (

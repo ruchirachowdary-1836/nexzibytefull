@@ -6,6 +6,7 @@ import { api, waitForRegistrationEmail } from "../lib/api.js";
 import { authService } from "../lib/auth.js";
 import { checkBackendHealth } from "../lib/backend.js";
 import { visitorSecondsRemaining } from "../lib/visitor-session.js";
+import { roleHomePath } from "../lib/role-access.js";
 
 const AppContext = createContext(null);
 
@@ -71,7 +72,7 @@ export function AppProvider({ children }) {
             setUser(authenticatedUser);
             if (googlePending) {
               localStorage.removeItem("techtalk-google-pending");
-              window.location.hash = "/profile";
+              window.location.hash = roleHomePath(authenticatedUser.role);
             }
             setAuthReady(true);
             return;
@@ -188,6 +189,12 @@ export function AppProvider({ children }) {
     return authenticatedUser;
   };
 
+  const refreshCurrentUser = useCallback(async () => {
+    const authenticatedUser = await authService.me();
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  }, []);
+
   const activateVisitorPass = async (id) => {
     const response = await api.activateVisitorPass(id);
     const mapped = mapPass(response);
@@ -253,7 +260,12 @@ export function AppProvider({ children }) {
       leetcode_url: fields.leetcode_url,
       instagram_url: fields.instagram_url,
     });
-    setUser((current) => ({ ...updated, links: fields.links ?? updated.links ?? current?.links ?? [] }));
+    setUser((current) => ({
+      ...current,
+      ...updated,
+      role: current?.role,
+      links: fields.links ?? updated.links ?? current?.links ?? [],
+    }));
     showToast("Profile saved to your account.");
     return updated;
   };
@@ -292,7 +304,7 @@ export function AppProvider({ children }) {
   const markAllNotificationsRead = () => setNotifications((items) => items.map((item) => ({ ...item, read: true })));
 
   const value = {
-    user, setUser, isLoggedIn, authReady, backendOnline, login, loginWithGoogle, register, hydrateCurrentUser, logout, updateUserProfile,
+    user, setUser, isLoggedIn, authReady, backendOnline, login, loginWithGoogle, register, hydrateCurrentUser, refreshCurrentUser, logout, updateUserProfile,
     resetUserProfile: logout, userPosts, setUserPosts, userDrafts, setUserDrafts, createPost,
     deletePost: (id, draft) => draft ? setUserDrafts((items) => items.filter((item) => item.id !== id)) : setUserPosts((items) => items.filter((item) => item.id !== id)),
     notifications, setNotifications, markNotificationRead, markAllNotificationsRead,

@@ -26,7 +26,10 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 "VALUES ('0018_merge_heads')"
             )
         )
-        connection.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY)"))
+        connection.execute(        text(
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, "
+            "role VARCHAR(20) NOT NULL DEFAULT 'user')"
+        ))
         connection.execute(
             text(
                 "CREATE TABLE course_applications ("
@@ -93,7 +96,7 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 column["name"] for column in inspect(connection).get_columns("users")
             }
 
-        assert revision == "0032_contact_inquiries"
+        assert revision == "0033_user_role_default"
         assert static_tables <= created_tables
         assert {
             "phone",

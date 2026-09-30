@@ -81,7 +81,7 @@ export const authService = {
         currentSession,
       );
     }
-    return apiRequest("/auth/session");
+    return apiRequest("/users/me");
   },
 
   updateProfile(payload) {

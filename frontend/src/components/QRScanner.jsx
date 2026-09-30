@@ -8,7 +8,7 @@ import { useApp } from "../context/AppContext.jsx";
 import { apiRequest } from "../lib/api.js";
 
 export default function QRScanner() {
-  const { activePass, checkInPass, showToast } = useApp();
+  const { activePass, checkInPass, showToast, user } = useApp();
   
   const [scannerOpen, setScannerOpen] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
@@ -128,6 +128,8 @@ export default function QRScanner() {
     checkInPass(scanResult.passId);
     setScanResult((prev) => ({ ...prev, checkedIn: true }));
   };
+
+  if (!["staff", "admin"].includes(user?.role)) return null;
 
   return (
     <section className="scanner-section" id="scanner">

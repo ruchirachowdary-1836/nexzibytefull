@@ -129,7 +129,7 @@ def test_event_publish_and_duplicate_registration_prevention():
     body = {'event_type': 'summit', 'event_id': summit_id}
     registration = client.post('/registrations', json=body, headers=user)
     assert registration.status_code == 201
-    qr = client.post('/qr/verify', json={'token': registration.json()['qr_data']}, headers=user)
+    qr = client.post('/qr/verify', json={'token': registration.json()['qr_data']}, headers=admin)
     assert qr.status_code == 200
     assert qr.json()['status'] == 'VALID'
     assert qr.json()['attendee'] == 'Test User'

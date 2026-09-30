@@ -162,6 +162,13 @@ def _sync_user(db: Session, claims: dict) -> User | None:
         user.neon_auth_user_id = subject
         user.email = email
     user.email_verified = verified
+    initial_admin_email = (settings.initial_admin_email or "").strip().lower()
+    if (
+        initial_admin_email
+        and email == initial_admin_email
+        and db.query(User.id).filter(User.role == "admin").first() is None
+    ):
+        user.role = "admin"
     visitor_expired = bool(
         user.visitor_access_only
         and (
@@ -256,4 +263,33 @@ def require_roles(*roles: str):
     return dependency
 
 
-require_admin = require_roles("staff", "hr", "admin", "super_admin")
+def get_current_staff(user: User = Depends(get_current_user)):
+    if user.role not in {"staff", "admin"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff or admin access is required",
+        )
+    return user
+
+
+def get_current_member(user: User = Depends(get_current_user)):
+    if user.role != "user":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Member access is required",
+        )
+    return user
+
+
+def get_current_admin(user: User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access is required",
+        )
+    return user
+
+
+require_staff = get_current_staff
+require_member = get_current_member
+require_admin = get_current_admin

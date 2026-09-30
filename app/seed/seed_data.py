@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 
 from app.auth import hash_password
+from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import Category, FounderMeet, Post, Registration, Speaker, Summit, User
 
@@ -9,7 +10,8 @@ from app.models import Category, FounderMeet, Post, Registration, Speaker, Summi
 def seed():
     Base.metadata.create_all(engine); db=SessionLocal()
     if db.query(User).first(): print('Database already has data; skipping.'); return
-    users=[User(name='Admin User',email='admin@techtalk.dev',password_hash=hash_password('AdminPass123'),role='admin')]
+    initial_admin_email = (settings.initial_admin_email or '').strip().lower()
+    users=[User(name='Admin User',email='admin@techtalk.dev',password_hash=hash_password('AdminPass123'),role='admin' if initial_admin_email == 'admin@techtalk.dev' else 'user')]
     users += [User(name=f'Community Member {i}',email=f'user{i}@techtalk.dev',password_hash=hash_password('UserPass123')) for i in range(1,10)]
     categories=[Category(name=n,slug=n.lower().replace(' ','-')) for n in ['Python Engineering','Cloud Computing','AI Automation','Web Applications','Career Technology']]
     db.add_all(users+categories);db.flush()

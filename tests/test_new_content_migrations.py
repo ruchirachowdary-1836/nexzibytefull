@@ -25,8 +25,15 @@ def test_new_migrations_only_create_pricing_and_contact_tables(tmp_path, monkeyp
                 "VALUES ('0030_visitor_trial_session')"
             )
         )
-        connection.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT)"))
-        connection.execute(text("INSERT INTO users VALUES (1, 'keep@example.com')"))
+        connection.execute(
+            text(
+                "CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, "
+                "role VARCHAR(20) NOT NULL)"
+            )
+        )
+        connection.execute(
+            text("INSERT INTO users VALUES (1, 'keep@example.com', 'user')")
+        )
 
     repository_root = Path(__file__).resolve().parents[1]
     config = Config(str(repository_root / "alembic.ini"))
@@ -41,8 +48,12 @@ def test_new_migrations_only_create_pricing_and_contact_tables(tmp_path, monkeyp
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
             user = connection.execute(
-                text("SELECT id, email FROM users WHERE id=1")
+                text("SELECT id, email, role FROM users WHERE id=1")
             ).one()
+            role_default = {
+                column["name"]: column
+                for column in inspect(connection).get_columns("users")
+            }["role"]["default"]
             pricing_columns = {
                 column["name"]
                 for column in inspect(connection).get_columns("static_pricing_tiers")
@@ -51,9 +62,10 @@ def test_new_migrations_only_create_pricing_and_contact_tables(tmp_path, monkeyp
                 column["name"]
                 for column in inspect(connection).get_columns("contact_inquiries")
             }
-        assert revision == "0032_contact_inquiries"
+        assert revision == "0033_user_role_default"
         assert {"static_pricing_tiers", "contact_inquiries"} <= tables
-        assert user == (1, "keep@example.com")
+        assert user == (1, "keep@example.com", "user")
+        assert role_default == "'user'"
         assert {"source_key", "payload_json", "sort_order", "updated_at"} <= pricing_columns
         assert {
             "name",

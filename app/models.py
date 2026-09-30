@@ -34,7 +34,9 @@ class User(Base):
     referral_contact: Mapped[str | None] = mapped_column(String(40), nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    role: Mapped[str] = mapped_column(String(20), default='user')
+    role: Mapped[str] = mapped_column(
+        String(20), default='user', server_default='user'
+    )
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     profile_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
     professional_role: Mapped[str | None] = mapped_column(String(120), nullable=True)

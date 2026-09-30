@@ -50,6 +50,7 @@ export const api = {
   getFounderMeets: () => apiRequest("/founder-meets?public=true"),
   getCategories: () => apiRequest("/categories"),
   getAdminDashboard: () => apiRequest("/admin/dashboard"),
+  getStaffDashboard: () => apiRequest("/staff/dashboard"),
   getAdminRegistrations: (filters = {}) => {
     const params = new URLSearchParams(
       Object.entries(filters).filter(([, value]) => value !== "" && value != null),

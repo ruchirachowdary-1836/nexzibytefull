@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { ArrowLeft, CheckCircle2, Loader2, MailCheck, RefreshCw, XCircle } from "lucide-react";
 import { resendNeonVerification, verifyNeonEmail, waitForVerifiedNeonSession } from "../lib/neon.js";
 import { useApp } from "../context/AppContext.jsx";
+import { roleHomePath } from "../lib/role-access.js";
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -58,13 +59,7 @@ export default function VerifyEmail() {
       if (session) {
         const profile = await hydrateCurrentUser(session);
         setUser(profile);
-        const destination = location.state?.from;
-        navigate(
-          destination?.pathname
-            ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}`
-            : "/profile",
-          { replace: true }
-        );
+        navigate(roleHomePath(profile.role), { replace: true });
         return;
       }
       throw new Error("Your email was verified, but a refreshed verified session is not ready yet. Please wait a moment and try again.");

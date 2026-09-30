@@ -6,6 +6,7 @@ import {
   Handshake, Cpu, Globe, Bell, Plus, LogOut
 } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
+import { roleHomePath } from "../lib/role-access.js";
 
 // Official NexziByte Brand Logo + TechTalk Wordmark
 export function TechTalkBrandedLogo() {
@@ -453,6 +454,9 @@ export default function Navbar() {
                     {user?.name ? (user.name.length > 18 ? user.name.split(" ")[0] : user.name) : "Sign in"}
                   </span>
                 </Link>
+                <Link to={roleHomePath(user?.role)} className="nav-login-btn-dark">
+                  Dashboard
+                </Link>
 
                 {/* Quick Post Action Button — Situated properly with creator profile */}
                 <Link 
@@ -497,6 +501,13 @@ export default function Navbar() {
                   id="nav-profile-btn"
                 >
                   Profile
+                </Link>
+                <Link
+                  to={roleHomePath(user?.role)}
+                  className="mobile-nav-link-dark"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
                 </Link>
               </>
             )}
