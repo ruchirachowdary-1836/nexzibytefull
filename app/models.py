@@ -3,6 +3,7 @@ from datetime import date, datetime, time
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -40,6 +41,7 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     profile_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
     professional_role: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    current_company: Mapped[str | None] = mapped_column(String(160), nullable=True)
     skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(120), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -119,6 +121,41 @@ class UserLink(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     label: Mapped[str] = mapped_column(String(80))
     url: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserExperience(Base):
+    __tablename__ = 'user_experiences'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    company: Mapped[str] = mapped_column(String(160))
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserEducation(Base):
+    __tablename__ = 'user_education'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    school: Mapped[str] = mapped_column(String(180))
+    degree: Mapped[str] = mapped_column(String(160))
+    field: Mapped[str] = mapped_column(String(160))
+    year: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserFollow(Base):
+    __tablename__ = 'user_follows'
+    __table_args__ = (
+        UniqueConstraint('follower_id', 'followed_id', name='uq_user_follows_pair'),
+        CheckConstraint('follower_id != followed_id', name='ck_user_follows_not_self'),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    follower_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    followed_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

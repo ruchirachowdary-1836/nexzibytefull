@@ -90,19 +90,23 @@ def test_upgrade_from_0018_merge_head_adds_pass_and_email_fields(
                 "static_faqs",
                 "static_pricing_tiers",
                 "contact_inquiries",
+                "user_experiences",
+                "user_education",
+                "user_follows",
             }
             created_tables = set(inspect(connection).get_table_names())
             user_columns = {
                 column["name"] for column in inspect(connection).get_columns("users")
             }
 
-        assert revision == "0033_user_role_default"
+        assert revision == "0037_user_follows"
         assert static_tables <= created_tables
         assert {
             "phone",
             "visitor_access_only",
             "visitor_activated_at",
             "visitor_expires_at",
+            "current_company",
         } <= user_columns
         assert "phone" in other_tables["registrations"]
         assert {"pass_id", "qr_data", "issued_at"} <= columns

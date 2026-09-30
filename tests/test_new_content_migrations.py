@@ -62,11 +62,21 @@ def test_new_migrations_only_create_pricing_and_contact_tables(tmp_path, monkeyp
                 column["name"]
                 for column in inspect(connection).get_columns("contact_inquiries")
             }
-        assert revision == "0033_user_role_default"
-        assert {"static_pricing_tiers", "contact_inquiries"} <= tables
+        assert revision == "0037_user_follows"
+        assert {
+            "static_pricing_tiers",
+            "contact_inquiries",
+            "user_experiences",
+            "user_education",
+            "user_follows",
+        } <= tables
         assert user == (1, "keep@example.com", "user")
         assert role_default == "'user'"
         assert {"source_key", "payload_json", "sort_order", "updated_at"} <= pricing_columns
+        user_column_names = {
+            column["name"] for column in inspect(engine).get_columns("users")
+        }
+        assert "current_company" in user_column_names
         assert {
             "name",
             "email",

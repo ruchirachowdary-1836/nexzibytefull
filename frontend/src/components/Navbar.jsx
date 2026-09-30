@@ -425,6 +425,9 @@ export default function Navbar() {
           <div className="nav-right-actions-dark">
             {isLoggedIn ? (
               <>
+                <Link to="/feed" className="nav-login-btn-dark">
+                  Network Feed
+                </Link>
                 {/* Notifications Bell */}
                 <Link 
                   to="/profile?tab=notifications" 
@@ -645,6 +648,15 @@ export default function Navbar() {
             >
               Resource Center &amp; Articles
             </button>
+            {isLoggedIn && (
+              <button
+                type="button"
+                className="mobile-nav-link-dark"
+                onClick={() => handleNavigation("/feed", null)}
+              >
+                Network Feed
+              </button>
+            )}
             <button 
               type="button" 
               className="mobile-nav-link-dark" 

@@ -246,28 +246,36 @@ export function AppProvider({ children }) {
   };
 
   const updateUserProfile = async (fields) => {
-    const updated = await authService.updateProfile({
-      name: fields.name,
-      bio: fields.bio,
-      location: fields.location,
-      professional_role: fields.title || fields.role,
-      profile_image: fields.avatar,
-      website: fields.website,
-      linkedin_url: fields.linkedin_url,
-      github_url: fields.github_url,
-      twitter_url: fields.twitter_url,
-      devto_url: fields.devto_url,
-      leetcode_url: fields.leetcode_url,
-      instagram_url: fields.instagram_url,
-    });
-    setUser((current) => ({
-      ...current,
-      ...updated,
-      role: current?.role,
-      links: fields.links ?? updated.links ?? current?.links ?? [],
-    }));
-    showToast("Profile saved to your account.");
-    return updated;
+    try {
+      const updated = await api.updateProfessionalProfile({
+        name: fields.name,
+        headline: fields.title || fields.professional_role || fields.role,
+        current_company: fields.company || fields.current_company,
+        bio: fields.bio,
+        location: fields.location,
+        profile_image: fields.avatar || fields.profile_image,
+        website: fields.website,
+        linkedin_url: fields.linkedin_url,
+        github_url: fields.github_url,
+        twitter_url: fields.twitter_url,
+        devto_url: fields.devto_url,
+        leetcode_url: fields.leetcode_url,
+        instagram_url: fields.instagram_url,
+      });
+      setUser((current) => ({
+        ...current,
+        ...updated,
+        role: current?.role,
+        title: updated.headline || updated.professional_role,
+        company: updated.current_company,
+        links: fields.links ?? updated.links ?? current?.links ?? [],
+      }));
+      showToast("Profile saved to your account.");
+      return updated;
+    } catch (error) {
+      showToast(error.message || "Profile changes could not be saved.");
+      return null;
+    }
   };
 
   const createPost = async (payload) => {

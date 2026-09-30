@@ -54,6 +54,8 @@ import MyPasses from "./components/MyPasses.jsx";
 import RegistrationConfirmation from "./components/RegistrationConfirmation.jsx";
 import ContactForm from "./components/ContactForm.jsx";
 import StaffDashboard from "./components/StaffDashboard.jsx";
+import PersonalizedFeedPage from "./components/PersonalizedFeedPage.jsx";
+import PublicProfilePage from "./components/PublicProfilePage.jsx";
 import { roleRouteRedirect } from "./lib/role-access.js";
 
 // Modals
@@ -380,6 +382,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/explore" element={<ProtectedRoute><ExploreFeedPage /></ProtectedRoute>} />
+        <Route path="/feed" element={<ProtectedRoute><PersonalizedFeedPage /></ProtectedRoute>} />
+        <Route path="/members/:id" element={<PublicProfilePage />} />
         <Route path="/posts/:id" element={<PostDetailsPage />} />
         <Route path="/post/:id" element={<PostDetailsPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />

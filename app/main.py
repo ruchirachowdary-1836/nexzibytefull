@@ -11,7 +11,7 @@ from typing import Literal
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, model_validator
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -58,6 +58,9 @@ from .models import (
     Summit,
     Tag,
     User,
+    UserEducation,
+    UserExperience,
+    UserFollow,
     UserLink,
     UserSettings,
     UserSkill,
@@ -522,6 +525,7 @@ class ProfileUpdateIn(BaseModel):
     location: str | None = None
     profile_image: str | None = None
     professional_role: str | None = None
+    current_company: str | None = Field(default=None, max_length=160)
     skills: str | None = None
     website: str | None = None
     linkedin_url: str | None = None
@@ -530,6 +534,61 @@ class ProfileUpdateIn(BaseModel):
     devto_url: str | None = None
     leetcode_url: str | None = None
     instagram_url: str | None = None
+
+
+class ExperienceIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    company: str = Field(min_length=1, max_length=160)
+    start_date: date
+    end_date: date | None = None
+    description: str | None = Field(default=None, max_length=5000)
+
+    @field_validator('title', 'company')
+    @classmethod
+    def require_nonblank_text(cls, value: str):
+        value = value.strip()
+        if not value:
+            raise ValueError('This field cannot be blank')
+        return value
+
+    @model_validator(mode="after")
+    def validate_date_range(self):
+        if self.end_date and self.end_date < self.start_date:
+            raise ValueError("Experience end date cannot be before its start date")
+        return self
+
+
+class EducationIn(BaseModel):
+    school: str = Field(min_length=1, max_length=180)
+    degree: str = Field(min_length=1, max_length=160)
+    field: str = Field(min_length=1, max_length=160)
+    year: int = Field(ge=1900, le=2100)
+
+    @field_validator('school', 'degree', 'field')
+    @classmethod
+    def require_nonblank_text(cls, value: str):
+        value = value.strip()
+        if not value:
+            raise ValueError('This field cannot be blank')
+        return value
+
+
+class ProfessionalProfilePatchIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    headline: str | None = Field(default=None, max_length=120)
+    current_company: str | None = Field(default=None, max_length=160)
+    bio: str | None = None
+    location: str | None = Field(default=None, max_length=120)
+    profile_image: str | None = Field(default=None, max_length=500)
+    website: str | None = Field(default=None, max_length=500)
+    linkedin_url: str | None = Field(default=None, max_length=500)
+    github_url: str | None = Field(default=None, max_length=500)
+    twitter_url: str | None = Field(default=None, max_length=500)
+    devto_url: str | None = Field(default=None, max_length=500)
+    leetcode_url: str | None = Field(default=None, max_length=500)
+    instagram_url: str | None = Field(default=None, max_length=500)
+    experiences: list[ExperienceIn] | None = Field(default=None, max_length=100)
+    education: list[EducationIn] | None = Field(default=None, max_length=100)
 
 
 class ProfileLinkIn(BaseModel):
@@ -1102,6 +1161,218 @@ def auth_session(user: User = Depends(get_current_user)):
 @app.get('/users/me')
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)): return user_profile_payload(user, db)
 
+def public_profile_payload(profile_user: User, db: Session, viewer: User | None = None):
+    skills = [
+        row.skill
+        for row in db.query(UserSkill)
+        .filter_by(user_id=profile_user.id)
+        .order_by(UserSkill.created_at.asc())
+        .all()
+    ]
+    links = [
+        item(row)
+        for row in db.query(UserLink)
+        .filter_by(user_id=profile_user.id)
+        .order_by(UserLink.created_at.asc())
+        .all()
+    ]
+    experiences = [
+        item(row)
+        for row in db.query(UserExperience)
+        .filter_by(user_id=profile_user.id)
+        .order_by(UserExperience.start_date.desc(), UserExperience.id.desc())
+        .all()
+    ]
+    education = [
+        item(row)
+        for row in db.query(UserEducation)
+        .filter_by(user_id=profile_user.id)
+        .order_by(UserEducation.year.desc(), UserEducation.id.desc())
+        .all()
+    ]
+    is_following = bool(
+        viewer
+        and viewer.id != profile_user.id
+        and db.query(UserFollow.id)
+        .filter_by(follower_id=viewer.id, followed_id=profile_user.id)
+        .first()
+    )
+    return {
+        'id': profile_user.id,
+        'name': profile_user.name,
+        'profile_image': profile_user.profile_image,
+        'headline': profile_user.professional_role,
+        'professional_role': profile_user.professional_role,
+        'current_company': profile_user.current_company,
+        'bio': profile_user.bio,
+        'location': profile_user.location,
+        'website': profile_user.website,
+        'linkedin_url': profile_user.linkedin_url,
+        'github_url': profile_user.github_url,
+        'twitter_url': profile_user.twitter_url,
+        'devto_url': profile_user.devto_url,
+        'leetcode_url': profile_user.leetcode_url,
+        'instagram_url': profile_user.instagram_url,
+        'skills': skills or (profile_user.skills.split(',') if profile_user.skills else []),
+        'links': links,
+        'experiences': experiences,
+        'education': education,
+        'followers_count': db.query(UserFollow.id).filter_by(followed_id=profile_user.id).count(),
+        'following_count': db.query(UserFollow.id).filter_by(follower_id=profile_user.id).count(),
+        'is_following': is_following,
+    }
+
+
+@app.get('/users/me/profile')
+def my_professional_profile(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    return public_profile_payload(user, db, user)
+
+
+@app.patch('/users/me/profile')
+def update_professional_profile(
+    body: ProfessionalProfilePatchIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    scalar_fields = {
+        'name': body.name,
+        'professional_role': body.headline,
+        'current_company': body.current_company,
+        'bio': body.bio,
+        'location': body.location,
+        'profile_image': body.profile_image,
+        'website': body.website,
+        'linkedin_url': body.linkedin_url,
+        'github_url': body.github_url,
+        'twitter_url': body.twitter_url,
+        'devto_url': body.devto_url,
+        'leetcode_url': body.leetcode_url,
+        'instagram_url': body.instagram_url,
+    }
+    try:
+        for field, value in scalar_fields.items():
+            if value is not None:
+                setattr(user, field, value.strip() if isinstance(value, str) else value)
+        if body.experiences is not None:
+            db.query(UserExperience).filter_by(user_id=user.id).delete(synchronize_session=False)
+            db.add_all(
+                UserExperience(user_id=user.id, **experience.model_dump())
+                for experience in body.experiences
+            )
+        if body.education is not None:
+            db.query(UserEducation).filter_by(user_id=user.id).delete(synchronize_session=False)
+            db.add_all(
+                UserEducation(user_id=user.id, **entry.model_dump())
+                for entry in body.education
+            )
+        db.add(user)
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.exception("professional_profile_update_failed")
+        raise HTTPException(
+            status_code=503,
+            detail="Profile changes could not be saved. Please try again.",
+        ) from exc
+    db.refresh(user)
+    return public_profile_payload(user, db, user)
+
+
+@app.get('/users/{user_id}/profile')
+def public_professional_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    viewer: User | None = Depends(get_optional_user),
+):
+    profile_user = one(db, User, user_id)
+    return public_profile_payload(profile_user, db, viewer)
+
+
+@app.get('/users/{user_id}/followers')
+def user_followers(user_id: int, db: Session = Depends(get_db)):
+    one(db, User, user_id)
+    rows = (
+        db.query(User)
+        .join(UserFollow, User.id == UserFollow.follower_id)
+        .filter(UserFollow.followed_id == user_id)
+        .order_by(UserFollow.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            'id': profile_user.id,
+            'name': profile_user.name,
+            'profile_image': profile_user.profile_image,
+            'headline': profile_user.professional_role,
+        }
+        for profile_user in rows
+    ]
+
+
+@app.get('/users/{user_id}/following')
+def user_following(user_id: int, db: Session = Depends(get_db)):
+    one(db, User, user_id)
+    rows = (
+        db.query(User)
+        .join(UserFollow, User.id == UserFollow.followed_id)
+        .filter(UserFollow.follower_id == user_id)
+        .order_by(UserFollow.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            'id': profile_user.id,
+            'name': profile_user.name,
+            'profile_image': profile_user.profile_image,
+            'headline': profile_user.professional_role,
+        }
+        for profile_user in rows
+    ]
+
+
+@app.post('/users/{user_id}/follow')
+def follow_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    one(db, User, user_id)
+    if user_id == user.id:
+        raise HTTPException(status_code=400, detail="You cannot follow your own profile.")
+    existing = db.query(UserFollow).filter_by(
+        follower_id=user.id, followed_id=user_id
+    ).first()
+    if existing:
+        return {'following': True, 'changed': False}
+    db.add(UserFollow(follower_id=user.id, followed_id=user_id))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if db.query(UserFollow.id).filter_by(
+            follower_id=user.id, followed_id=user_id
+        ).first():
+            return {'following': True, 'changed': False}
+        raise
+    return {'following': True, 'changed': True}
+
+
+@app.delete('/users/{user_id}/follow')
+def unfollow_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    one(db, User, user_id)
+    removed = db.query(UserFollow).filter_by(
+        follower_id=user.id, followed_id=user_id
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {'following': False, 'changed': bool(removed)}
+
+
 @app.get('/profile/links')
 def profile_links(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return [item(link) for link in db.query(UserLink).filter_by(user_id=user.id).order_by(UserLink.created_at.asc()).all()]
@@ -1147,6 +1418,7 @@ def update_profile(body: ProfileUpdateIn, db: Session = Depends(get_db), user: U
         'location': body.location,
         'profile_image': body.profile_image,
         'professional_role': body.professional_role,
+        'current_company': body.current_company,
         'skills': body.skills,
         'website': body.website,
         'linkedin_url': body.linkedin_url,
@@ -1421,6 +1693,31 @@ def create_post(body: PostIn, db: Session = Depends(get_db), user: User = Depend
     payload['tags'] = ', '.join(normalize_tags(payload.get('tags'))) if payload.get('tags') is not None else None
     x = Post(author_id=user.id, **payload)
     db.add(x); db.commit(); db.refresh(x);     return make_post_payload(x, db, user)
+
+
+@app.get('/feed')
+def personalized_feed(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    followed_user_ids = db.query(UserFollow.followed_id).filter(
+        UserFollow.follower_id == user.id
+    )
+    posts = (
+        db.query(Post)
+        .filter(
+            Post.is_archived.is_(False),
+            Post.status == 'published',
+            or_(Post.author_id == user.id, Post.author_id.in_(followed_user_ids)),
+        )
+        .order_by(Post.created_at.desc(), Post.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return [make_post_payload(post, db, user) for post in posts]
 
 
 @app.get('/posts')

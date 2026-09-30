@@ -49,6 +49,11 @@ export const api = {
   getSummits: () => apiRequest("/summits?status=upcoming"),
   getFounderMeets: () => apiRequest("/founder-meets?public=true"),
   getCategories: () => apiRequest("/categories"),
+  getProfessionalProfile: (userId) => apiRequest(`/users/${encodeURIComponent(userId)}/profile`),
+  updateProfessionalProfile: (payload) => apiRequest("/users/me/profile", { method: "PATCH", body: JSON.stringify(payload) }),
+  followUser: (userId) => apiRequest(`/users/${encodeURIComponent(userId)}/follow`, { method: "POST" }),
+  unfollowUser: (userId) => apiRequest(`/users/${encodeURIComponent(userId)}/follow`, { method: "DELETE" }),
+  getPersonalizedFeed: (page = 1, limit = 20) => apiRequest(`/feed?page=${page}&limit=${limit}`),
   getAdminDashboard: () => apiRequest("/admin/dashboard"),
   getStaffDashboard: () => apiRequest("/staff/dashboard"),
   getAdminRegistrations: (filters = {}) => {

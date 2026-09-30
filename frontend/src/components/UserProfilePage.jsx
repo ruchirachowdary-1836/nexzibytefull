@@ -43,8 +43,6 @@ import {
   PUBLISHED_POSTS,
   DRAFT_POSTS_INITIAL,
   ACTIVITY_FEED,
-  CAREER_TIMELINE,
-  SPEAKING_ENGAGEMENTS,
   generateContributionGrid
 } from "../data/userProfileData.js";
 
@@ -117,22 +115,97 @@ export default function UserProfilePage() {
   const [newLink, setNewLink] = useState({ label: "", url: "" });
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [savingLink, setSavingLink] = useState(false);
+  const [experiences, setExperiences] = useState([]);
+  const [education, setEducation] = useState([]);
+  const [profileListsLoading, setProfileListsLoading] = useState(true);
+  const [profileListsError, setProfileListsError] = useState("");
+  const [profileReload, setProfileReload] = useState(0);
+  const [profileListsSaving, setProfileListsSaving] = useState(false);
+  const [experienceDraft, setExperienceDraft] = useState({
+    title: "", company: "", start_date: "", end_date: "", description: ""
+  });
+  const [educationDraft, setEducationDraft] = useState({
+    school: "", degree: "", field: "", year: ""
+  });
 
   // In-session Profile Editor Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || DEFAULT_PROFILE.name,
-    title: user?.title || DEFAULT_PROFILE.title,
+    title: user?.title || user?.professional_role || DEFAULT_PROFILE.title,
     bio: user?.bio || DEFAULT_PROFILE.bio,
     location: user?.location || DEFAULT_PROFILE.location,
-    role: user?.role || DEFAULT_PROFILE.role,
-    company: user?.company || DEFAULT_PROFILE.company,
-    avatar: user?.avatar || DEFAULT_PROFILE.avatar
+    role: user?.professional_role || DEFAULT_PROFILE.role,
+    company: user?.company || user?.current_company || DEFAULT_PROFILE.company,
+    avatar: user?.avatar || user?.profile_image || DEFAULT_PROFILE.avatar
   });
 
   // Filter & Search states
   const [postSearch, setPostSearch] = useState("");
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("All");
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let active = true;
+    setProfileListsLoading(true);
+    setProfileListsError("");
+    api.getProfessionalProfile(user.id)
+      .then((profile) => {
+        if (!active) return;
+        setExperiences(profile.experiences || []);
+        setEducation(profile.education || []);
+      })
+      .catch((error) => {
+        if (active) {
+          setProfileListsError(error.message || "Professional profile details could not be loaded.");
+          showToast(error.message || "Professional profile details could not be loaded.");
+        }
+      })
+      .finally(() => {
+        if (active) setProfileListsLoading(false);
+      });
+    return () => { active = false; };
+  }, [user?.id, profileReload, showToast]);
+
+  const saveProfessionalLists = async (nextExperiences, nextEducation) => {
+    setProfileListsSaving(true);
+    try {
+      const saved = await api.updateProfessionalProfile({
+        experiences: nextExperiences,
+        education: nextEducation,
+      });
+      setExperiences(saved.experiences || []);
+      setEducation(saved.education || []);
+      setProfileListsError("");
+      showToast("Experience and education saved.");
+      return true;
+    } catch (error) {
+      showToast(error.message || "Experience and education could not be saved.");
+      return false;
+    } finally {
+      setProfileListsSaving(false);
+    }
+  };
+
+  const addExperience = async (event) => {
+    event.preventDefault();
+    const next = [...experiences, {
+      ...experienceDraft,
+      end_date: experienceDraft.end_date || null,
+      description: experienceDraft.description.trim() || null,
+    }];
+    if (await saveProfessionalLists(next, education)) {
+      setExperienceDraft({ title: "", company: "", start_date: "", end_date: "", description: "" });
+    }
+  };
+
+  const addEducation = async (event) => {
+    event.preventDefault();
+    const next = [...education, { ...educationDraft, year: Number(educationDraft.year) }];
+    if (await saveProfessionalLists(experiences, next)) {
+      setEducationDraft({ school: "", degree: "", field: "", year: "" });
+    }
+  };
 
   // Contribution Heatmap Data (Memoized 52 weeks)
   const heatmapData = useMemo(
@@ -145,22 +218,21 @@ export default function UserProfilePage() {
   const handleOpenEdit = () => {
     setFormData({
       name: user?.name || DEFAULT_PROFILE.name,
-      title: user?.title || DEFAULT_PROFILE.title,
+      title: user?.title || user?.professional_role || DEFAULT_PROFILE.title,
       bio: user?.bio || DEFAULT_PROFILE.bio,
       location: user?.location || DEFAULT_PROFILE.location,
-      role: user?.role || DEFAULT_PROFILE.role,
-      company: user?.company || DEFAULT_PROFILE.company,
-      avatar: user?.avatar || DEFAULT_PROFILE.avatar
+      role: user?.professional_role || DEFAULT_PROFILE.role,
+      company: user?.company || user?.current_company || DEFAULT_PROFILE.company,
+      avatar: user?.avatar || user?.profile_image || DEFAULT_PROFILE.avatar
     });
     setEditModalOpen(true);
   };
 
   // Submit in-session changes
-  const handleSaveEdit = (e) => {
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-    updateUserProfile(formData);
-    setEditModalOpen(false);
+    if (await updateUserProfile(formData)) setEditModalOpen(false);
   };
 
   const handleResetToDefault = () => {
@@ -169,8 +241,8 @@ export default function UserProfilePage() {
       title: user?.title || user?.professional_role || "",
       bio: user?.bio || "",
       location: user?.location || "",
-      role: user?.role || "",
-      company: user?.company || "",
+      role: user?.professional_role || "",
+      company: user?.company || user?.current_company || "",
       avatar: user?.avatar || user?.profile_image || ""
     });
     setEditModalOpen(false);
@@ -179,10 +251,10 @@ export default function UserProfilePage() {
   // Share profile handler
   const handleShareProfile = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(`${window.location.origin}/#/members/${user?.id}`);
       showToast("✓ Profile link copied to clipboard!");
     } else {
-      showToast("Profile URL: " + window.location.href);
+      showToast("Profile URL: " + `${window.location.origin}/#/members/${user?.id}`);
     }
   };
 
@@ -382,7 +454,7 @@ export default function UserProfilePage() {
               </div>
 
               <div className="profile-headline-title">
-                {user?.title || DEFAULT_PROFILE.title}
+                {user?.title || user?.professional_role || DEFAULT_PROFILE.title}
               </div>
 
               <p className="profile-bio-text">
@@ -399,7 +471,7 @@ export default function UserProfilePage() {
 
                 <div className="meta-chip">
                   <Briefcase size={14} />
-                  <span>{user?.company || DEFAULT_PROFILE.company}</span>
+                  <span>{user?.company || user?.current_company || DEFAULT_PROFILE.company}</span>
                 </div>
 
                 <div className="meta-chip">
@@ -1107,58 +1179,90 @@ export default function UserProfilePage() {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              TAB 5: CAREER EXPERIENCE & SPEAKING ENGAGEMENTS
+              TAB 5: EXPERIENCE & EDUCATION
               ══════════════════════════════════════════════════════════════════ */}
           {activeTab === "experience" && (
             <div className="tab-content-fade">
-              {/* Career Timeline */}
               <div className="profile-section-card">
-                <span className="section-label">ENGINEERING LEADERSHIP</span>
-                <h3 className="card-subheading">Professional Career Journey</h3>
-                <p className="card-desc">Demonstrated enterprise impact across high-growth technology ventures.</p>
-
-                <div className="career-timeline-wrapper">
-                  {CAREER_TIMELINE.map((item, idx) => (
-                    <div key={idx} className="career-timeline-card">
-                      <div className="career-period-badge">{item.period}</div>
-                      <div className="career-card-content">
-                        <h4 className="career-role">{item.role}</h4>
-                        <div className="career-company-row">
-                          <span className="career-company">{item.company}</span>
-                          <span>•</span>
-                          <span className="career-loc">{item.location}</span>
-                        </div>
-                        <ul className="career-highlights-list">
-                          {item.highlights.map((h, hIdx) => (
-                            <li key={hIdx}>{h}</li>
-                          ))}
-                        </ul>
+                <span className="section-label">PROFESSIONAL HISTORY</span>
+                <h3 className="card-subheading">Experience</h3>
+                {profileListsLoading && <p role="status">Loading experience…</p>}
+                {!profileListsLoading && profileListsError && <p role="alert">{profileListsError}</p>}
+                {!profileListsLoading && profileListsError && <button type="button" className="btn btn-secondary btn-sm" onClick={() => setProfileReload((value) => value + 1)}>Retry loading</button>}
+                {!profileListsLoading && !profileListsError && experiences.length === 0 && <p className="card-desc">No work experience has been added yet.</p>}
+                {experiences.map((experience) => (
+                  <article key={experience.id} style={{ padding: "16px 0", borderBottom: "1px solid var(--border-color)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                      <div>
+                        <h4>{experience.title}</h4>
+                        <p className="card-desc">{experience.company} · {experience.start_date} – {experience.end_date || "Present"}</p>
+                        {experience.description && <p>{experience.description}</p>}
                       </div>
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={profileListsSaving || profileListsLoading || Boolean(profileListsError)} onClick={() => saveProfessionalLists(experiences.filter((entry) => entry.id !== experience.id), education)}>Remove</button>
                     </div>
-                  ))}
-                </div>
+                  </article>
+                ))}
+                <form onSubmit={addExperience} className="settings-form-block" style={{ marginTop: "20px" }}>
+                  <h4>Add experience</h4>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="experience-title">Role</label>
+                    <input id="experience-title" className="form-input" value={experienceDraft.title} onChange={(event) => setExperienceDraft({ ...experienceDraft, title: event.target.value })} maxLength={160} required />
+                  </div>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="experience-company">Company</label>
+                    <input id="experience-company" className="form-input" value={experienceDraft.company} onChange={(event) => setExperienceDraft({ ...experienceDraft, company: event.target.value })} maxLength={160} required />
+                  </div>
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                    <div className="form-field-group">
+                      <label className="form-label" htmlFor="experience-start">Start date</label>
+                      <input id="experience-start" type="date" className="form-input" value={experienceDraft.start_date} onChange={(event) => setExperienceDraft({ ...experienceDraft, start_date: event.target.value })} required />
+                    </div>
+                    <div className="form-field-group">
+                      <label className="form-label" htmlFor="experience-end">End date (optional)</label>
+                      <input id="experience-end" type="date" className="form-input" value={experienceDraft.end_date} onChange={(event) => setExperienceDraft({ ...experienceDraft, end_date: event.target.value })} />
+                    </div>
+                  </div>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="experience-description">Description</label>
+                    <textarea id="experience-description" className="form-input" rows={3} maxLength={5000} value={experienceDraft.description} onChange={(event) => setExperienceDraft({ ...experienceDraft, description: event.target.value })} />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={profileListsSaving || profileListsLoading || Boolean(profileListsError)}>{profileListsSaving ? "Saving…" : "Add experience"}</button>
+                </form>
               </div>
 
-              {/* Speaking Engagements */}
               <div className="profile-section-card" style={{ marginTop: "24px" }}>
-                <span className="section-label">TECHTALK STAGES</span>
-                <h3 className="card-subheading">Conference Talks &amp; Masterclasses</h3>
-                <p className="card-desc">Keynote addresses and technical workshops presented to engineering audiences.</p>
-
-                <div className="speaking-grid">
-                  {SPEAKING_ENGAGEMENTS.map((spk, idx) => (
-                    <div key={idx} className="speaking-card">
-                      <div className="speaking-tag-pill">{spk.tag}</div>
-                      <h4 className="speaking-topic">{spk.topic}</h4>
-                      <div className="speaking-event-name">{spk.event}</div>
-                      <div className="speaking-meta-row">
-                        <span>{spk.date}</span>
-                        <span>•</span>
-                        <span>{spk.attendees}</span>
-                      </div>
+                <span className="section-label">ACADEMIC BACKGROUND</span>
+                <h3 className="card-subheading">Education</h3>
+                {!profileListsLoading && !profileListsError && education.length === 0 && <p className="card-desc">No education has been added yet.</p>}
+                {education.map((entry) => (
+                  <article key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "16px 0", borderBottom: "1px solid var(--border-color)" }}>
+                    <div>
+                      <h4>{entry.school}</h4>
+                      <p className="card-desc">{entry.degree} · {entry.field} · {entry.year}</p>
                     </div>
-                  ))}
-                </div>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={profileListsSaving || profileListsLoading || Boolean(profileListsError)} onClick={() => saveProfessionalLists(experiences, education.filter((item) => item.id !== entry.id))}>Remove</button>
+                  </article>
+                ))}
+                <form onSubmit={addEducation} className="settings-form-block" style={{ marginTop: "20px" }}>
+                  <h4>Add education</h4>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="education-school">School</label>
+                    <input id="education-school" className="form-input" value={educationDraft.school} onChange={(event) => setEducationDraft({ ...educationDraft, school: event.target.value })} maxLength={180} required />
+                  </div>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="education-degree">Degree</label>
+                    <input id="education-degree" className="form-input" value={educationDraft.degree} onChange={(event) => setEducationDraft({ ...educationDraft, degree: event.target.value })} maxLength={160} required />
+                  </div>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="education-field">Field of study</label>
+                    <input id="education-field" className="form-input" value={educationDraft.field} onChange={(event) => setEducationDraft({ ...educationDraft, field: event.target.value })} maxLength={160} required />
+                  </div>
+                  <div className="form-field-group">
+                    <label className="form-label" htmlFor="education-year">Year</label>
+                    <input id="education-year" type="number" min="1900" max="2100" className="form-input" value={educationDraft.year} onChange={(event) => setEducationDraft({ ...educationDraft, year: event.target.value })} required />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={profileListsSaving || profileListsLoading || Boolean(profileListsError)}>{profileListsSaving ? "Saving…" : "Add education"}</button>
+                </form>
               </div>
             </div>
           )}
